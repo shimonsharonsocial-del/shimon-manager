@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>המנהל של שמעון</title>
+<style>
+  :root{
+    --bg:#f3f4f9;
+    --surface:#ffffff;
+    --surface-hover:#eef0f9;
+    --text:#161822;
+    --text-muted:#6b7089;
+    --border:#e6e8f2;
+    --primary:#5b63f0;
+    --primary-dark:#454ed6;
+    --primary-tint:#ecedfe;
+    --primary-grad:linear-gradient(135deg,#6d74fb,#4c53e0);
+    --danger:#ef4444;
+    --danger-tint:#fdeaea;
+    --success:#1fb571;
+    --success-tint:#e5f8ee;
+    --warning:#f2994a;
+    --radius:18px;
+    --radius-sm:12px;
+    --shadow:0 1px 2px rgba(30,32,60,.05), 0 1px 1px rgba(30,32,60,.04);
+    --shadow-md:0 14px 30px -8px rgba(30,32,70,.20), 0 4px 10px rgba(30,32,70,.06);
+  }
+  html.dark{
+    --bg:#0f1015;
+    --surface:#1b1d27;
+    --surface-hover:#252836;
+    --text:#eceef5;
+    --text-muted:#9498ac;
+    --border:#2b2e3d;
+    --primary:#7c82ff;
+    --primary-dark:#98a0ff;
+    --primary-tint:#242a4c;
+    --primary-grad:linear-gradient(135deg,#8087ff,#5d63e6);
+    --danger:#f27171;
+    --danger-tint:#3a2226;
+    --success:#3ecf8e;
+    --success-tint:#173327;
+    --warning:#f4a862;
+    --shadow:0 1px 2px rgba(0,0,0,.35);
+    --shadow-md:0 16px 34px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  ::selection{background:var(--primary);color:#fff;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(900px 420px at 100% -10%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,Helvetica,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    transition:background .25s ease,color .25s ease;
+    overscroll-behavior-y:contain;
+  }
+  button{font-family:inherit;cursor:pointer;touch-action:manipulation;}
+  input,select{font-family:inherit;font-size:16px;}
+  #app{
+    max-width:960px;margin:0 auto;
+    padding:0 16px calc(60px + env(safe-area-inset-bottom)) 16px;
+    padding-top:env(safe-area-inset-top);
+  }
+
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+  .topbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    padding:22px 0 16px;position:sticky;top:0;z-index:10;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .topbar h1{font-size:21px;margin:0;white-space:nowrap;font-weight:800;letter-spacing:-.01em;}
+  .topbar-actions{display:flex;gap:8px;margin-inline-start:auto;align-items:center;}
+  .icon-btn{
+    border:1px solid var(--border);background:var(--surface);color:var(--text);
+    width:44px;height:44px;border-radius:13px;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+  }
+  .icon-btn:hover{background:var(--surface-hover);transform:translateY(-1px);box-shadow:var(--shadow-md);}
+  .icon-btn:active{transform:translateY(0);}
+  .text-btn{
+    border:1px solid var(--border);background:var(--surface);color:var(--text-muted);
+    padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;
+    transition:transform .15s ease,box-shadow .15s ease,background .15s ease,color .15s ease;
+  }
+  .text-btn:hover{background:var(--surface-hover);color:var(--text);transform:translateY(-1px);box-shadow:var(--shadow);}
+  .text-btn:active{transform:translateY(0);}
+  .text-btn.small{padding:5px 11px;font-size:11.5px;}
+
+  h2.section-title{font-size:17px;color:var(--text);margin:20px 0 14px;font-weight:800;letter-spacing:-.01em;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .cat-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 16px 16px;cursor:pointer;box-shadow:var(--shadow);
+    transition:transform .16s cubic-bezier(.2,.8,.3,1.2),box-shadow .16s ease,border-color .16s ease;
+    position:relative;overflow:hidden;animation:fadeInUp .25s ease;
+  }
+  .cat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:transparent;}
+  .cat-card .bar{position:absolute;top:0;right:0;left:0;height:5px;border-radius:0 0 6px 6px;}
+  .cat-card .name{font-weight:800;font-size:15px;margin-top:4px;letter-spacing:-.005em;}
+  .cat-card .count{color:var(--text-muted);font-size:12.5px;margin-top:5px;font-weight:600;}
+  .cat-card .count.danger{color:var(--danger);}
+  .cat-card.add-card{
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+    border:1.5px dashed var(--border);color:var(--text-muted);background:transparent;box-shadow:none;min-height:84px;
+  }
+  .cat-card.add-card:hover{background:var(--surface-hover);color:var(--primary);border-color:var(--primary);}
+  .cat-card.completed{opacity:.55;}
+  .cat-card.completed .name{text-decoration:line-through;}
+
+  .back-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .back-row h2{margin:0;font-size:19px;flex:1;font-weight:800;letter-spacing:-.01em;}
+
+  .task-row{
+    display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;
+    box-shadow:var(--shadow);transition:box-shadow .15s ease,border-color .15s ease,opacity .15s ease;
+    animation:fadeInUp .2s ease;
+  }
+  .task-row:hover{box-shadow:var(--shadow-md);}
+  .task-row.done{opacity:.55;}
+  .task-row.done .task-title{text-decoration:line-through;}
+  .check{
+    width:27px;height:27px;border-radius:50%;border:2px solid var(--border);background:var(--surface);
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
+    transition:transform .15s ease,background .15s ease,border-color .15s ease;
+  }
+  .check:hover{transform:scale(1.08);border-color:var(--primary);}
+  .check.checked{background:var(--success);border-color:var(--success);}
+  .task-body{flex:1;min-width:0;}
+  .task-title{font-size:14px;font-weight:700;}
+  .task-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;}
+  .badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.01em;}
+  .badge.overdue{background:var(--danger-tint);color:var(--danger);}
+  .badge.checklist{background:var(--primary-tint);color:var(--primary);cursor:pointer;}
+
+  .checklist-panel{padding:2px 0 8px;display:flex;flex-direction:column;gap:7px;margin-top:-4px;margin-bottom:8px;}
+  .checklist-item{display:flex;align-items:center;gap:6px;font-size:13px;padding-inline-end:20px;}
+  .checklist-item.dragging{opacity:.45;}
+  .checklist-item .done-text{text-decoration:line-through;color:var(--text-muted);}
+  .checklist-drag-handle{cursor:grab;touch-action:none;font-size:14px;color:var(--text-muted);background:none;border:none;padding:4px;flex-shrink:0;}
+  .checklist-drag-handle:active{cursor:grabbing;}
+  .check.small{width:20px;height:20px;font-size:11px;}
+  .checklist-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .checklist-edit-row .checklist-edit-input{flex:1;width:auto;}
+  .checklist-edit-row button{background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:6px;flex-shrink:0;}
+
+  .leftover-banner{background:var(--danger-tint);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px;}
+  .leftover-title{font-weight:800;font-size:14px;color:var(--danger);margin-bottom:10px;}
+  .leftover-row{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;box-shadow:var(--shadow);}
+  .leftover-row:last-child{margin-bottom:0;}
+  .leftover-body{flex:1;min-width:0;}
+  .row-actions{display:flex;gap:0;}
+  .row-actions button{background:none;border:none;color:var(--text-muted);font-size:15px;padding:9px;min-width:36px;min-height:36px;border-radius:9px;transition:background .15s ease,color .15s ease,transform .15s ease;}
+  .row-actions button:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06);}
+  .drag-handle{cursor:grab;touch-action:none;font-size:18px !important;color:var(--text-muted);min-width:36px;min-height:36px;}
+  .drag-handle:active{cursor:grabbing;}
+  .task-row.dragging{opacity:.45;box-shadow:var(--shadow-md);}
+
+  .day-group{margin-bottom:24px;}
+  .day-group-title{font-size:12.5px;font-weight:800;color:var(--text-muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:.03em;}
+
+  .cal-header{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .cal-header .month-label{flex:1;text-align:center;font-size:17px;font-weight:800;letter-spacing:-.01em;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:22px;}
+  .cal-weekday{text-align:center;font-size:11px;color:var(--text-muted);font-weight:800;padding:4px 0;}
+  .cal-day{
+    min-width:0;min-height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface);border:1px solid var(--border);
+    transition:transform .12s ease,background .12s ease,box-shadow .12s ease;
+  }
+  .cal-day:hover{background:var(--surface-hover);transform:translateY(-1px);}
+  .cal-day.empty{background:transparent;border:none;cursor:default;}
+  .cal-day.empty:hover{transform:none;}
+  .cal-day.today{border-color:var(--primary);border-width:2px;font-weight:800;color:var(--primary);}
+  .cal-day.selected{background:var(--primary-grad);color:#fff;border-color:transparent;box-shadow:var(--shadow-md);font-weight:800;}
+  .cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--primary);}
+  .cal-day.selected .dot{background:#fff;}
+  .cal-list-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .cal-list-header h2{margin:0;font-size:14.5px;color:var(--text-muted);flex:1;font-weight:800;text-transform:uppercase;letter-spacing:.02em;}
+
+  .event-row{
+    display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);
+    transition:box-shadow .15s ease;animation:fadeInUp .2s ease;
+  }
+  .event-row:hover{box-shadow:var(--shadow-md);}
+  .event-body{flex:1;min-width:0;cursor:pointer;}
+  .event-title{font-size:14px;font-weight:700;}
+  .event-meta{font-size:12px;color:var(--text-muted);margin-top:3px;font-weight:600;}
+
+  .empty{color:var(--text-muted);text-align:center;padding:44px 10px;font-size:14px;line-height:1.7;}
+
+  .add-inline{
+    display:flex;align-items:center;gap:8px;justify-content:center;
+    border:1.5px dashed var(--border);border-radius:var(--radius-sm);padding:13px;color:var(--text-muted);
+    background:transparent;width:100%;font-size:14px;font-weight:700;margin-top:8px;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .add-inline:hover{background:var(--surface-hover);color:var(--primary);border-color:var(--primary);}
+
+  .fab-row{display:flex;justify-content:flex-end;margin-top:14px;}
+  .btn{border:none;border-radius:12px;padding:11px 20px;font-size:14px;font-weight:800;transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;}
+  .btn.small{padding:7px 14px;font-size:12.5px;border-radius:10px;}
+  .btn.primary{background:var(--primary-grad);color:#fff;box-shadow:0 6px 16px -4px color-mix(in srgb, var(--primary) 60%, transparent);}
+  .btn.primary:hover{filter:brightness(1.06);transform:translateY(-1px);}
+  .btn.primary:active{transform:translateY(0);}
+  .btn.secondary{background:var(--surface-hover);color:var(--text);}
+  .btn.secondary:hover{filter:brightness(.97);}
+  .btn.danger{background:var(--danger-tint);color:var(--danger);}
+  .btn.danger:hover{filter:brightness(.97);}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(12,12,20,.5);display:flex;align-items:center;justify-content:center;
+    padding:20px;z-index:100;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  }
+  .modal{
+    background:var(--surface);border-radius:20px;padding:24px;width:100%;max-width:380px;
+    box-shadow:var(--shadow-md);animation:popIn .18s cubic-bezier(.2,.8,.3,1.1) both;
+  }
+  .modal h2{margin:0 0 18px;font-size:18px;font-weight:800;letter-spacing:-.01em;}
+  .modal label{display:block;font-size:12.5px;color:var(--text-muted);margin:14px 0 6px;font-weight:700;}
+  .modal input[type=text],.modal input[type=date],.modal input[type=time],.modal input[type=number],.modal select{
+    width:100%;padding:12px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  .modal input:focus,.modal select:focus{
+    outline:none;border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+  }
+  .modal-actions{display:flex;justify-content:space-between;gap:8px;margin-top:24px;}
+  .modal-actions .end{display:flex;gap:8px;margin-inline-start:auto;}
+
+  .tabs{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px;padding:6px;
+    background:var(--surface-hover);border-radius:16px;
+  }
+  .tabs .tab{padding:8px 2px;font-size:11.5px;border-radius:12px;text-align:center;white-space:normal;line-height:1.3;word-break:break-word;}
+  .tab{
+    background:none;border:none;padding:9px 14px;font-size:13.5px;font-weight:700;color:var(--text-muted);
+    white-space:nowrap;border-radius:999px;transition:background .18s ease,color .18s ease,box-shadow .18s ease;
+  }
+  .tab.active{color:#fff;background:var(--primary-grad);box-shadow:0 4px 12px -3px color-mix(in srgb, var(--primary) 55%, transparent);}
+  .tab:hover:not(.active){color:var(--text);background:color-mix(in srgb, var(--surface) 60%, transparent);}
+
+  .day-nav{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .day-nav .date-label{font-size:16px;font-weight:800;flex:1;text-align:center;min-width:160px;letter-spacing:-.01em;}
+  .day-nav input[type=date]{padding:8px 10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;max-width:132px;}
+
+  .weekday-picker{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .weekday-btn{
+    width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text-muted);font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .weekday-btn.active{background:var(--primary-grad);color:#fff;border-color:transparent;}
+
+  .badge.cat{color:#fff;}
+
+  .range-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+  .range-tabs .tab{border:1.5px solid var(--border);border-radius:12px;background:var(--surface);}
+  .range-tabs .tab.active{background:var(--primary-grad);border-color:transparent;}
+  .stat-breakdown{display:flex;flex-direction:column;gap:8px;}
+  .stat-row{
+    display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-weight:700;box-shadow:var(--shadow);
+  }
+
+  .stats-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+  .stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 10px;text-align:center;box-shadow:var(--shadow);}
+  .stat-tile-value{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat-tile-value.income{color:var(--success);}
+  .stat-tile-value.expense{color:var(--danger);}
+  .stat-tile-label{font-size:11.5px;color:var(--text-muted);margin-top:6px;font-weight:600;}
+
+  .gauge-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;box-shadow:var(--shadow);}
+  .gauge-header{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-muted);}
+  .gauge-track{height:12px;border-radius:999px;background:var(--surface-hover);overflow:hidden;}
+  .gauge-fill{height:100%;background:var(--primary-grad);border-radius:999px;transition:width .3s ease;}
+  .gauge-fill.over{background:var(--danger);}
+
+  .water-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;box-shadow:var(--shadow);text-align:center;}
+  .water-label{font-size:12px;color:var(--text-muted);font-weight:700;}
+  .water-count{font-size:24px;font-weight:800;color:var(--primary);margin:3px 0;}
+  .water-btn-row{display:flex;justify-content:center;gap:8px;margin-top:6px;}
+
+  .nutrition-row{
+    display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);
+    transition:box-shadow .15s ease;animation:fadeInUp .2s ease;
+  }
+  .nutrition-row:hover{box-shadow:var(--shadow-md);}
+  .nutrition-body{flex:1;min-width:0;cursor:pointer;}
+  .nutrition-title{font-size:14px;font-weight:700;}
+  .nutrition-meta{font-size:12px;color:var(--text-muted);margin-top:3px;font-weight:600;}
+  .nutrition-value{font-size:15px;font-weight:800;color:var(--primary);white-space:nowrap;}
+
+  .day-chart{
+    display:flex;align-items:flex-end;gap:6px;padding:12px 8px 0;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    box-shadow:var(--shadow);overflow-x:auto;margin-bottom:18px;
+  }
+  .day-chart-bar-wrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:32px;}
+  .day-chart-bar{width:100%;background:var(--primary-grad);border-radius:6px 6px 0 0;min-height:3px;}
+  .day-chart-bar.over{background:var(--danger);}
+  .day-chart-value{font-size:9px;font-weight:700;color:var(--text);margin-bottom:4px;white-space:nowrap;}
+  .day-chart-label{font-size:9px;color:var(--text-muted);margin-top:5px;white-space:nowrap;}
+
+  .compare-chart{display:flex;flex-direction:column;gap:14px;margin-bottom:12px;}
+  .compare-row{display:flex;align-items:center;gap:10px;}
+  .compare-label{font-size:13px;font-weight:700;color:var(--text-muted);flex-shrink:0;width:56px;}
+  .compare-track{flex:1;height:16px;border-radius:999px;background:var(--surface-hover);overflow:hidden;}
+  .compare-fill{height:100%;border-radius:999px;transition:width .3s ease;}
+  .compare-fill.income{background:var(--success);}
+  .compare-fill.expense{background:var(--danger);}
+  .compare-value{font-size:13px;font-weight:700;flex-shrink:0;}
+
+  .finance-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px;}
+  .finance-summary .tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 8px;text-align:center;box-shadow:var(--shadow);}
+  .finance-summary .tile .label{font-size:11px;color:var(--text-muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+  .finance-summary .tile .value{font-size:16px;font-weight:800;}
+  .finance-summary .tile.income .value{color:var(--success);}
+  .finance-summary .tile.expense .value{color:var(--danger);}
+
+  .finance-row{
+    display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);
+    transition:box-shadow .15s ease;animation:fadeInUp .2s ease;
+  }
+  .finance-row:hover{box-shadow:var(--shadow-md);}
+  .finance-body{flex:1;min-width:0;cursor:pointer;}
+  .finance-title{font-size:14px;font-weight:700;}
+  .finance-meta{font-size:12px;color:var(--text-muted);margin-top:3px;font-weight:600;}
+  .finance-amount{font-size:15px;font-weight:800;white-space:nowrap;}
+  .finance-amount.income{color:var(--success);}
+  .finance-amount.expense{color:var(--danger);}
+
+  .empty:not(.cal-day)::before{content:'✨';display:block;font-size:30px;margin-bottom:10px;}
+
+  .hidden{display:none !important;}
+  @media (max-width:480px){
+    .topbar h1{display:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>🗓️ המנהל של שמעון</h1>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="החלף מצב תצוגה"></button>
+      <button class="text-btn" onclick="exportBackup()">גיבוי</button>
+      <button class="text-btn" onclick="document.getElementById('restoreInput').click()">שחזור</button>
+      <input type="file" id="restoreInput" accept="application/json" class="hidden" onchange="importBackup(event)">
+    </div>
+  </header>
+  <main id="mainView"></main>
+</div>
+<div id="modalRoot"></div>
+
+<script>
+/* ---------- State ---------- */
+const STORAGE_KEY = 'zman-app-data-v1';
+const CAT_COLORS = ['#5b8def','#f2994a','#27ae60','#eb5757','#9b51e0','#2d9cdb','#f2c94c','#56ccf2'];
+const FINANCE_CATEGORIES = ['הוצאות ובזבוזים','קניות אוכל','אוכל בחוץ','נסיעות','תשלומים','תרומות','חסכונות והשקעות','הכנסות'];
+const FINANCE_SAVINGS_SUBCATS = ['חיסכון בבנק','עסק','שוק ההון'];
+const FINANCE_INCOME_CATEGORY = 'הכנסות';
+const FINANCE_SAVINGS_CATEGORY = 'חסכונות והשקעות';
+
+function defaultState(){
+  return {
+    version:1, theme:'light', categories:[], tasks:[], events:[], goals:[], finances:[],
+    financeCategories:[...FINANCE_CATEGORIES], recurringTasks:[],
+    waterEntries:[], foodEntries:[], calorieTarget:1800, waterTarget:8
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    const merged = Object.assign(defaultState(), parsed);
+    if(!merged.financeCategories || !merged.financeCategories.length) merged.financeCategories = [...FINANCE_CATEGORIES];
+    merged.tasks = (merged.tasks||[]).map((t,i)=>{
+      const scope = t.scope || 'today';
+      const date = scope==='today' ? (t.date || t.dueDate || todayStr()) : null;
+      const weekOf = scope==='weekly' ? (t.weekOf || currentWeekOf()) : null;
+      const order = t.order!==undefined ? t.order : i;
+      const { dueDate, priority, ...rest } = t;
+      return { ...rest, scope, date, weekOf, order };
+    });
+    return merged;
+  }catch(e){
+    console.error('Failed to load state', e);
+    return defaultState();
+  }
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+let ui = {
+  view: 'calendar',
+  calendarMonth: todayStr().slice(0,7),
+  selectedCalendarDate: null,
+  selectedDate: todayStr(),
+  selectedCategoryId: null,
+  showCompletedGoals: false,
+  expandedChecklists: {},
+  taskViewMode: 'today',
+  statsMode: 'tasks',
+  statsTaskCategoryId: null,
+  statsNutritionPeriod: 'month',
+  statsNutritionMonth: todayStr().slice(0,7),
+  financeStatsPeriod: 'month',
+  financeStatsMonth: todayStr().slice(0,7),
+  financeStatsYear: new Date().getFullYear(),
+  financeFilterType: 'all',
+  financeSortMode: 'time'
+};
+
+/* ---------- Helpers ---------- */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function todayStr(){ return toDateStr(new Date()); }
+function toDateStr(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function formatDateShort(ds){
+  if(!ds) return '';
+  const [y,m,d] = ds.split('-');
+  return `${d}.${m}`;
+}
+function parseDateStr(ds){
+  const [y,m,d] = ds.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+const WEEKDAY_NAMES = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const WEEKDAY_LETTERS = ['א','ב','ג','ד','ה','ו','ש'];
+function formatDateLabel(ds){
+  const d = parseDateStr(ds);
+  const diffDays = Math.round((d - parseDateStr(todayStr())) / 86400000);
+  const weekday = WEEKDAY_NAMES[d.getDay()];
+  const dm = formatDateShort(ds);
+  if(diffDays===0) return `היום · יום ${weekday}, ${dm}`;
+  if(diffDays===1) return `מחר · יום ${weekday}, ${dm}`;
+  if(diffDays===-1) return `אתמול · יום ${weekday}, ${dm}`;
+  return `יום ${weekday}, ${dm}`;
+}
+function startOfWeek(d){ const s=new Date(d); s.setDate(d.getDate()-d.getDay()); s.setHours(0,0,0,0); return s; }
+function endOfWeek(d){ const s=startOfWeek(d); const e=new Date(s); e.setDate(s.getDate()+6); return e; }
+function currentWeekOf(){ return toDateStr(startOfWeek(new Date())); }
+function weekOfDeadlinePassed(weekOf){
+  const deadline = parseDateStr(weekOf);
+  deadline.setDate(deadline.getDate()+6);
+  deadline.setHours(17,0,0,0);
+  return new Date() >= deadline;
+}
+function formatWeekLabel(weekOf){
+  const start = parseDateStr(weekOf);
+  const end = new Date(start);
+  end.setDate(start.getDate()+6);
+  return `${formatDateShort(weekOf)} - ${formatDateShort(toDateStr(end))}`;
+}
+function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+function endOfMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0); }
+const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+function monthMatrix(yearMonth){
+  const [y,m] = yearMonth.split('-').map(Number);
+  const startWeekday = new Date(y, m-1, 1).getDay();
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startWeekday;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  return cells;
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Theme ---------- */
+function applyTheme(){
+  document.documentElement.classList.toggle('dark', state.theme==='dark');
+  document.getElementById('themeToggle').textContent = state.theme==='dark' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  state.theme = state.theme==='dark' ? 'light' : 'dark';
+  saveState();
+  applyTheme();
+}
+
+/* ---------- Modal ---------- */
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+function showModal(html){
+  document.getElementById('modalRoot').innerHTML =
+    `<div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+       <div class="modal">${html}</div>
+     </div>`;
+  const firstInput = document.querySelector('.modal input, .modal select');
+  if(firstInput) firstInput.focus();
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+let pendingConfirmAction = null;
+function showConfirm(message, onConfirm){
+  pendingConfirmAction = onConfirm;
+  showModal(`
+    <h2>אישור פעולה</h2>
+    <p style="margin:0 0 20px;color:var(--text);font-size:14px;line-height:1.6;">${escapeHtml(message)}</p>
+    <div class="modal-actions">
+      <div></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+        <button type="button" class="btn danger" onclick="runConfirmedAction()">אישור</button>
+      </div>
+    </div>
+  `);
+}
+function runConfirmedAction(){
+  const action = pendingConfirmAction;
+  pendingConfirmAction = null;
+  closeModal();
+  if(action) action();
+}
+
+/* ---------- View switching ---------- */
+function switchView(view){
+  ui.view = view;
+  render();
+}
+function shiftDay(delta){
+  const d = parseDateStr(ui.selectedDate);
+  d.setDate(d.getDate()+delta);
+  ui.selectedDate = toDateStr(d);
+  render();
+}
+function goToday(){
+  ui.selectedDate = todayStr();
+  render();
+}
+function jumpToDate(val){
+  if(!val) return;
+  ui.selectedDate = val;
+  render();
+}
+function setTaskViewMode(v){ ui.taskViewMode = v; render(); }
+function carryOverWeeklyTask(taskId){
+  const t = state.tasks.find(x=>x.id===taskId);
+  if(!t) return;
+  t.weekOf = currentWeekOf();
+  saveState();
+  render();
+}
+function setStatsMode(v){ ui.statsMode = v; render(); }
+function setStatsTaskCategory(v){ ui.statsTaskCategoryId = v || null; render(); }
+function setNutritionStatsPeriod(v){ ui.statsNutritionPeriod = v; render(); }
+function setNutritionStatsMonth(v){ if(!v) return; ui.statsNutritionMonth = v; render(); }
+function shiftMonth(delta){
+  const [y,m] = ui.calendarMonth.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  ui.calendarMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  render();
+}
+function selectCalendarDay(dateStr){
+  ui.selectedCalendarDate = (ui.selectedCalendarDate===dateStr) ? null : dateStr;
+  render();
+}
+function setFinanceFilter(v){ ui.financeFilterType = v; render(); }
+function setFinanceSort(v){ ui.financeSortMode = v; render(); }
+function setFinanceStatsPeriod(v){ ui.financeStatsPeriod = v; render(); }
+function setFinanceStatsMonth(v){ if(!v) return; ui.financeStatsMonth = v; render(); }
+function setFinanceStatsYear(v){ ui.financeStatsYear = Number(v); render(); }
+function financeYearsList(){
+  const years = new Set([new Date().getFullYear()]);
+  state.finances.forEach(f=>years.add(Number(f.date.slice(0,4))));
+  return Array.from(years).sort((a,b)=>b-a);
+}
+
+/* ---------- Categories ---------- */
+function openCategoryModal(catId){
+  const cat = catId ? state.categories.find(c=>c.id===catId) : null;
+  showModal(`
+    <h2>${cat ? 'עריכת קטגוריה' : 'קטגוריה חדשה'}</h2>
+    <form onsubmit="event.preventDefault(); saveCategoryForm('${catId||''}')">
+      <label>שם הקטגוריה</label>
+      <input type="text" id="catNameInput" value="${cat?escapeHtml(cat.name):''}" required>
+      <div class="modal-actions">
+        <div>${cat ? `<button type="button" class="btn danger" onclick="deleteCategory('${cat.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveCategoryForm(catId){
+  const name = document.getElementById('catNameInput').value.trim();
+  if(!name) return;
+  if(catId){
+    const cat = state.categories.find(c=>c.id===catId);
+    cat.name = name;
+  }else{
+    state.categories.push({
+      id: uid(), name,
+      color: CAT_COLORS[state.categories.length % CAT_COLORS.length]
+    });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteCategory(catId){
+  showConfirm('למחוק את הקטגוריה? כל המשימות שבתוכה יימחקו גם הן.', () => {
+    state.categories = state.categories.filter(c=>c.id!==catId);
+    state.tasks = state.tasks.filter(t=>t.categoryId!==catId);
+    saveState();
+    ui.selectedCategoryId = null;
+    render();
+  });
+}
+function openCategory(catId){
+  ui.selectedCategoryId = catId;
+  render();
+}
+
+/* ---------- Goals ---------- */
+function openGoalModal(goalId){
+  const goal = goalId ? state.goals.find(g=>g.id===goalId) : null;
+  const catOptions = state.categories.map(c=>
+    `<option value="${c.id}" ${goal&&goal.categoryId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`
+  ).join('');
+  showModal(`
+    <h2>${goal ? 'עריכת יעד' : 'יעד חדש'}</h2>
+    <form onsubmit="event.preventDefault(); saveGoalForm('${goalId||''}')">
+      <label>כותרת</label>
+      <input type="text" id="goalTitleInput" value="${goal?escapeHtml(goal.title):''}" required>
+      <label>קטגוריה</label>
+      <select id="goalCatInput">
+        <option value="">ללא קטגוריה</option>
+        ${catOptions}
+      </select>
+      <label>כמות יעד</label>
+      <input type="number" id="goalCountInput" min="1" value="${goal?goal.targetCount:1}" required>
+      <label>דדליין</label>
+      <input type="date" id="goalDeadlineInput" value="${goal&&goal.deadline?goal.deadline:''}" required>
+      <div class="modal-actions">
+        <div>${goal ? `<button type="button" class="btn danger" onclick="deleteGoal('${goal.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveGoalForm(goalId){
+  const title = document.getElementById('goalTitleInput').value.trim();
+  if(!title) return;
+  const categoryId = document.getElementById('goalCatInput').value || null;
+  const targetCount = Math.max(1, parseInt(document.getElementById('goalCountInput').value, 10) || 1);
+  const deadline = document.getElementById('goalDeadlineInput').value;
+  if(!deadline) return;
+  if(goalId){
+    const goal = state.goals.find(g=>g.id===goalId);
+    Object.assign(goal, { title, categoryId, targetCount, deadline });
+  }else{
+    state.goals.push({ id:uid(), title, categoryId, targetCount, deadline, completed:false, completedAt:null, createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteGoal(goalId){
+  showConfirm('למחוק את היעד? המשימות המשויכות לא יימחקו, אבל השיוך שלהן אליו יוסר.', () => {
+    state.goals = state.goals.filter(g=>g.id!==goalId);
+    state.tasks.forEach(t=>{ if(t.goalId===goalId) t.goalId=null; });
+    saveState();
+    render();
+  });
+}
+function toggleGoalCompleted(goalId){
+  const goal = state.goals.find(g=>g.id===goalId);
+  if(!goal) return;
+  goal.completed = !goal.completed;
+  goal.completedAt = goal.completed ? Date.now() : null;
+  saveState();
+  render();
+}
+function toggleShowCompletedGoals(){
+  ui.showCompletedGoals = !ui.showCompletedGoals;
+  render();
+}
+
+/* ---------- Finances ---------- */
+function toggleFinanceSubcategory(val){
+  const wrap = document.getElementById('financeSubcatWrap');
+  if(wrap) wrap.classList.toggle('hidden', val!==FINANCE_SAVINGS_CATEGORY);
+}
+function openAddFinanceCategoryModal(txId){
+  showModal(`
+    <h2>קטגוריה חדשה</h2>
+    <form onsubmit="event.preventDefault(); saveNewFinanceCategory('${txId||''}')">
+      <label>שם הקטגוריה</label>
+      <input type="text" id="newFinanceCatInput" required>
+      <div class="modal-actions">
+        <div></div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="openFinanceModal('${txId||''}')">ביטול</button>
+          <button type="submit" class="btn primary">הוספה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveNewFinanceCategory(txId){
+  const name = document.getElementById('newFinanceCatInput').value.trim();
+  if(!name) return;
+  if(!state.financeCategories.includes(name)){
+    state.financeCategories.push(name);
+    saveState();
+  }
+  openFinanceModal(txId);
+  const sel = document.getElementById('financeCatInput');
+  if(sel){ sel.value = name; toggleFinanceSubcategory(name); }
+}
+function openFinanceCategoriesModal(){
+  const rows = state.financeCategories.map((c,i)=>{
+    const isCore = c===FINANCE_INCOME_CATEGORY || c===FINANCE_SAVINGS_CATEGORY;
+    return `<div class="stat-row" style="margin-bottom:8px;">
+      <span>${escapeHtml(c)}</span>
+      ${isCore ? '' : `<button type="button" onclick="deleteFinanceCategory(${i})" title="מחיקה" style="background:none;border:none;color:var(--danger);font-size:15px;cursor:pointer;">🗑️</button>`}
+    </div>`;
+  }).join('');
+  showModal(`
+    <h2>קטגוריות כספים</h2>
+    ${rows}
+    <form onsubmit="event.preventDefault(); saveNewFinanceCategoryFromManager()" style="margin-top:14px;">
+      <label>קטגוריה חדשה</label>
+      <input type="text" id="newFinanceCatManagerInput" required>
+      <div class="modal-actions">
+        <div></div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">סגירה</button>
+          <button type="submit" class="btn primary">הוספה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveNewFinanceCategoryFromManager(){
+  const name = document.getElementById('newFinanceCatManagerInput').value.trim();
+  if(!name) return;
+  if(!state.financeCategories.includes(name)){
+    state.financeCategories.push(name);
+    saveState();
+  }
+  openFinanceCategoriesModal();
+}
+function deleteFinanceCategory(index){
+  showConfirm('למחוק את הקטגוריה? תנועות קיימות עם קטגוריה זו יישארו כמו שהן.', () => {
+    state.financeCategories.splice(index, 1);
+    saveState();
+    openFinanceCategoriesModal();
+  });
+}
+function openFinanceModal(txId){
+  const tx = txId ? state.finances.find(f=>f.id===txId) : null;
+  const catOptions = state.financeCategories.map(c=>
+    `<option value="${escapeHtml(c)}" ${tx&&tx.category===c?'selected':''}>${escapeHtml(c)}</option>`
+  ).join('');
+  const subcatOptions = FINANCE_SAVINGS_SUBCATS.map(s=>
+    `<option value="${s}" ${tx&&tx.subCategory===s?'selected':''}>${s}</option>`
+  ).join('');
+  const showSubcat = tx && tx.category===FINANCE_SAVINGS_CATEGORY;
+  showModal(`
+    <h2>${tx ? 'עריכת תנועה' : 'תנועה חדשה'}</h2>
+    <form onsubmit="event.preventDefault(); saveFinanceForm('${txId||''}')">
+      <label>קטגוריה</label>
+      <select id="financeCatInput" onchange="toggleFinanceSubcategory(this.value)">
+        ${catOptions}
+      </select>
+      <button type="button" class="text-btn small" style="margin-top:8px;" onclick="openAddFinanceCategoryModal('${txId||''}')">+ קטגוריה חדשה</button>
+      <div id="financeSubcatWrap" class="${showSubcat?'':'hidden'}">
+        <label>תת-קטגוריה</label>
+        <select id="financeSubcatInput">
+          ${subcatOptions}
+        </select>
+      </div>
+      <label>כותרת</label>
+      <input type="text" id="financeTitleInput" value="${tx?escapeHtml(tx.title):''}" required>
+      <label>סכום (₪)</label>
+      <input type="number" id="financeAmountInput" min="0" step="0.1" value="${tx?tx.amount:''}" required>
+      <label>תאריך</label>
+      <input type="date" id="financeDateInput" value="${tx?tx.date:todayStr()}" required>
+      <div class="modal-actions">
+        <div>${tx ? `<button type="button" class="btn danger" onclick="deleteFinance('${tx.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">הכנס</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveFinanceForm(txId){
+  const category = document.getElementById('financeCatInput').value;
+  const subCategory = category===FINANCE_SAVINGS_CATEGORY ? document.getElementById('financeSubcatInput').value : null;
+  const title = document.getElementById('financeTitleInput').value.trim();
+  if(!title) return;
+  const amount = parseFloat(document.getElementById('financeAmountInput').value);
+  if(!amount || amount<=0) return;
+  const date = document.getElementById('financeDateInput').value || todayStr();
+  const type = category===FINANCE_INCOME_CATEGORY ? 'income' : 'expense';
+  if(txId){
+    const tx = state.finances.find(f=>f.id===txId);
+    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7) });
+  }else{
+    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteFinance(txId){
+  showConfirm('למחוק את התנועה?', () => {
+    state.finances = state.finances.filter(f=>f.id!==txId);
+    saveState();
+    render();
+  });
+}
+function financeRowHtml(f){
+  const sign = f.type==='income' ? '+' : '-';
+  return `<div class="finance-row">
+    <div class="finance-body" onclick="openFinanceModal('${f.id}')">
+      <div class="finance-title">${escapeHtml(f.title)}</div>
+      <div class="finance-meta">${escapeHtml(f.category)}${f.subCategory?` · ${escapeHtml(f.subCategory)}`:''} · ${formatDateShort(f.date)}</div>
+    </div>
+    <div class="finance-amount ${f.type}">${sign}${f.amount.toLocaleString('he-IL')} ₪</div>
+    <div class="row-actions">
+      <button onclick="openFinanceModal('${f.id}')" title="עריכה">✏️</button>
+      <button onclick="deleteFinance('${f.id}')" title="מחיקה">🗑️</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Nutrition ---------- */
+function addWater(){
+  state.waterEntries.push({ id:uid(), date:todayStr(), createdAt:Date.now() });
+  saveState();
+  render();
+}
+function removeLastWater(){
+  const todayEntries = state.waterEntries.filter(w=>w.date===todayStr());
+  if(todayEntries.length===0) return;
+  const last = todayEntries.reduce((a,b)=>a.createdAt>b.createdAt?a:b);
+  state.waterEntries = state.waterEntries.filter(w=>w.id!==last.id);
+  saveState();
+  render();
+}
+function openFoodModal(entryId){
+  const entry = entryId ? state.foodEntries.find(f=>f.id===entryId) : null;
+  showModal(`
+    <h2>${entry ? 'עריכת פריט' : 'הוספת אוכל'}</h2>
+    <form onsubmit="event.preventDefault(); saveFoodForm('${entryId||''}')">
+      <label>כותרת</label>
+      <input type="text" id="foodTitleInput" value="${entry?escapeHtml(entry.title):''}" required>
+      <label>קלוריות</label>
+      <input type="number" id="foodCaloriesInput" min="0" value="${entry?entry.calories:''}" required>
+      <div class="modal-actions">
+        <div>${entry ? `<button type="button" class="btn danger" onclick="deleteFoodEntry('${entry.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveFoodForm(entryId){
+  const title = document.getElementById('foodTitleInput').value.trim();
+  if(!title) return;
+  const calories = parseFloat(document.getElementById('foodCaloriesInput').value);
+  if(!calories || calories<0) return;
+  if(entryId){
+    const entry = state.foodEntries.find(f=>f.id===entryId);
+    Object.assign(entry, { title, calories });
+  }else{
+    state.foodEntries.push({ id:uid(), title, calories, date:todayStr(), createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteFoodEntry(entryId){
+  showConfirm('למחוק את הפריט?', () => {
+    state.foodEntries = state.foodEntries.filter(f=>f.id!==entryId);
+    saveState();
+    render();
+  });
+}
+function openCalorieTargetModal(){
+  showModal(`
+    <h2>יעד קלוריות יומי</h2>
+    <form onsubmit="event.preventDefault(); saveCalorieTarget()">
+      <label>יעד (קלוריות)</label>
+      <input type="number" id="calorieTargetInput" min="1" value="${state.calorieTarget}" required>
+      <div class="modal-actions">
+        <div></div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveCalorieTarget(){
+  const val = parseFloat(document.getElementById('calorieTargetInput').value);
+  if(!val || val<=0) return;
+  state.calorieTarget = val;
+  saveState();
+  closeModal();
+  render();
+}
+function openWaterTargetModal(){
+  showModal(`
+    <h2>יעד כוסות מים יומי</h2>
+    <form onsubmit="event.preventDefault(); saveWaterTarget()">
+      <label>יעד (כוסות)</label>
+      <input type="number" id="waterTargetInput" min="1" value="${state.waterTarget}" required>
+      <div class="modal-actions">
+        <div></div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveWaterTarget(){
+  const val = parseInt(document.getElementById('waterTargetInput').value, 10);
+  if(!val || val<=0) return;
+  state.waterTarget = val;
+  saveState();
+  closeModal();
+  render();
+}
+
+/* ---------- Tasks ---------- */
+function toggleTaskScopeFields(val){
+  const wrap = document.getElementById('taskDateWrap');
+  if(wrap) wrap.classList.toggle('hidden', val!=='today');
+  const repeatSection = document.getElementById('taskRepeatSection');
+  if(repeatSection) repeatSection.classList.toggle('hidden', val!=='today');
+}
+function toggleTaskRepeatFields(checked){
+  const daysWrap = document.getElementById('taskRepeatDaysWrap');
+  if(daysWrap) daysWrap.classList.toggle('hidden', !checked);
+  const dateWrap = document.getElementById('taskDateWrap');
+  if(dateWrap) dateWrap.classList.toggle('hidden', checked);
+}
+const RECURRING_WINDOW_DAYS = 60;
+function generateRecurringInstances(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  state.recurringTasks.forEach(rt=>{
+    for(let i=0;i<RECURRING_WINDOW_DAYS;i++){
+      const d = new Date(today);
+      d.setDate(today.getDate()+i);
+      if(!rt.weekdays.includes(d.getDay())) continue;
+      const dateStr = toDateStr(d);
+      const exists = state.tasks.some(t=>t.recurringTaskId===rt.id && t.date===dateStr);
+      if(!exists){
+        state.tasks.push({
+          id:uid(), categoryId:rt.categoryId, title:rt.title, scope:'today',
+          date:dateStr, weekOf:null, goalId:rt.goalId, recurringTaskId:rt.id,
+          done:false, order:Date.now(), createdAt:Date.now()
+        });
+      }
+    }
+  });
+}
+function openTaskModal(taskId, presetDate, presetCategoryId, presetScope){
+  const task = taskId ? state.tasks.find(t=>t.id===taskId) : null;
+  const scope = task ? task.scope : (presetScope || 'today');
+  const selectedCatId = task ? task.categoryId : (presetCategoryId||'');
+  const catOptions = state.categories.map(c=>
+    `<option value="${c.id}" ${selectedCatId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`
+  ).join('');
+  const selectedGoalId = task ? task.goalId : '';
+  const goalOptions = state.goals.map(g=>
+    `<option value="${g.id}" ${selectedGoalId===g.id?'selected':''}>${escapeHtml(g.title)}</option>`
+  ).join('');
+  const repeatHtml = !task ? `
+      <div id="taskRepeatSection" class="${scope==='today'?'':'hidden'}">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+          <input type="checkbox" id="taskRepeatCheckbox" onchange="toggleTaskRepeatFields(this.checked)" style="width:auto;">
+          חזרה על המשימה
+        </label>
+        <div id="taskRepeatDaysWrap" class="hidden">
+          <div class="weekday-picker">
+            ${WEEKDAY_LETTERS.map((letter,i)=>`<button type="button" class="weekday-btn" data-day="${i}" title="${WEEKDAY_NAMES[i]}" onclick="this.classList.toggle('active')">${letter}</button>`).join('')}
+          </div>
+        </div>
+      </div>` : (task.recurringTaskId ? `<div class="empty" style="padding:14px 0;">🔁 חלק מסדרה חוזרת</div>` : '');
+  const hasChecklist = task && task.checklist && task.checklist.length>0;
+  const checklistRowsHtml = (task && task.checklist ? task.checklist : []).map(item => `
+    <div class="checklist-edit-row" data-item-id="${item.id}">
+      <input type="text" class="checklist-edit-input" value="${escapeHtml(item.title)}" placeholder="פריט בצ'ק ליסט">
+      <button type="button" onclick="this.parentElement.remove()" title="הסרה">✕</button>
+    </div>
+  `).join('');
+  showModal(`
+    <h2>${task ? 'עריכת משימה' : 'משימה חדשה'}</h2>
+    <form onsubmit="event.preventDefault(); saveTaskForm('${taskId||''}')">
+      <label>כותרת</label>
+      <input type="text" id="taskTitleInput" value="${task?escapeHtml(task.title):''}" required>
+      <label>קטגוריה</label>
+      <select id="taskCatInput">
+        <option value="">ללא קטגוריה</option>
+        ${catOptions}
+      </select>
+      <label>הגדרת זמן</label>
+      <select id="taskScopeInput" onchange="toggleTaskScopeFields(this.value)">
+        <option value="today" ${scope==='today'?'selected':''}>היום</option>
+        <option value="weekly" ${scope==='weekly'?'selected':''}>שבועי</option>
+        <option value="general" ${scope==='general'?'selected':''}>כללי</option>
+      </select>
+      <div id="taskDateWrap" class="${scope==='today'?'':'hidden'}">
+        <label>תאריך</label>
+        <input type="date" id="taskDateInput" value="${task&&task.date?task.date:(presetDate||todayStr())}">
+      </div>
+      ${repeatHtml}
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:14px;">
+        <input type="checkbox" id="taskChecklistCheckbox" onchange="toggleTaskChecklistFields(this.checked)" ${hasChecklist?'checked':''} style="width:auto;">
+        צ'ק ליסט במשימה
+      </label>
+      <div id="taskChecklistBuilder" class="${hasChecklist?'':'hidden'}">
+        <div id="taskChecklistItems">${checklistRowsHtml}</div>
+        <button type="button" class="add-inline" onclick="addChecklistItemRow()">+ הוסף פריט</button>
+      </div>
+      <label>יעד (לא חובה)</label>
+      <select id="taskGoalInput">
+        <option value="">ללא יעד</option>
+        ${goalOptions}
+      </select>
+      <div class="modal-actions">
+        <div>${task ? `<button type="button" class="btn danger" onclick="deleteTask('${task.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function toggleTaskChecklistFields(checked){
+  const wrap = document.getElementById('taskChecklistBuilder');
+  if(!wrap) return;
+  wrap.classList.toggle('hidden', !checked);
+  if(checked && document.getElementById('taskChecklistItems').children.length===0){
+    addChecklistItemRow();
+  }
+}
+function addChecklistItemRow(){
+  const container = document.getElementById('taskChecklistItems');
+  if(!container) return;
+  const row = document.createElement('div');
+  row.className = 'checklist-edit-row';
+  row.innerHTML = `<input type="text" class="checklist-edit-input" placeholder="פריט בצ'ק ליסט">
+    <button type="button" onclick="this.parentElement.remove()" title="הסרה">✕</button>`;
+  container.appendChild(row);
+  row.querySelector('input').focus();
+}
+function saveTaskForm(taskId){
+  const title = document.getElementById('taskTitleInput').value.trim();
+  if(!title) return;
+  const categoryId = document.getElementById('taskCatInput').value || null;
+  const scope = document.getElementById('taskScopeInput').value;
+  const goalId = document.getElementById('taskGoalInput').value || null;
+  const existing = taskId ? state.tasks.find(t=>t.id===taskId) : null;
+
+  const repeatCheckbox = document.getElementById('taskRepeatCheckbox');
+  if(!existing && repeatCheckbox && repeatCheckbox.checked){
+    const weekdays = Array.from(document.querySelectorAll('#taskRepeatDaysWrap .weekday-btn.active')).map(b=>Number(b.dataset.day));
+    if(weekdays.length===0){ alert('בחר לפחות יום אחד לחזרה.'); return; }
+    state.recurringTasks.push({ id:uid(), title, categoryId, goalId, weekdays, createdAt:Date.now() });
+    generateRecurringInstances();
+    saveState();
+    closeModal();
+    render();
+    return;
+  }
+
+  const date = scope==='today' ? (document.getElementById('taskDateInput').value || todayStr()) : null;
+  const weekOf = scope==='weekly' ? ((existing && existing.scope==='weekly') ? existing.weekOf : currentWeekOf()) : null;
+
+  let checklist = null;
+  const checklistCheckbox = document.getElementById('taskChecklistCheckbox');
+  if(checklistCheckbox && checklistCheckbox.checked){
+    const existingChecklist = (existing && existing.checklist) || [];
+    const rows = Array.from(document.querySelectorAll('#taskChecklistItems .checklist-edit-row'));
+    checklist = rows.map(row=>{
+      const text = row.querySelector('.checklist-edit-input').value.trim();
+      if(!text) return null;
+      const itemId = row.dataset.itemId;
+      const existingItem = itemId ? existingChecklist.find(i=>i.id===itemId) : null;
+      return { id: existingItem ? existingItem.id : uid(), title: text, done: existingItem ? existingItem.done : false };
+    }).filter(Boolean);
+    if(checklist.length===0) checklist = null;
+  }
+  const done = checklist ? checklist.every(i=>i.done) : (existing ? existing.done : false);
+
+  if(existing){
+    Object.assign(existing, { title, categoryId, scope, date, weekOf, goalId, checklist, done });
+  }else{
+    state.tasks.push({ id:uid(), categoryId, title, scope, date, weekOf, goalId, checklist, done, recurringTaskId:null, order:Date.now(), createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteTask(taskId){
+  const task = state.tasks.find(t=>t.id===taskId);
+  if(task && task.recurringTaskId){
+    showModal(`
+      <h2>מחיקת משימה חוזרת</h2>
+      <p style="margin:0 0 20px;color:var(--text);font-size:14px;line-height:1.6;">המשימה הזו חלק מסדרה חוזרת. מה תרצה למחוק?</p>
+      <div class="modal-actions">
+        <div><button type="button" class="btn secondary" onclick="closeModal()">ביטול</button></div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="deleteTaskInstance('${taskId}')">רק את זו</button>
+          <button type="button" class="btn danger" onclick="deleteRecurringSeries('${task.recurringTaskId}')">כל הסדרה</button>
+        </div>
+      </div>
+    `);
+    return;
+  }
+  showConfirm('למחוק את המשימה?', () => {
+    state.tasks = state.tasks.filter(t=>t.id!==taskId);
+    saveState();
+    render();
+  });
+}
+function deleteTaskInstance(taskId){
+  state.tasks = state.tasks.filter(t=>t.id!==taskId);
+  saveState();
+  closeModal();
+  render();
+}
+function deleteRecurringSeries(recurringTaskId){
+  state.recurringTasks = state.recurringTasks.filter(rt=>rt.id!==recurringTaskId);
+  state.tasks = state.tasks.filter(t=>t.recurringTaskId!==recurringTaskId);
+  saveState();
+  closeModal();
+  render();
+}
+function toggleTaskDone(taskId){
+  const task = state.tasks.find(t=>t.id===taskId);
+  if(task.checklist && task.checklist.length){
+    const allDone = task.checklist.every(i=>i.done);
+    task.checklist.forEach(i=>{ i.done = !allDone; });
+    task.done = !allDone;
+  }else{
+    task.done = !task.done;
+  }
+  saveState();
+  render();
+}
+function toggleChecklistItem(taskId, itemId){
+  const task = state.tasks.find(t=>t.id===taskId);
+  if(!task || !task.checklist) return;
+  const item = task.checklist.find(i=>i.id===itemId);
+  if(!item) return;
+  item.done = !item.done;
+  task.done = task.checklist.every(i=>i.done);
+  saveState();
+  render();
+}
+function toggleChecklistExpand(taskId){
+  ui.expandedChecklists = ui.expandedChecklists || {};
+  ui.expandedChecklists[taskId] = !ui.expandedChecklists[taskId];
+  render();
+}
+/* ---------- Drag to reorder ---------- */
+let dnd = { active:false, rowEl:null, kind:null };
+function dndPointerDown(e){
+  const taskHandle = e.target.closest('.drag-handle');
+  const checklistHandle = e.target.closest('.checklist-drag-handle');
+  if(taskHandle){
+    const row = taskHandle.closest('.task-row');
+    if(!row) return;
+    dnd.active = true;
+    dnd.kind = 'task';
+    dnd.rowEl = row;
+    row.classList.add('dragging');
+    e.preventDefault();
+  }else if(checklistHandle){
+    const row = checklistHandle.closest('.checklist-item');
+    if(!row) return;
+    dnd.active = true;
+    dnd.kind = 'checklist';
+    dnd.rowEl = row;
+    row.classList.add('dragging');
+    e.preventDefault();
+  }
+}
+function dndPointerMove(e){
+  if(!dnd.active) return;
+  const selector = dnd.kind==='task' ? '.task-row' : '.checklist-item';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const target = el && el.closest(selector);
+  if(!target || target===dnd.rowEl || target.dataset.group!==dnd.rowEl.dataset.group) return;
+  const rect = target.getBoundingClientRect();
+  const before = (e.clientY - rect.top) < rect.height/2;
+  target.parentNode.insertBefore(dnd.rowEl, before ? target : target.nextSibling);
+}
+function dndPointerUp(){
+  if(!dnd.active) return;
+  const group = dnd.rowEl.dataset.group;
+  const container = dnd.rowEl.parentNode;
+  if(dnd.kind==='task'){
+    const rows = Array.from(container.querySelectorAll(`.task-row[data-group="${group}"]`));
+    rows.forEach((row,i)=>{
+      const t = state.tasks.find(x=>x.id===row.dataset.taskId);
+      if(t) t.order = i;
+    });
+  }else if(dnd.kind==='checklist'){
+    const taskId = dnd.rowEl.dataset.taskId;
+    const task = state.tasks.find(t=>t.id===taskId);
+    if(task && task.checklist){
+      const rows = Array.from(container.querySelectorAll(`.checklist-item[data-group="${group}"]`));
+      const newOrder = rows.map(row=>task.checklist.find(i=>i.id===row.dataset.itemId)).filter(Boolean);
+      task.checklist = newOrder;
+    }
+  }
+  dnd.rowEl.classList.remove('dragging');
+  dnd.active = false;
+  dnd.rowEl = null;
+  dnd.kind = null;
+  saveState();
+  render();
+}
+document.addEventListener('pointerdown', dndPointerDown);
+document.addEventListener('pointermove', dndPointerMove);
+document.addEventListener('pointerup', dndPointerUp);
+document.addEventListener('pointercancel', dndPointerUp);
+
+function taskGroupKey(t){
+  if(t.scope==='weekly') return `weekly_${t.weekOf}_${t.done}`;
+  if(t.scope==='general') return `general_${t.done}`;
+  return `${t.date}_${t.done}`;
+}
+function taskRowHtml(t, opts){
+  opts = opts || {};
+  const cat = state.categories.find(c=>c.id===t.categoryId);
+  const overdue = opts.showOverdue && !t.done && t.scope==='today' && t.date < todayStr();
+  const group = taskGroupKey(t);
+  const hasChecklist = t.checklist && t.checklist.length>0;
+  const checklistDoneCount = hasChecklist ? t.checklist.filter(i=>i.done).length : 0;
+  const expanded = hasChecklist && ui.expandedChecklists && ui.expandedChecklists[t.id];
+  const checklistPanel = expanded ? `<div class="checklist-panel">${t.checklist.map(i=>`
+      <div class="checklist-item" data-task-id="${t.id}" data-item-id="${i.id}" data-group="checklist_${t.id}">
+        <button class="checklist-drag-handle" title="גרור לשינוי סדר">⠿</button>
+        <button class="check small ${i.done?'checked':''}" onclick="toggleChecklistItem('${t.id}','${i.id}')">${i.done?'✓':''}</button>
+        <span class="${i.done?'done-text':''}">${escapeHtml(i.title)}</span>
+      </div>
+    `).join('')}</div>` : '';
+  return `<div class="task-row ${t.done?'done':''}" data-task-id="${t.id}" data-group="${group}">
+    <button class="drag-handle" title="גרור לשינוי סדר">⠿</button>
+    <button class="check ${t.done?'checked':''}" onclick="toggleTaskDone('${t.id}')">${t.done?'✓':''}</button>
+    <div class="task-body" onclick="openTaskModal('${t.id}')">
+      <div class="task-title">${escapeHtml(t.title)}</div>
+      <div class="task-meta">
+        ${opts.showCategory && cat ? `<span class="badge cat" style="background:${cat.color}">${escapeHtml(cat.name)}</span>` : ''}
+        ${overdue ? `<span class="badge overdue">באיחור</span>` : ''}
+        ${hasChecklist ? `<span class="badge checklist" onclick="event.stopPropagation(); toggleChecklistExpand('${t.id}')">☑️ ${checklistDoneCount}/${t.checklist.length}</span>` : ''}
+      </div>
+    </div>
+    <div class="row-actions">
+      <button onclick="openTaskModal('${t.id}')" title="עריכה">✏️</button>
+      <button onclick="deleteTask('${t.id}')" title="מחיקה">🗑️</button>
+    </div>
+  </div>${checklistPanel}`;
+}
+
+/* ---------- Events ---------- */
+function openEventModal(eventId, presetDate){
+  const ev = eventId ? state.events.find(e=>e.id===eventId) : null;
+  showModal(`
+    <h2>${ev ? 'עריכת אירוע' : 'אירוע חדש'}</h2>
+    <form onsubmit="event.preventDefault(); saveEventForm('${eventId||''}')">
+      <label>כותרת</label>
+      <input type="text" id="eventTitleInput" value="${ev?escapeHtml(ev.title):''}" required>
+      <label>תאריך</label>
+      <input type="date" id="eventDateInput" value="${ev?ev.date:(presetDate||todayStr())}" required>
+      <label>שעה (לא חובה)</label>
+      <input type="time" id="eventTimeInput" value="${ev&&ev.time?ev.time:''}">
+      <div class="modal-actions">
+        <div>${ev ? `<button type="button" class="btn danger" onclick="deleteEvent('${ev.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveEventForm(eventId){
+  const title = document.getElementById('eventTitleInput').value.trim();
+  if(!title) return;
+  const date = document.getElementById('eventDateInput').value || todayStr();
+  const time = document.getElementById('eventTimeInput').value || null;
+  if(eventId){
+    const ev = state.events.find(e=>e.id===eventId);
+    Object.assign(ev, { title, date, time });
+  }else{
+    state.events.push({ id:uid(), title, date, time, createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteEvent(eventId){
+  showConfirm('למחוק את האירוע?', () => {
+    state.events = state.events.filter(e=>e.id!==eventId);
+    saveState();
+    render();
+  });
+}
+function eventRowHtml(e){
+  return `<div class="event-row">
+    <div class="event-body" onclick="openEventModal('${e.id}')">
+      <div class="event-title">${escapeHtml(e.title)}</div>
+      <div class="event-meta">${formatDateLabel(e.date)}${e.time?` · ${e.time}`:''}</div>
+    </div>
+    <div class="row-actions">
+      <button onclick="openEventModal('${e.id}')" title="עריכה">✏️</button>
+      <button onclick="deleteEvent('${e.id}')" title="מחיקה">🗑️</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Backup / Restore ---------- */
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `זמן-גיבוי-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function importBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try{
+      parsed = JSON.parse(reader.result);
+      if(!Array.isArray(parsed.categories) || !Array.isArray(parsed.tasks)){
+        throw new Error('invalid format');
+      }
+    }catch(e){
+      alert('הקובץ לא תקין. ודא שבחרת קובץ גיבוי שנוצר על ידי האפליקציה.');
+      return;
+    }
+    showConfirm('שחזור יחליף את כל הנתונים הקיימים באפליקציה בנתונים מהקובץ. להמשיך?', () => {
+      state = Object.assign(defaultState(), parsed);
+      if(!state.financeCategories || !state.financeCategories.length) state.financeCategories = [...FINANCE_CATEGORIES];
+      state.tasks = (state.tasks||[]).map((t,i)=>{
+        const scope = t.scope || 'today';
+        const date = scope==='today' ? (t.date || t.dueDate || todayStr()) : null;
+        const weekOf = scope==='weekly' ? (t.weekOf || currentWeekOf()) : null;
+        const order = t.order!==undefined ? t.order : i;
+        const { dueDate, priority, ...rest } = t;
+        return { ...rest, scope, date, weekOf, order };
+      });
+      saveState();
+      applyTheme();
+      ui = {
+        view: 'calendar',
+        calendarMonth: todayStr().slice(0,7),
+        selectedCalendarDate: null,
+        selectedDate: todayStr(),
+        selectedCategoryId: null,
+        showCompletedGoals: false,
+        expandedChecklists: {},
+        taskViewMode: 'today',
+        statsMode: 'tasks',
+        statsTaskCategoryId: null,
+        statsNutritionPeriod: 'month',
+        statsNutritionMonth: todayStr().slice(0,7),
+        financeStatsPeriod: 'month',
+        financeStatsMonth: todayStr().slice(0,7),
+        financeStatsYear: new Date().getFullYear(),
+        financeFilterType: 'all',
+        financeSortMode: 'time'
+      };
+      render();
+    });
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ---------- Render: Calendar ---------- */
+function renderCalendarView(){
+  const cells = monthMatrix(ui.calendarMonth);
+  const [y,m] = ui.calendarMonth.split('-').map(Number);
+  const monthLabel = `${HEBREW_MONTHS[m-1]} ${y}`;
+  const today = todayStr();
+  const eventsByDate = {};
+  state.events.forEach(e=>{ (eventsByDate[e.date] = eventsByDate[e.date] || []).push(e); });
+
+  const weekdayHeaders = WEEKDAY_LETTERS.map(w=>`<div class="cal-weekday">${w}</div>`).join('');
+  const dayCells = cells.map(dateStr=>{
+    if(!dateStr) return `<div class="cal-day empty"></div>`;
+    const isToday = dateStr===today;
+    const isSelected = dateStr===ui.selectedCalendarDate;
+    const hasEvents = (eventsByDate[dateStr]||[]).length>0;
+    const dayNum = Number(dateStr.split('-')[2]);
+    return `<div class="cal-day ${isToday?'today':''} ${isSelected?'selected':''}" onclick="selectCalendarDay('${dateStr}')">
+      <div>${dayNum}</div>
+      ${hasEvents ? '<div class="dot"></div>' : ''}
+    </div>`;
+  }).join('');
+
+  let listTitle, listEvents;
+  if(ui.selectedCalendarDate){
+    listTitle = formatDateLabel(ui.selectedCalendarDate);
+    listEvents = (eventsByDate[ui.selectedCalendarDate]||[]).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+  }else{
+    listTitle = 'האירועים הקרובים';
+    listEvents = state.events.filter(e=>e.date>=today).sort((a,b)=>{
+      if(a.date!==b.date) return a.date<b.date?-1:1;
+      return (a.time||'99:99').localeCompare(b.time||'99:99');
+    });
+  }
+  let listHtml = listEvents.map(e=>eventRowHtml(e)).join('');
+  if(listEvents.length===0){
+    listHtml = `<div class="empty">${ui.selectedCalendarDate?'אין אירועים ביום זה.':'אין אירועים קרובים.'}</div>`;
+  }
+
+  return `
+    <div class="cal-header">
+      <button class="text-btn" onclick="shiftMonth(-1)" title="חודש קודם">חודש קודם</button>
+      <div class="month-label">${monthLabel}</div>
+      <button class="text-btn" onclick="shiftMonth(1)" title="חודש הבא">חודש הבא</button>
+    </div>
+    <div class="cal-grid">${weekdayHeaders}${dayCells}</div>
+    <div class="cal-list-header">
+      <h2>${listTitle}</h2>
+      ${ui.selectedCalendarDate ? `<button class="text-btn" onclick="selectCalendarDay(null)">הצג קרובים</button>` : ''}
+    </div>
+    ${listHtml}
+    <button class="add-inline" onclick="openEventModal(null, '${ui.selectedCalendarDate||todayStr()}')">+ אירוע חדש</button>
+  `;
+}
+
+/* ---------- Render: Day view ---------- */
+function renderTasksTab(){
+  const toggle = `
+    <div class="range-tabs" style="margin-bottom:18px;">
+      <button class="tab ${ui.taskViewMode==='today'?'active':''}" onclick="setTaskViewMode('today')">היום</button>
+      <button class="tab ${ui.taskViewMode==='weekly'?'active':''}" onclick="setTaskViewMode('weekly')">שבועי</button>
+      <button class="tab ${ui.taskViewMode==='general'?'active':''}" onclick="setTaskViewMode('general')">כללי</button>
+    </div>`;
+  let body;
+  if(ui.taskViewMode==='weekly') body = renderWeeklyTasksView();
+  else if(ui.taskViewMode==='general') body = renderGeneralTasksView();
+  else body = renderDayView();
+  return toggle + body;
+}
+function renderDayView(){
+  const tasks = state.tasks.filter(t=>t.date===ui.selectedDate).sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return a.order-b.order;
+  });
+  let rows = tasks.map(t=>taskRowHtml(t, {showCategory:true})).join('');
+  if(tasks.length===0){
+    rows = `<div class="empty">אין משימות ליום זה.</div>`;
+  }
+  return `
+    <div class="day-nav">
+      <button class="text-btn" onclick="shiftDay(-1)" title="יום קודם">יום קודם</button>
+      <div class="date-label">${formatDateLabel(ui.selectedDate)}</div>
+      <button class="text-btn" onclick="shiftDay(1)" title="יום הבא">יום הבא</button>
+      <button class="text-btn" onclick="goToday()">היום</button>
+      <input type="date" value="${ui.selectedDate}" onchange="jumpToDate(this.value)">
+    </div>
+    ${rows}
+    <button class="add-inline" onclick="openTaskModal(null, '${ui.selectedDate}', null, 'today')">+ משימה חדשה</button>
+  `;
+}
+function renderWeeklyTasksView(){
+  const curWeek = currentWeekOf();
+  const leftover = state.tasks.filter(t=>t.scope==='weekly' && !t.done && weekOfDeadlinePassed(t.weekOf));
+  const thisWeek = state.tasks.filter(t=>
+    t.scope==='weekly' && t.weekOf===curWeek && !(!t.done && weekOfDeadlinePassed(t.weekOf))
+  ).sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return a.order-b.order;
+  });
+
+  let leftoverHtml = '';
+  if(leftover.length){
+    leftoverHtml = `<div class="leftover-banner">
+      <div class="leftover-title">⏳ נשארו משבועות קודמים</div>
+      ${leftover.map(t=>{
+        const cat = state.categories.find(c=>c.id===t.categoryId);
+        return `<div class="leftover-row">
+          <div class="leftover-body">
+            <div class="task-title">${escapeHtml(t.title)}</div>
+            <div class="task-meta">
+              ${cat?`<span class="badge cat" style="background:${cat.color}">${escapeHtml(cat.name)}</span>`:''}
+              <span class="badge overdue">${formatWeekLabel(t.weekOf)}</span>
+            </div>
+          </div>
+          <div class="row-actions">
+            <button onclick="carryOverWeeklyTask('${t.id}')" title="הוסף לשבוע הנוכחי">➕</button>
+            <button onclick="deleteTask('${t.id}')" title="מחיקה">🗑️</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  let rows = thisWeek.map(t=>taskRowHtml(t, {showCategory:true})).join('');
+  if(thisWeek.length===0){
+    rows = `<div class="empty">אין משימות שבועיות כרגע.</div>`;
+  }
+
+  return `
+    ${leftoverHtml}
+    <h2 class="section-title" style="margin-top:0;">השבוע (${formatWeekLabel(curWeek)})</h2>
+    ${rows}
+    <button class="add-inline" onclick="openTaskModal(null, null, null, 'weekly')">+ משימה שבועית</button>
+  `;
+}
+function renderGeneralTasksView(){
+  const tasks = state.tasks.filter(t=>t.scope==='general').sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return a.order-b.order;
+  });
+  let rows = tasks.map(t=>taskRowHtml(t, {showCategory:true})).join('');
+  if(tasks.length===0){
+    rows = `<div class="empty">אין משימות כלליות.</div>`;
+  }
+  return `
+    ${rows}
+    <button class="add-inline" onclick="openTaskModal(null, null, null, 'general')">+ משימה כללית</button>
+  `;
+}
+
+/* ---------- Render: Categories ---------- */
+function renderCategoriesView(){
+  if(ui.selectedCategoryId){
+    return renderCategoryDetail(ui.selectedCategoryId);
+  }
+  if(state.categories.length===0){
+    return `<div class="empty">אין עדיין קטגוריות.<br>לחץ על "קטגוריה חדשה" כדי להתחיל לארגן משימות.</div>
+      <div class="fab-row"><button class="btn primary" onclick="openCategoryModal()">+ קטגוריה חדשה</button></div>`;
+  }
+  let cards = state.categories.map(cat=>{
+    const pending = state.tasks.filter(t=>t.categoryId===cat.id && !t.done).length;
+    return `<div class="cat-card" onclick="openCategory('${cat.id}')">
+      <div class="bar" style="background:${cat.color}"></div>
+      <div class="name">${escapeHtml(cat.name)}</div>
+      <div class="count">${pending} משימות פתוחות</div>
+    </div>`;
+  }).join('');
+  cards += `<div class="cat-card add-card" onclick="openCategoryModal()"><div style="font-size:22px;">+</div><div>קטגוריה חדשה</div></div>`;
+  return `<h2 class="section-title">קטגוריות</h2><div class="grid">${cards}</div>`;
+}
+
+function renderCategoryDetail(catId){
+  const cat = state.categories.find(c=>c.id===catId);
+  if(!cat){ ui.selectedCategoryId=null; return renderCategoriesView(); }
+
+  const sortByDoneOrder = (a,b)=>{ if(a.done!==b.done) return a.done?1:-1; return a.order-b.order; };
+
+  let extraSections = '';
+  const weeklyTasks = state.tasks.filter(t=>t.categoryId===catId && t.scope==='weekly').sort(sortByDoneOrder);
+  if(weeklyTasks.length){
+    extraSections += `<div class="day-group">
+      <div class="day-group-title">שבועי</div>
+      ${weeklyTasks.map(t=>taskRowHtml(t)).join('')}
+    </div>`;
+  }
+  const generalTasks = state.tasks.filter(t=>t.categoryId===catId && t.scope==='general').sort(sortByDoneOrder);
+  if(generalTasks.length){
+    extraSections += `<div class="day-group">
+      <div class="day-group-title">כללי</div>
+      ${generalTasks.map(t=>taskRowHtml(t)).join('')}
+    </div>`;
+  }
+
+  const byDate = {};
+  state.tasks.filter(t=>t.categoryId===catId && t.scope==='today').forEach(t=>{
+    (byDate[t.date] = byDate[t.date] || []).push(t);
+  });
+  const dates = Object.keys(byDate).sort();
+  let sections = dates.map(date=>{
+    const tasks = byDate[date].sort(sortByDoneOrder);
+    const rows = tasks.map(t=>taskRowHtml(t, {showOverdue:true})).join('');
+    return `<div class="day-group">
+      <div class="day-group-title">${formatDateLabel(date)}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+  if(dates.length===0 && !extraSections){
+    sections = `<div class="empty">אין עדיין משימות בקטגוריה הזו.</div>`;
+  }
+  return `
+    <div class="back-row">
+      <button class="icon-btn" onclick="ui.selectedCategoryId=null; render();" title="חזרה">→</button>
+      <h2>${escapeHtml(cat.name)}</h2>
+      <button class="icon-btn" onclick="openCategoryModal('${cat.id}')" title="עריכת קטגוריה">✏️</button>
+    </div>
+    ${extraSections}
+    ${sections}
+    <button class="add-inline" onclick="openTaskModal(null, null, '${catId}')">+ משימה חדשה</button>
+  `;
+}
+
+/* ---------- Render: Goals ---------- */
+function goalCardHtml(g){
+  const today = todayStr();
+  const cat = g.categoryId ? state.categories.find(c=>c.id===g.categoryId) : null;
+  const progress = state.tasks.filter(t=>t.goalId===g.id && t.done).length;
+  const deadlinePassed = g.deadline && g.deadline<today;
+  return `<div class="cat-card ${g.completed?'completed':''}" onclick="openGoalModal('${g.id}')">
+    <button class="check ${g.completed?'checked':''}" style="position:absolute;top:12px;left:12px;" onclick="event.stopPropagation(); toggleGoalCompleted('${g.id}')" title="${g.completed?'החזר לפעיל':'סמן כהושלם'}"></button>
+    ${cat?`<div class="bar" style="background:${cat.color}"></div>`:''}
+    <div class="name">${escapeHtml(g.title)}</div>
+    <div class="count">${progress}/${g.targetCount}</div>
+    ${cat?`<div class="count">${escapeHtml(cat.name)}</div>`:''}
+    ${g.deadline?`<div class="count ${deadlinePassed && !g.completed?'danger':''}">דדליין: ${formatDateShort(g.deadline)}</div>`:''}
+  </div>`;
+}
+function renderGoalsView(){
+  if(state.goals.length===0){
+    return `<div class="empty">אין עדיין יעדים.<br>לחץ על "יעד חדש" כדי להתחיל.</div>
+      <div class="fab-row"><button class="btn primary" onclick="openGoalModal()">+ יעד חדש</button></div>`;
+  }
+  const weekStart = toDateStr(startOfWeek(new Date()));
+  const weekEnd = toDateStr(endOfWeek(new Date()));
+  const isThisWeek = d => !!d && d>=weekStart && d<=weekEnd;
+
+  const activeGoals = state.goals.filter(g=>!g.completed).sort((a,b)=>{
+    const aWeek = isThisWeek(a.deadline), bWeek = isThisWeek(b.deadline);
+    if(aWeek !== bWeek) return aWeek ? -1 : 1;
+    if(!a.deadline && !b.deadline) return 0;
+    if(!a.deadline) return 1;
+    if(!b.deadline) return -1;
+    return a.deadline<b.deadline?-1:1;
+  });
+  const completedGoals = state.goals.filter(g=>g.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+
+  let cards = activeGoals.map(goalCardHtml).join('');
+  cards += `<div class="cat-card add-card" onclick="openGoalModal()"><div style="font-size:22px;">+</div><div>יעד חדש</div></div>`;
+
+  let archiveHtml = '';
+  if(completedGoals.length){
+    archiveHtml = `
+      <button class="text-btn" style="margin:20px 0 12px;" onclick="toggleShowCompletedGoals()">
+        ${ui.showCompletedGoals?'▲':'▼'} יעדים שהושלמו (${completedGoals.length})
+      </button>
+      ${ui.showCompletedGoals ? `<div class="grid">${completedGoals.map(goalCardHtml).join('')}</div>` : ''}
+    `;
+  }
+
+  return `<h2 class="section-title">יעדים</h2><div class="grid">${cards}</div>${archiveHtml}`;
+}
+
+/* ---------- Render: Stats ---------- */
+function renderStatsView(){
+  const modeToggle = `
+    <div class="range-tabs" style="margin-bottom:20px;">
+      <button class="tab ${ui.statsMode==='tasks'?'active':''}" onclick="setStatsMode('tasks')">משימות</button>
+      <button class="tab ${ui.statsMode==='finance'?'active':''}" onclick="setStatsMode('finance')">כספים</button>
+      <button class="tab ${ui.statsMode==='nutrition'?'active':''}" onclick="setStatsMode('nutrition')">תזונה</button>
+    </div>`;
+  let body;
+  if(ui.statsMode==='finance') body = renderFinanceStats();
+  else if(ui.statsMode==='nutrition') body = renderNutritionStats();
+  else body = renderTaskStats();
+  return modeToggle + body;
+}
+function dayChartHtml(dataByDate, overThreshold){
+  const dates = Object.keys(dataByDate).sort();
+  if(dates.length===0) return `<div class="empty">אין נתונים.</div>`;
+  const maxVal = Math.max(...dates.map(d=>dataByDate[d]), 1);
+  const bars = dates.map(d=>{
+    const val = dataByDate[d];
+    const barHeight = Math.max(4, Math.round(val/maxVal*90));
+    const isOver = overThreshold!=null && val>overThreshold;
+    return `<div class="day-chart-bar-wrap">
+      <div class="day-chart-value">${val.toLocaleString('he-IL')}</div>
+      <div class="day-chart-bar ${isOver?'over':''}" style="height:${barHeight}px"></div>
+      <div class="day-chart-label">${formatDateShort(d)}</div>
+    </div>`;
+  }).join('');
+  return `<div class="day-chart">${bars}</div>`;
+}
+function renderNutritionStats(){
+  const isAll = ui.statsNutritionPeriod==='all';
+  const monthKey = ui.statsNutritionMonth;
+
+  const foodInPeriod = isAll ? state.foodEntries : state.foodEntries.filter(f=>f.date.slice(0,7)===monthKey);
+  const waterInPeriod = isAll ? state.waterEntries : state.waterEntries.filter(w=>w.date.slice(0,7)===monthKey);
+
+  const foodByDate = {};
+  foodInPeriod.forEach(f=>{ foodByDate[f.date] = (foodByDate[f.date]||0) + f.calories; });
+  const waterByDate = {};
+  waterInPeriod.forEach(w=>{ waterByDate[w.date] = (waterByDate[w.date]||0) + 1; });
+
+  const foodDays = Object.keys(foodByDate);
+  const waterDays = Object.keys(waterByDate);
+
+  const avgCalories = foodDays.length>0 ? Math.round(foodInPeriod.reduce((s,f)=>s+f.calories,0)/foodDays.length) : 0;
+  const avgWater = waterDays.length>0 ? (waterInPeriod.length/waterDays.length).toFixed(1) : '0';
+
+  const controls = `
+    <div class="range-tabs" style="margin-bottom:12px;">
+      <button class="tab ${!isAll?'active':''}" onclick="setNutritionStatsPeriod('month')">חודש</button>
+      <button class="tab ${isAll?'active':''}" onclick="setNutritionStatsPeriod('all')">הכל</button>
+    </div>
+    ${!isAll ? `<input type="month" value="${monthKey}" onchange="setNutritionStatsMonth(this.value)" style="padding:9px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;margin-bottom:18px;box-shadow:var(--shadow);">` : ''}
+  `;
+
+  if(foodDays.length===0 && waterDays.length===0){
+    return `${controls}<div class="empty">אין נתוני תזונה בתקופה זו.</div>`;
+  }
+
+  return `
+    ${controls}
+    <div class="stats-tiles">
+      <div class="stat-tile"><div class="stat-tile-value">${avgCalories.toLocaleString('he-IL')}</div><div class="stat-tile-label">ממוצע קלוריות ליום</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${avgWater}</div><div class="stat-tile-label">ממוצע כוסות מים ליום</div></div>
+    </div>
+    <h2 class="section-title">קלוריות לפי יום</h2>
+    ${dayChartHtml(foodByDate, state.calorieTarget)}
+    <h2 class="section-title">כוסות מים לפי יום</h2>
+    ${dayChartHtml(waterByDate)}
+  `;
+}
+function renderTaskStats(){
+  if(state.categories.length===0){
+    return `<div class="empty">אין עדיין קטגוריות משימות.<br>צור קטגוריה כדי לראות סטטיסטיקה.</div>`;
+  }
+  if(!ui.statsTaskCategoryId || !state.categories.find(c=>c.id===ui.statsTaskCategoryId)){
+    ui.statsTaskCategoryId = state.categories[0].id;
+  }
+  const catId = ui.statsTaskCategoryId;
+  const catOptions = state.categories.map(c=>
+    `<option value="${c.id}" ${catId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`
+  ).join('');
+
+  const today = todayStr();
+  const tomorrow = toDateStr(new Date(Date.now()+86400000));
+  const weekStart = toDateStr(startOfWeek(new Date()));
+  const weekEnd = toDateStr(endOfWeek(new Date()));
+  const catTasks = state.tasks.filter(t=>t.categoryId===catId);
+  const completedToday = catTasks.filter(t=>t.done && t.date===today).length;
+  const completedWeek = catTasks.filter(t=>t.done && t.date>=weekStart && t.date<=weekEnd).length;
+  const pendingToday = catTasks.filter(t=>!t.done && t.date===today).length;
+  const pendingWeek = catTasks.filter(t=>!t.done && t.date>=weekStart && t.date<=weekEnd).length;
+  const plannedTomorrow = catTasks.filter(t=>t.date===tomorrow).length;
+  const weekTotal = completedWeek + pendingWeek;
+  const weekPct = weekTotal>0 ? Math.round(completedWeek/weekTotal*100) : 0;
+
+  return `
+    <select onchange="setStatsTaskCategory(this.value)" style="padding:9px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;margin-bottom:18px;box-shadow:var(--shadow);">
+      ${catOptions}
+    </select>
+    <div class="stats-tiles">
+      <div class="stat-tile"><div class="stat-tile-value">${completedToday}</div><div class="stat-tile-label">הושלמו היום</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${completedWeek}</div><div class="stat-tile-label">הושלמו השבוע</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${pendingToday}</div><div class="stat-tile-label">בהמתנה היום</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${pendingWeek}</div><div class="stat-tile-label">בהמתנה השבוע</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${plannedTomorrow}</div><div class="stat-tile-label">מתוכננות למחר</div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-header"><span>התקדמות השבוע</span><span>${completedWeek} מתוך ${weekTotal} · ${weekPct}%</span></div>
+      <div class="gauge-track"><div class="gauge-fill" style="width:${weekPct}%"></div></div>
+    </div>
+  `;
+}
+function renderFinanceStats(){
+  const isYearMode = ui.financeStatsPeriod==='year';
+  const now = new Date();
+  let periodTx, periodLabel, dayCount;
+
+  if(isYearMode){
+    const y = ui.financeStatsYear;
+    periodTx = state.finances.filter(f=>Number(f.date.slice(0,4))===y);
+    periodLabel = `שנת ${y}`;
+    dayCount = y===now.getFullYear()
+      ? Math.floor((now - new Date(y,0,1))/86400000)+1
+      : (((y%4===0 && y%100!==0) || y%400===0) ? 366 : 365);
+  }else{
+    const monthKey = ui.financeStatsMonth;
+    const [y,m] = monthKey.split('-').map(Number);
+    periodTx = state.finances.filter(f=>f.month===monthKey);
+    periodLabel = `${HEBREW_MONTHS[m-1]} ${y}`;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    dayCount = (monthKey===todayStr().slice(0,7)) ? Number(todayStr().split('-')[2]) : daysInMonth;
+  }
+
+  const incomeTotal = periodTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = periodTx.filter(f=>f.type==='expense').reduce((s,f)=>s+f.amount,0);
+  const savingsTotal = periodTx.filter(f=>f.category===FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const avgDaily = dayCount>0 ? expenseTotal/dayCount : 0;
+
+  const breakdown = state.financeCategories.filter(c=>c!==FINANCE_INCOME_CATEGORY).map(c=>{
+    const total = periodTx.filter(f=>f.category===c).reduce((s,f)=>s+f.amount,0);
+    return { c, total };
+  }).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
+
+  const maxVal = Math.max(incomeTotal, expenseTotal, 1);
+  const incomeBarPct = Math.round(incomeTotal/maxVal*100);
+  const expenseBarPct = Math.round(expenseTotal/maxVal*100);
+
+  const yearOptions = financeYearsList().map(y=>
+    `<option value="${y}" ${ui.financeStatsYear===y?'selected':''}>${y}</option>`
+  ).join('');
+
+  return `
+    <div class="range-tabs" style="margin-bottom:12px;">
+      <button class="tab ${!isYearMode?'active':''}" onclick="setFinanceStatsPeriod('month')">חודש</button>
+      <button class="tab ${isYearMode?'active':''}" onclick="setFinanceStatsPeriod('year')">שנה</button>
+    </div>
+    ${isYearMode ? `
+      <select onchange="setFinanceStatsYear(this.value)" style="padding:9px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;margin-bottom:18px;box-shadow:var(--shadow);">
+        ${yearOptions}
+      </select>
+    ` : `
+      <input type="month" value="${ui.financeStatsMonth}" onchange="setFinanceStatsMonth(this.value)" style="padding:9px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;margin-bottom:18px;box-shadow:var(--shadow);">
+    `}
+    <h2 class="section-title" style="margin-top:0;">${periodLabel}</h2>
+    <div class="stats-tiles">
+      <div class="stat-tile"><div class="stat-tile-value income">${incomeTotal.toLocaleString('he-IL')} ₪</div><div class="stat-tile-label">הכנסות</div></div>
+      <div class="stat-tile"><div class="stat-tile-value expense">${expenseTotal.toLocaleString('he-IL')} ₪</div><div class="stat-tile-label">הוצאות</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${savingsTotal.toLocaleString('he-IL')} ₪</div><div class="stat-tile-label">חיסכון</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${avgDaily.toLocaleString('he-IL',{maximumFractionDigits:0})} ₪</div><div class="stat-tile-label">ממוצע הוצאה יומי</div></div>
+    </div>
+    <h2 class="section-title">הוצאות לפי קטגוריה</h2>
+    <div class="stat-breakdown" style="margin-bottom:20px;">
+      ${breakdown.length ? breakdown.map(x=>`<div class="stat-row"><span>${escapeHtml(x.c)}</span><span>${x.total.toLocaleString('he-IL')} ₪</span></div>`).join('') : `<div class="empty">אין עדיין הוצאות בתקופה זו.</div>`}
+    </div>
+    <h2 class="section-title">הכנסות מול הוצאות</h2>
+    <div class="compare-chart">
+      <div class="compare-row">
+        <div class="compare-label">הכנסות</div>
+        <div class="compare-track"><div class="compare-fill income" style="width:${incomeBarPct}%"></div></div>
+        <div class="compare-value">${incomeTotal.toLocaleString('he-IL')} ₪</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">הוצאות</div>
+        <div class="compare-track"><div class="compare-fill expense" style="width:${expenseBarPct}%"></div></div>
+        <div class="compare-value">${expenseTotal.toLocaleString('he-IL')} ₪</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Main render ---------- */
+function renderNavTabs(){
+  return `<nav class="tabs">
+    <button class="tab ${ui.view==='calendar'?'active':''}" onclick="switchView('calendar')">🗓️ יומן</button>
+    <button class="tab ${ui.view==='day'?'active':''}" onclick="switchView('day')">📅 משימות</button>
+    <button class="tab ${ui.view==='categories'?'active':''}" onclick="switchView('categories')">📁 קטגוריות</button>
+    <button class="tab ${ui.view==='goals'?'active':''}" onclick="switchView('goals')">🎯 יעדים</button>
+    <button class="tab ${ui.view==='stats'?'active':''}" onclick="switchView('stats')">📊 סטטיסטיקה</button>
+    <button class="tab ${ui.view==='finances'?'active':''}" onclick="switchView('finances')">💰 כספים</button>
+    <button class="tab ${ui.view==='nutrition'?'active':''}" onclick="switchView('nutrition')">🥗 תזונה</button>
+  </nav>`;
+}
+function renderFinancesView(){
+  const currentMonth = todayStr().slice(0,7);
+  const monthTx = state.finances.filter(f=>f.month===currentMonth);
+  const incomeTotal = monthTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = monthTx.filter(f=>f.type==='expense').reduce((s,f)=>s+f.amount,0);
+
+  let list = monthTx.filter(f=> ui.financeFilterType==='all' || f.type===ui.financeFilterType);
+  const byDate = (a,b) => a.date!==b.date ? (a.date<b.date?1:-1) : b.createdAt-a.createdAt;
+  if(ui.financeSortMode==='category'){
+    list = [...list].sort((a,b)=> a.category===b.category ? byDate(a,b) : a.category.localeCompare(b.category,'he'));
+  }else{
+    list = [...list].sort(byDate);
+  }
+
+  let rows = list.map(f=>financeRowHtml(f)).join('');
+  if(list.length===0){
+    rows = `<div class="empty">אין עדיין תנועות החודש.</div>`;
+  }
+
+  return `
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <button class="btn primary" style="flex:1;" onclick="openFinanceModal()">+ הוספת תנועה</button>
+      <button class="icon-btn" onclick="openFinanceCategoriesModal()" title="ניהול קטגוריות">✏️</button>
+    </div>
+    <div class="finance-summary">
+      <div class="tile income"><div class="label">הכנסות החודש</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile expense"><div class="label">הוצאות החודש</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
+    </div>
+    <div class="range-tabs" style="margin-bottom:8px;">
+      <button class="tab ${ui.financeFilterType==='all'?'active':''}" onclick="setFinanceFilter('all')">הכל</button>
+      <button class="tab ${ui.financeFilterType==='income'?'active':''}" onclick="setFinanceFilter('income')">הכנסות</button>
+      <button class="tab ${ui.financeFilterType==='expense'?'active':''}" onclick="setFinanceFilter('expense')">הוצאות</button>
+    </div>
+    <div class="range-tabs" style="margin-bottom:16px;">
+      <button class="tab ${ui.financeSortMode==='time'?'active':''}" onclick="setFinanceSort('time')">לפי זמן</button>
+      <button class="tab ${ui.financeSortMode==='category'?'active':''}" onclick="setFinanceSort('category')">לפי קטגוריה</button>
+    </div>
+    ${rows}
+  `;
+}
+function renderNutritionView(){
+  const today = todayStr();
+  const waterToday = state.waterEntries.filter(w=>w.date===today).length;
+  const foodToday = state.foodEntries.filter(f=>f.date===today).sort((a,b)=>b.createdAt-a.createdAt);
+  const caloriesToday = foodToday.reduce((s,f)=>s+f.calories,0);
+  const pct = Math.round(caloriesToday/state.calorieTarget*100);
+  const waterPct = Math.round(waterToday/state.waterTarget*100);
+
+  let rows = foodToday.map(f=>`
+    <div class="nutrition-row">
+      <div class="nutrition-body" onclick="openFoodModal('${f.id}')">
+        <div class="nutrition-title">${escapeHtml(f.title)}</div>
+      </div>
+      <div class="nutrition-value">${f.calories.toLocaleString('he-IL')} קק"ל</div>
+      <div class="row-actions">
+        <button onclick="openFoodModal('${f.id}')" title="עריכה">✏️</button>
+        <button onclick="deleteFoodEntry('${f.id}')" title="מחיקה">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+  if(foodToday.length===0){
+    rows = `<div class="empty">עדיין לא הוספת אוכל היום.</div>`;
+  }
+
+  return `
+    <div class="water-card">
+      <div class="water-label">💧 מים היום</div>
+      <div class="water-count">${waterToday}</div>
+      <div class="water-btn-row">
+        <button class="btn primary small" onclick="addWater()">+ כוס מים</button>
+        ${waterToday>0 ? `<button class="btn secondary small" onclick="removeLastWater()">− הסר</button>` : ''}
+      </div>
+      <div class="gauge-track" style="margin-top:10px;"><div class="gauge-fill" style="width:${Math.min(waterPct,100)}%"></div></div>
+      <button class="text-btn small" style="margin-top:8px;" onclick="openWaterTargetModal()">${waterToday}/${state.waterTarget} כוסות · ✏️ שנה יעד</button>
+    </div>
+    <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openFoodModal()">+ הוספת אוכל</button>
+    <div class="gauge-card">
+      <div class="gauge-header">
+        <span>קלוריות היום</span>
+        <span>${caloriesToday.toLocaleString('he-IL')} / ${state.calorieTarget.toLocaleString('he-IL')} · ${pct}%</span>
+      </div>
+      <div class="gauge-track"><div class="gauge-fill ${pct>100?'over':''}" style="width:${Math.min(pct,100)}%"></div></div>
+      <button class="text-btn" style="margin-top:12px;" onclick="openCalorieTargetModal()">✏️ שנה יעד יומי</button>
+    </div>
+    <h2 class="section-title">מה אכלתי היום</h2>
+    ${rows}
+  `;
+}
+function render(){
+  const main = document.getElementById('mainView');
+  let body;
+  if(ui.view==='day') body = renderTasksTab();
+  else if(ui.view==='categories') body = renderCategoriesView();
+  else if(ui.view==='goals') body = renderGoalsView();
+  else if(ui.view==='stats') body = renderStatsView();
+  else if(ui.view==='finances') body = renderFinancesView();
+  else if(ui.view==='nutrition') body = renderNutritionView();
+  else body = renderCalendarView();
+  main.innerHTML = renderNavTabs() + body;
+}
+
+/* ---------- Init ---------- */
+if(state.recurringTasks.length){
+  generateRecurringInstances();
+  saveState();
+}
+applyTheme();
+render();
+</script>
+</body>
+</html>
