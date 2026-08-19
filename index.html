@@ -128,6 +128,15 @@
   .task-row:hover{box-shadow:var(--shadow-md);}
   .task-row.done{opacity:.55;}
   .task-row.done .task-title{text-decoration:line-through;}
+  .task-row.colored{color:#fff;border-color:transparent;}
+  .task-row.colored .task-title{color:#fff;}
+  .task-row.colored .badge.cat,
+  .task-row.colored .badge.overdue,
+  .task-row.colored .badge.checklist{background:rgba(255,255,255,.28);color:#fff;}
+  .task-row.colored .drag-handle{color:rgba(255,255,255,.75);}
+  .task-row.colored .row-actions button{color:rgba(255,255,255,.85);}
+  .task-row.colored .row-actions button:hover{background:rgba(255,255,255,.18);color:#fff;}
+  .task-row.colored .check{border-color:rgba(255,255,255,.65);background:rgba(255,255,255,.18);}
   .check{
     width:27px;height:27px;border-radius:50%;border:2px solid var(--border);background:var(--surface);
     flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
@@ -153,11 +162,6 @@
   .checklist-edit-row .checklist-edit-input{flex:1;width:auto;}
   .checklist-edit-row button{background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:6px;flex-shrink:0;}
 
-  .leftover-banner{background:var(--danger-tint);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px;}
-  .leftover-title{font-weight:800;font-size:14px;color:var(--danger);margin-bottom:10px;}
-  .leftover-row{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;box-shadow:var(--shadow);}
-  .leftover-row:last-child{margin-bottom:0;}
-  .leftover-body{flex:1;min-width:0;}
   .row-actions{display:flex;gap:0;}
   .row-actions button{background:none;border:none;color:var(--text-muted);font-size:15px;padding:9px;min-width:36px;min-height:36px;border-radius:9px;transition:background .15s ease,color .15s ease,transform .15s ease;}
   .row-actions button:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06);}
@@ -224,6 +228,7 @@
   }
   .modal{
     background:var(--surface);border-radius:20px;padding:24px;width:100%;max-width:380px;
+    max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
     box-shadow:var(--shadow-md);animation:popIn .18s cubic-bezier(.2,.8,.3,1.1) both;
   }
   .modal h2{margin:0 0 18px;font-size:18px;font-weight:800;letter-spacing:-.01em;}
@@ -327,6 +332,9 @@
   .finance-summary .tile .value{font-size:16px;font-weight:800;}
   .finance-summary .tile.income .value{color:var(--success);}
   .finance-summary .tile.expense .value{color:var(--danger);}
+  .finance-summary .tile.balance .value{color:var(--primary);}
+  .finance-summary .tile.credit .value{color:var(--warning);}
+  .badge.credit{background:var(--warning);color:#fff;}
 
   .finance-row{
     display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
@@ -389,13 +397,19 @@ function loadState(){
     const merged = Object.assign(defaultState(), parsed);
     if(!merged.financeCategories || !merged.financeCategories.length) merged.financeCategories = [...FINANCE_CATEGORIES];
     merged.tasks = (merged.tasks||[]).map((t,i)=>{
-      const scope = t.scope || 'today';
+      let scope = t.scope || 'today';
+      if(scope==='weekly') scope = 'general';
       const date = scope==='today' ? (t.date || t.dueDate || todayStr()) : null;
-      const weekOf = scope==='weekly' ? (t.weekOf || currentWeekOf()) : null;
       const order = t.order!==undefined ? t.order : i;
-      const { dueDate, priority, ...rest } = t;
-      return { ...rest, scope, date, weekOf, order };
+      const { dueDate, priority, weekOf, ...rest } = t;
+      return { ...rest, scope, date, order };
     });
+    merged.categories = (merged.categories||[]).map(c=>({ ...c, pinned: !!c.pinned }));
+    merged.finances = (merged.finances||[]).map(f=>({
+      ...f,
+      paymentMethod: f.paymentMethod || 'checking',
+      creditCharged: !!f.creditCharged
+    }));
     return merged;
   }catch(e){
     console.error('Failed to load state', e);
@@ -417,6 +431,7 @@ let ui = {
   showCompletedGoals: false,
   expandedChecklists: {},
   taskViewMode: 'today',
+  selectedNutritionDate: todayStr(),
   statsMode: 'tasks',
   statsTaskCategoryId: null,
   statsNutritionPeriod: 'month',
@@ -425,7 +440,9 @@ let ui = {
   financeStatsMonth: todayStr().slice(0,7),
   financeStatsYear: new Date().getFullYear(),
   financeFilterType: 'all',
-  financeSortMode: 'time'
+  financeSortMode: 'time',
+  statsExpandedFinanceCategories: {},
+  statsExpandedIncome: false
 };
 
 /* ---------- Helpers ---------- */
@@ -458,19 +475,6 @@ function formatDateLabel(ds){
 }
 function startOfWeek(d){ const s=new Date(d); s.setDate(d.getDate()-d.getDay()); s.setHours(0,0,0,0); return s; }
 function endOfWeek(d){ const s=startOfWeek(d); const e=new Date(s); e.setDate(s.getDate()+6); return e; }
-function currentWeekOf(){ return toDateStr(startOfWeek(new Date())); }
-function weekOfDeadlinePassed(weekOf){
-  const deadline = parseDateStr(weekOf);
-  deadline.setDate(deadline.getDate()+6);
-  deadline.setHours(17,0,0,0);
-  return new Date() >= deadline;
-}
-function formatWeekLabel(weekOf){
-  const start = parseDateStr(weekOf);
-  const end = new Date(start);
-  end.setDate(start.getDate()+6);
-  return `${formatDateShort(weekOf)} - ${formatDateShort(toDateStr(end))}`;
-}
 function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0); }
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -511,6 +515,12 @@ function showModal(html){
   if(firstInput) firstInput.focus();
 }
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if(el.closest && el.closest('.modal') && (el.tagName==='INPUT' || el.tagName==='SELECT' || el.tagName==='TEXTAREA')){
+    setTimeout(() => el.scrollIntoView({ block:'center', behavior:'smooth' }), 300);
+  }
+});
 
 let pendingConfirmAction = null;
 function showConfirm(message, onConfirm){
@@ -555,11 +565,19 @@ function jumpToDate(val){
   render();
 }
 function setTaskViewMode(v){ ui.taskViewMode = v; render(); }
-function carryOverWeeklyTask(taskId){
-  const t = state.tasks.find(x=>x.id===taskId);
-  if(!t) return;
-  t.weekOf = currentWeekOf();
-  saveState();
+function shiftNutritionDay(delta){
+  const d = parseDateStr(ui.selectedNutritionDate);
+  d.setDate(d.getDate()+delta);
+  ui.selectedNutritionDate = toDateStr(d);
+  render();
+}
+function goNutritionToday(){
+  ui.selectedNutritionDate = todayStr();
+  render();
+}
+function jumpNutritionDate(val){
+  if(!val) return;
+  ui.selectedNutritionDate = val;
   render();
 }
 function setStatsMode(v){ ui.statsMode = v; render(); }
@@ -581,6 +599,15 @@ function setFinanceSort(v){ ui.financeSortMode = v; render(); }
 function setFinanceStatsPeriod(v){ ui.financeStatsPeriod = v; render(); }
 function setFinanceStatsMonth(v){ if(!v) return; ui.financeStatsMonth = v; render(); }
 function setFinanceStatsYear(v){ ui.financeStatsYear = Number(v); render(); }
+function toggleStatsFinanceCat(cat){
+  ui.statsExpandedFinanceCategories = ui.statsExpandedFinanceCategories || {};
+  ui.statsExpandedFinanceCategories[cat] = !ui.statsExpandedFinanceCategories[cat];
+  render();
+}
+function toggleStatsIncomeExpand(){
+  ui.statsExpandedIncome = !ui.statsExpandedIncome;
+  render();
+}
 function financeYearsList(){
   const years = new Set([new Date().getFullYear()]);
   state.finances.forEach(f=>years.add(Number(f.date.slice(0,4))));
@@ -595,6 +622,10 @@ function openCategoryModal(catId){
     <form onsubmit="event.preventDefault(); saveCategoryForm('${catId||''}')">
       <label>שם הקטגוריה</label>
       <input type="text" id="catNameInput" value="${cat?escapeHtml(cat.name):''}" required>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:14px;">
+        <input type="checkbox" id="catPinnedInput" ${cat&&cat.pinned?'checked':''} style="width:auto;">
+        הצג משימות מהקטגוריה הזו תמיד למעלה
+      </label>
       <div class="modal-actions">
         <div>${cat ? `<button type="button" class="btn danger" onclick="deleteCategory('${cat.id}')">מחיקה</button>` : ''}</div>
         <div class="end">
@@ -608,12 +639,14 @@ function openCategoryModal(catId){
 function saveCategoryForm(catId){
   const name = document.getElementById('catNameInput').value.trim();
   if(!name) return;
+  const pinned = document.getElementById('catPinnedInput').checked;
   if(catId){
     const cat = state.categories.find(c=>c.id===catId);
     cat.name = name;
+    cat.pinned = pinned;
   }else{
     state.categories.push({
-      id: uid(), name,
+      id: uid(), name, pinned,
       color: CAT_COLORS[state.categories.length % CAT_COLORS.length]
     });
   }
@@ -707,6 +740,31 @@ function toggleShowCompletedGoals(){
 function toggleFinanceSubcategory(val){
   const wrap = document.getElementById('financeSubcatWrap');
   if(wrap) wrap.classList.toggle('hidden', val!==FINANCE_SAVINGS_CATEGORY);
+  const payWrap = document.getElementById('financePaymentWrap');
+  if(payWrap) payWrap.classList.toggle('hidden', val===FINANCE_INCOME_CATEGORY);
+}
+function checkingBalance(){
+  let bal = 0;
+  state.finances.forEach(f=>{
+    if(f.type==='income') bal += f.amount;
+    else if(f.paymentMethod!=='credit') bal -= f.amount;
+    else if(f.creditCharged) bal -= f.amount;
+  });
+  return bal;
+}
+function pendingCreditTotal(){
+  return state.finances.filter(f=>f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged).reduce((s,f)=>s+f.amount,0);
+}
+function chargeCreditCard(){
+  const pending = pendingCreditTotal();
+  if(pending<=0) return;
+  showConfirm(`לסמן שחיוב אשראי בסך ${pending.toLocaleString('he-IL')} ₪ ירד מהעו"ש?`, () => {
+    state.finances.forEach(f=>{
+      if(f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged) f.creditCharged = true;
+    });
+    saveState();
+    render();
+  });
 }
 function openAddFinanceCategoryModal(txId){
   showModal(`
@@ -784,6 +842,8 @@ function openFinanceModal(txId){
     `<option value="${s}" ${tx&&tx.subCategory===s?'selected':''}>${s}</option>`
   ).join('');
   const showSubcat = tx && tx.category===FINANCE_SAVINGS_CATEGORY;
+  const initialCat = tx ? tx.category : (state.financeCategories[0]||'');
+  const showPaymentWrap = initialCat!==FINANCE_INCOME_CATEGORY;
   showModal(`
     <h2>${tx ? 'עריכת תנועה' : 'תנועה חדשה'}</h2>
     <form onsubmit="event.preventDefault(); saveFinanceForm('${txId||''}')">
@@ -797,6 +857,12 @@ function openFinanceModal(txId){
         <select id="financeSubcatInput">
           ${subcatOptions}
         </select>
+      </div>
+      <div id="financePaymentWrap" class="${showPaymentWrap?'':'hidden'}">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+          <input type="checkbox" id="financeCreditInput" ${tx&&tx.paymentMethod==='credit'?'checked':''} style="width:auto;">
+          לשלם באשראי (ירד מהעו"ש רק אחרי שתסמן שהחיוב ירד)
+        </label>
       </div>
       <label>כותרת</label>
       <input type="text" id="financeTitleInput" value="${tx?escapeHtml(tx.title):''}" required>
@@ -823,11 +889,14 @@ function saveFinanceForm(txId){
   if(!amount || amount<=0) return;
   const date = document.getElementById('financeDateInput').value || todayStr();
   const type = category===FINANCE_INCOME_CATEGORY ? 'income' : 'expense';
+  const creditCheckbox = document.getElementById('financeCreditInput');
+  const paymentMethod = (type==='expense' && creditCheckbox && creditCheckbox.checked) ? 'credit' : 'checking';
   if(txId){
     const tx = state.finances.find(f=>f.id===txId);
-    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7) });
+    const creditCharged = (tx.paymentMethod==='credit' && paymentMethod==='credit') ? tx.creditCharged : false;
+    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged });
   }else{
-    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), createdAt:Date.now() });
+    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, createdAt:Date.now() });
   }
   saveState();
   closeModal();
@@ -842,9 +911,10 @@ function deleteFinance(txId){
 }
 function financeRowHtml(f){
   const sign = f.type==='income' ? '+' : '-';
+  const isPendingCredit = f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged;
   return `<div class="finance-row">
     <div class="finance-body" onclick="openFinanceModal('${f.id}')">
-      <div class="finance-title">${escapeHtml(f.title)}</div>
+      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}</div>
       <div class="finance-meta">${escapeHtml(f.category)}${f.subCategory?` · ${escapeHtml(f.subCategory)}`:''} · ${formatDateShort(f.date)}</div>
     </div>
     <div class="finance-amount ${f.type}">${sign}${f.amount.toLocaleString('he-IL')} ₪</div>
@@ -857,14 +927,14 @@ function financeRowHtml(f){
 
 /* ---------- Nutrition ---------- */
 function addWater(){
-  state.waterEntries.push({ id:uid(), date:todayStr(), createdAt:Date.now() });
+  state.waterEntries.push({ id:uid(), date:ui.selectedNutritionDate, createdAt:Date.now() });
   saveState();
   render();
 }
 function removeLastWater(){
-  const todayEntries = state.waterEntries.filter(w=>w.date===todayStr());
-  if(todayEntries.length===0) return;
-  const last = todayEntries.reduce((a,b)=>a.createdAt>b.createdAt?a:b);
+  const dayEntries = state.waterEntries.filter(w=>w.date===ui.selectedNutritionDate);
+  if(dayEntries.length===0) return;
+  const last = dayEntries.reduce((a,b)=>a.createdAt>b.createdAt?a:b);
   state.waterEntries = state.waterEntries.filter(w=>w.id!==last.id);
   saveState();
   render();
@@ -897,7 +967,7 @@ function saveFoodForm(entryId){
     const entry = state.foodEntries.find(f=>f.id===entryId);
     Object.assign(entry, { title, calories });
   }else{
-    state.foodEntries.push({ id:uid(), title, calories, date:todayStr(), createdAt:Date.now() });
+    state.foodEntries.push({ id:uid(), title, calories, date:ui.selectedNutritionDate, createdAt:Date.now() });
   }
   saveState();
   closeModal();
@@ -986,7 +1056,7 @@ function generateRecurringInstances(){
       if(!exists){
         state.tasks.push({
           id:uid(), categoryId:rt.categoryId, title:rt.title, scope:'today',
-          date:dateStr, weekOf:null, goalId:rt.goalId, recurringTaskId:rt.id,
+          date:dateStr, goalId:rt.goalId, recurringTaskId:rt.id,
           done:false, order:Date.now(), createdAt:Date.now()
         });
       }
@@ -1036,7 +1106,6 @@ function openTaskModal(taskId, presetDate, presetCategoryId, presetScope){
       <label>הגדרת זמן</label>
       <select id="taskScopeInput" onchange="toggleTaskScopeFields(this.value)">
         <option value="today" ${scope==='today'?'selected':''}>היום</option>
-        <option value="weekly" ${scope==='weekly'?'selected':''}>שבועי</option>
         <option value="general" ${scope==='general'?'selected':''}>כללי</option>
       </select>
       <div id="taskDateWrap" class="${scope==='today'?'':'hidden'}">
@@ -1106,7 +1175,6 @@ function saveTaskForm(taskId){
   }
 
   const date = scope==='today' ? (document.getElementById('taskDateInput').value || todayStr()) : null;
-  const weekOf = scope==='weekly' ? ((existing && existing.scope==='weekly') ? existing.weekOf : currentWeekOf()) : null;
 
   let checklist = null;
   const checklistCheckbox = document.getElementById('taskChecklistCheckbox');
@@ -1125,9 +1193,9 @@ function saveTaskForm(taskId){
   const done = checklist ? checklist.every(i=>i.done) : (existing ? existing.done : false);
 
   if(existing){
-    Object.assign(existing, { title, categoryId, scope, date, weekOf, goalId, checklist, done });
+    Object.assign(existing, { title, categoryId, scope, date, goalId, checklist, done });
   }else{
-    state.tasks.push({ id:uid(), categoryId, title, scope, date, weekOf, goalId, checklist, done, recurringTaskId:null, order:Date.now(), createdAt:Date.now() });
+    state.tasks.push({ id:uid(), categoryId, title, scope, date, goalId, checklist, done, recurringTaskId:null, order:Date.now(), createdAt:Date.now() });
   }
   saveState();
   closeModal();
@@ -1260,9 +1328,36 @@ document.addEventListener('pointerup', dndPointerUp);
 document.addEventListener('pointercancel', dndPointerUp);
 
 function taskGroupKey(t){
-  if(t.scope==='weekly') return `weekly_${t.weekOf}_${t.done}`;
   if(t.scope==='general') return `general_${t.done}`;
   return `${t.date}_${t.done}`;
+}
+function openScheduleChooser(taskId){
+  const task = state.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  showModal(`
+    <h2>שיבוץ משימה</h2>
+    <p style="margin:0 0 18px;color:var(--text);font-size:14px;line-height:1.6;">${escapeHtml(task.title)}</p>
+    <button type="button" class="btn primary" style="width:100%;" onclick="scheduleTaskToDate('${taskId}','${todayStr()}')">הכנס להיום</button>
+    <label>או בחר תאריך אחר</label>
+    <input type="date" id="scheduleDateInput" value="${todayStr()}">
+    <div class="modal-actions">
+      <div><button type="button" class="btn secondary" onclick="openTaskModal('${taskId}')">עריכת משימה</button></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+        <button type="button" class="btn primary" onclick="scheduleTaskToDate('${taskId}', document.getElementById('scheduleDateInput').value)">שבץ לתאריך</button>
+      </div>
+    </div>
+  `);
+}
+function scheduleTaskToDate(taskId, dateStr){
+  if(!dateStr) return;
+  const task = state.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  task.scope = 'today';
+  task.date = dateStr;
+  saveState();
+  closeModal();
+  render();
 }
 function taskRowHtml(t, opts){
   opts = opts || {};
@@ -1272,17 +1367,23 @@ function taskRowHtml(t, opts){
   const hasChecklist = t.checklist && t.checklist.length>0;
   const checklistDoneCount = hasChecklist ? t.checklist.filter(i=>i.done).length : 0;
   const expanded = hasChecklist && ui.expandedChecklists && ui.expandedChecklists[t.id];
-  const checklistPanel = expanded ? `<div class="checklist-panel">${t.checklist.map(i=>`
+  const checklistPanel = expanded ? `<div class="checklist-panel">
+      ${t.checklist.map(i=>`
       <div class="checklist-item" data-task-id="${t.id}" data-item-id="${i.id}" data-group="checklist_${t.id}">
         <button class="checklist-drag-handle" title="גרור לשינוי סדר">⠿</button>
         <button class="check small ${i.done?'checked':''}" onclick="toggleChecklistItem('${t.id}','${i.id}')">${i.done?'✓':''}</button>
         <span class="${i.done?'done-text':''}">${escapeHtml(i.title)}</span>
       </div>
-    `).join('')}</div>` : '';
-  return `<div class="task-row ${t.done?'done':''}" data-task-id="${t.id}" data-group="${group}">
+    `).join('')}
+      <button type="button" class="text-btn small" onclick="toggleChecklistExpand('${t.id}')">✕ סגור</button>
+    </div>` : '';
+  const bodyClick = opts.quickSchedule ? `openScheduleChooser('${t.id}')` : `openTaskModal('${t.id}')`;
+  const rowStyle = cat ? ` style="background:${cat.color};"` : '';
+  const checkStyle = (cat && t.done) ? ` style="background:#fff;border-color:#fff;color:${cat.color};"` : '';
+  return `<div class="task-row ${t.done?'done':''} ${cat?'colored':''}" data-task-id="${t.id}" data-group="${group}"${rowStyle}>
     <button class="drag-handle" title="גרור לשינוי סדר">⠿</button>
-    <button class="check ${t.done?'checked':''}" onclick="toggleTaskDone('${t.id}')">${t.done?'✓':''}</button>
-    <div class="task-body" onclick="openTaskModal('${t.id}')">
+    <button class="check ${t.done?'checked':''}"${checkStyle} onclick="toggleTaskDone('${t.id}')">${t.done?'✓':''}</button>
+    <div class="task-body" onclick="${bodyClick}">
       <div class="task-title">${escapeHtml(t.title)}</div>
       <div class="task-meta">
         ${opts.showCategory && cat ? `<span class="badge cat" style="background:${cat.color}">${escapeHtml(cat.name)}</span>` : ''}
@@ -1385,13 +1486,19 @@ function importBackup(event){
       state = Object.assign(defaultState(), parsed);
       if(!state.financeCategories || !state.financeCategories.length) state.financeCategories = [...FINANCE_CATEGORIES];
       state.tasks = (state.tasks||[]).map((t,i)=>{
-        const scope = t.scope || 'today';
+        let scope = t.scope || 'today';
+        if(scope==='weekly') scope = 'general';
         const date = scope==='today' ? (t.date || t.dueDate || todayStr()) : null;
-        const weekOf = scope==='weekly' ? (t.weekOf || currentWeekOf()) : null;
         const order = t.order!==undefined ? t.order : i;
-        const { dueDate, priority, ...rest } = t;
-        return { ...rest, scope, date, weekOf, order };
+        const { dueDate, priority, weekOf, ...rest } = t;
+        return { ...rest, scope, date, order };
       });
+      state.categories = (state.categories||[]).map(c=>({ ...c, pinned: !!c.pinned }));
+      state.finances = (state.finances||[]).map(f=>({
+        ...f,
+        paymentMethod: f.paymentMethod || 'checking',
+        creditCharged: !!f.creditCharged
+      }));
       saveState();
       applyTheme();
       ui = {
@@ -1403,6 +1510,7 @@ function importBackup(event){
         showCompletedGoals: false,
         expandedChecklists: {},
         taskViewMode: 'today',
+        selectedNutritionDate: todayStr(),
         statsMode: 'tasks',
         statsTaskCategoryId: null,
         statsNutritionPeriod: 'month',
@@ -1411,7 +1519,9 @@ function importBackup(event){
         financeStatsMonth: todayStr().slice(0,7),
         financeStatsYear: new Date().getFullYear(),
         financeFilterType: 'all',
-        financeSortMode: 'time'
+        financeSortMode: 'time',
+        statsExpandedFinanceCategories: {},
+        statsExpandedIncome: false
       };
       render();
     });
@@ -1479,18 +1589,22 @@ function renderTasksTab(){
   const toggle = `
     <div class="range-tabs" style="margin-bottom:18px;">
       <button class="tab ${ui.taskViewMode==='today'?'active':''}" onclick="setTaskViewMode('today')">היום</button>
-      <button class="tab ${ui.taskViewMode==='weekly'?'active':''}" onclick="setTaskViewMode('weekly')">שבועי</button>
       <button class="tab ${ui.taskViewMode==='general'?'active':''}" onclick="setTaskViewMode('general')">כללי</button>
     </div>`;
   let body;
-  if(ui.taskViewMode==='weekly') body = renderWeeklyTasksView();
-  else if(ui.taskViewMode==='general') body = renderGeneralTasksView();
+  if(ui.taskViewMode==='general') body = renderGeneralTasksView();
   else body = renderDayView();
   return toggle + body;
+}
+function isCategoryPinned(t){
+  const c = state.categories.find(x=>x.id===t.categoryId);
+  return !!(c && c.pinned);
 }
 function renderDayView(){
   const tasks = state.tasks.filter(t=>t.date===ui.selectedDate).sort((a,b)=>{
     if(a.done!==b.done) return a.done?1:-1;
+    const aPin = isCategoryPinned(a), bPin = isCategoryPinned(b);
+    if(aPin!==bPin) return aPin?-1:1;
     return a.order-b.order;
   });
   let rows = tasks.map(t=>taskRowHtml(t, {showCategory:true})).join('');
@@ -1509,57 +1623,14 @@ function renderDayView(){
     <button class="add-inline" onclick="openTaskModal(null, '${ui.selectedDate}', null, 'today')">+ משימה חדשה</button>
   `;
 }
-function renderWeeklyTasksView(){
-  const curWeek = currentWeekOf();
-  const leftover = state.tasks.filter(t=>t.scope==='weekly' && !t.done && weekOfDeadlinePassed(t.weekOf));
-  const thisWeek = state.tasks.filter(t=>
-    t.scope==='weekly' && t.weekOf===curWeek && !(!t.done && weekOfDeadlinePassed(t.weekOf))
-  ).sort((a,b)=>{
-    if(a.done!==b.done) return a.done?1:-1;
-    return a.order-b.order;
-  });
-
-  let leftoverHtml = '';
-  if(leftover.length){
-    leftoverHtml = `<div class="leftover-banner">
-      <div class="leftover-title">⏳ נשארו משבועות קודמים</div>
-      ${leftover.map(t=>{
-        const cat = state.categories.find(c=>c.id===t.categoryId);
-        return `<div class="leftover-row">
-          <div class="leftover-body">
-            <div class="task-title">${escapeHtml(t.title)}</div>
-            <div class="task-meta">
-              ${cat?`<span class="badge cat" style="background:${cat.color}">${escapeHtml(cat.name)}</span>`:''}
-              <span class="badge overdue">${formatWeekLabel(t.weekOf)}</span>
-            </div>
-          </div>
-          <div class="row-actions">
-            <button onclick="carryOverWeeklyTask('${t.id}')" title="הוסף לשבוע הנוכחי">➕</button>
-            <button onclick="deleteTask('${t.id}')" title="מחיקה">🗑️</button>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-
-  let rows = thisWeek.map(t=>taskRowHtml(t, {showCategory:true})).join('');
-  if(thisWeek.length===0){
-    rows = `<div class="empty">אין משימות שבועיות כרגע.</div>`;
-  }
-
-  return `
-    ${leftoverHtml}
-    <h2 class="section-title" style="margin-top:0;">השבוע (${formatWeekLabel(curWeek)})</h2>
-    ${rows}
-    <button class="add-inline" onclick="openTaskModal(null, null, null, 'weekly')">+ משימה שבועית</button>
-  `;
-}
 function renderGeneralTasksView(){
   const tasks = state.tasks.filter(t=>t.scope==='general').sort((a,b)=>{
     if(a.done!==b.done) return a.done?1:-1;
+    const aPin = isCategoryPinned(a), bPin = isCategoryPinned(b);
+    if(aPin!==bPin) return aPin?-1:1;
     return a.order-b.order;
   });
-  let rows = tasks.map(t=>taskRowHtml(t, {showCategory:true})).join('');
+  let rows = tasks.map(t=>taskRowHtml(t, {showCategory:true, quickSchedule:true})).join('');
   if(tasks.length===0){
     rows = `<div class="empty">אין משימות כלליות.</div>`;
   }
@@ -1597,13 +1668,6 @@ function renderCategoryDetail(catId){
   const sortByDoneOrder = (a,b)=>{ if(a.done!==b.done) return a.done?1:-1; return a.order-b.order; };
 
   let extraSections = '';
-  const weeklyTasks = state.tasks.filter(t=>t.categoryId===catId && t.scope==='weekly').sort(sortByDoneOrder);
-  if(weeklyTasks.length){
-    extraSections += `<div class="day-group">
-      <div class="day-group-title">שבועי</div>
-      ${weeklyTasks.map(t=>taskRowHtml(t)).join('')}
-    </div>`;
-  }
   const generalTasks = state.tasks.filter(t=>t.categoryId===catId && t.scope==='general').sort(sortByDoneOrder);
   if(generalTasks.length){
     extraSections += `<div class="day-group">
@@ -1821,8 +1885,7 @@ function renderFinanceStats(){
     const [y,m] = monthKey.split('-').map(Number);
     periodTx = state.finances.filter(f=>f.month===monthKey);
     periodLabel = `${HEBREW_MONTHS[m-1]} ${y}`;
-    const daysInMonth = new Date(y, m, 0).getDate();
-    dayCount = (monthKey===todayStr().slice(0,7)) ? Number(todayStr().split('-')[2]) : daysInMonth;
+    dayCount = new Date(y, m, 0).getDate();
   }
 
   const incomeTotal = periodTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
@@ -1864,7 +1927,21 @@ function renderFinanceStats(){
     </div>
     <h2 class="section-title">הוצאות לפי קטגוריה</h2>
     <div class="stat-breakdown" style="margin-bottom:20px;">
-      ${breakdown.length ? breakdown.map(x=>`<div class="stat-row"><span>${escapeHtml(x.c)}</span><span>${x.total.toLocaleString('he-IL')} ₪</span></div>`).join('') : `<div class="empty">אין עדיין הוצאות בתקופה זו.</div>`}
+      ${breakdown.length ? breakdown.map(x=>{
+        const expanded = ui.statsExpandedFinanceCategories && ui.statsExpandedFinanceCategories[x.c];
+        const catTx = periodTx.filter(f=>f.category===x.c).sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:0));
+        const detail = expanded ? `<div class="stat-breakdown" style="margin:6px 0 10px;padding-inline-start:14px;">
+          ${catTx.map(f=>`<div class="stat-row" style="font-size:13px;font-weight:600;"><span>${escapeHtml(f.title)} · ${formatDateShort(f.date)}</span><span>${f.amount.toLocaleString('he-IL')} ₪</span></div>`).join('')}
+        </div>` : '';
+        return `<div class="stat-row" style="cursor:pointer;" onclick="toggleStatsFinanceCat('${x.c.replace(/'/g,"\\'")}')"><span>${expanded?'▲':'▼'} ${escapeHtml(x.c)}</span><span>${x.total.toLocaleString('he-IL')} ₪</span></div>${detail}`;
+      }).join('') : `<div class="empty">אין עדיין הוצאות בתקופה זו.</div>`}
+    </div>
+    <h2 class="section-title">הכנסות</h2>
+    <div class="stat-breakdown" style="margin-bottom:20px;">
+      <div class="stat-row" style="cursor:pointer;" onclick="toggleStatsIncomeExpand()"><span>${ui.statsExpandedIncome?'▲':'▼'} הכנסות</span><span>${incomeTotal.toLocaleString('he-IL')} ₪</span></div>
+      ${ui.statsExpandedIncome ? `<div class="stat-breakdown" style="margin:6px 0 10px;padding-inline-start:14px;">
+        ${periodTx.filter(f=>f.type==='income').sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:0)).map(f=>`<div class="stat-row" style="font-size:13px;font-weight:600;"><span>${escapeHtml(f.title)} · ${formatDateShort(f.date)}</span><span>${f.amount.toLocaleString('he-IL')} ₪</span></div>`).join('') || `<div class="empty">אין הכנסות בתקופה זו.</div>`}
+      </div>` : ''}
     </div>
     <h2 class="section-title">הכנסות מול הוצאות</h2>
     <div class="compare-chart">
@@ -1913,6 +1990,9 @@ function renderFinancesView(){
     rows = `<div class="empty">אין עדיין תנועות החודש.</div>`;
   }
 
+  const balance = checkingBalance();
+  const pendingCredit = pendingCreditTotal();
+
   return `
     <div style="display:flex;gap:8px;margin-bottom:18px;">
       <button class="btn primary" style="flex:1;" onclick="openFinanceModal()">+ הוספת תנועה</button>
@@ -1921,6 +2001,12 @@ function renderFinancesView(){
     <div class="finance-summary">
       <div class="tile income"><div class="label">הכנסות החודש</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile expense"><div class="label">הוצאות החודש</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile balance"><div class="label">יתרת עו"ש</div><div class="value">${balance.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile credit">
+        <div class="label">אשראי ממתין</div>
+        <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
+        ${pendingCredit>0 ? `<button type="button" class="text-btn small" style="margin-top:6px;" onclick="chargeCreditCard()">אשראי ירד</button>` : ''}
+      </div>
     </div>
     <div class="range-tabs" style="margin-bottom:8px;">
       <button class="tab ${ui.financeFilterType==='all'?'active':''}" onclick="setFinanceFilter('all')">הכל</button>
@@ -1935,9 +2021,9 @@ function renderFinancesView(){
   `;
 }
 function renderNutritionView(){
-  const today = todayStr();
-  const waterToday = state.waterEntries.filter(w=>w.date===today).length;
-  const foodToday = state.foodEntries.filter(f=>f.date===today).sort((a,b)=>b.createdAt-a.createdAt);
+  const viewDate = ui.selectedNutritionDate;
+  const waterToday = state.waterEntries.filter(w=>w.date===viewDate).length;
+  const foodToday = state.foodEntries.filter(f=>f.date===viewDate).sort((a,b)=>b.createdAt-a.createdAt);
   const caloriesToday = foodToday.reduce((s,f)=>s+f.calories,0);
   const pct = Math.round(caloriesToday/state.calorieTarget*100);
   const waterPct = Math.round(waterToday/state.waterTarget*100);
@@ -1959,8 +2045,15 @@ function renderNutritionView(){
   }
 
   return `
+    <div class="day-nav">
+      <button class="text-btn" onclick="shiftNutritionDay(-1)" title="יום קודם">יום קודם</button>
+      <div class="date-label">${formatDateLabel(viewDate)}</div>
+      <button class="text-btn" onclick="shiftNutritionDay(1)" title="יום הבא">יום הבא</button>
+      <button class="text-btn" onclick="goNutritionToday()">היום</button>
+      <input type="date" value="${viewDate}" onchange="jumpNutritionDate(this.value)">
+    </div>
     <div class="water-card">
-      <div class="water-label">💧 מים היום</div>
+      <div class="water-label">💧 מים</div>
       <div class="water-count">${waterToday}</div>
       <div class="water-btn-row">
         <button class="btn primary small" onclick="addWater()">+ כוס מים</button>
@@ -1972,13 +2065,13 @@ function renderNutritionView(){
     <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openFoodModal()">+ הוספת אוכל</button>
     <div class="gauge-card">
       <div class="gauge-header">
-        <span>קלוריות היום</span>
+        <span>קלוריות</span>
         <span>${caloriesToday.toLocaleString('he-IL')} / ${state.calorieTarget.toLocaleString('he-IL')} · ${pct}%</span>
       </div>
       <div class="gauge-track"><div class="gauge-fill ${pct>100?'over':''}" style="width:${Math.min(pct,100)}%"></div></div>
       <button class="text-btn" style="margin-top:12px;" onclick="openCalorieTargetModal()">✏️ שנה יעד יומי</button>
     </div>
-    <h2 class="section-title">מה אכלתי היום</h2>
+    <h2 class="section-title">מה אכלתי</h2>
     ${rows}
   `;
 }
