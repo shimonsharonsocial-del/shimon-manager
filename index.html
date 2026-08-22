@@ -382,6 +382,7 @@ const FINANCE_SAVINGS_SUBCATS = ['חיסכון בבנק','עסק','שוק ההו
 const FINANCE_INCOME_CATEGORY = 'הכנסות';
 const FINANCE_SAVINGS_CATEGORY = 'חסכונות והשקעות';
 const FINANCE_CREDIT_SETTLEMENT_CATEGORY = 'עדכון אשראי';
+const FINANCE_SAVINGS_ADJUSTMENT_CATEGORY = 'עדכון חיסכון';
 
 function defaultState(){
   return {
@@ -751,6 +752,7 @@ function toggleFinanceSubcategory(val){
 function checkingBalance(){
   let bal = 0;
   state.finances.forEach(f=>{
+    if(f.category===FINANCE_SAVINGS_ADJUSTMENT_CATEGORY) return;
     if(f.type==='income') bal += f.amount;
     else if(f.paymentMethod!=='credit') bal -= f.amount;
     else if(f.creditCharged) bal -= f.amount;
@@ -763,10 +765,50 @@ function pendingCreditTotal(){
 function savingsBalance(){
   let bal = 0;
   state.finances.forEach(f=>{
-    if(f.type==='expense' && f.category===FINANCE_SAVINGS_CATEGORY) bal += f.amount;
+    if(f.type==='expense' && (f.category===FINANCE_SAVINGS_CATEGORY || f.category===FINANCE_SAVINGS_ADJUSTMENT_CATEGORY)) bal += f.amount;
     else if(f.type==='income' && f.fromSavings) bal -= f.amount;
   });
   return bal;
+}
+function updateSavingsBalance(){
+  const current = savingsBalance();
+  showModal(`
+    <h2>עדכון יתרת חיסכון</h2>
+    <p style="margin:0 0 18px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">הזן את היתרה האמיתית בחיסכון. ההפרש מהיתרה המחושבת (${current.toLocaleString('he-IL')} ₪) יתעדכן בלי להשפיע על עו"ש או על סטטיסטיקת ההכנסות וההוצאות.</p>
+    <label>יתרה בפועל (₪)</label>
+    <input type="number" id="savingsBalanceInput" step="0.1" value="${current}">
+    <div class="modal-actions">
+      <div></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+        <button type="button" class="btn primary" onclick="confirmSavingsBalanceUpdate()">אישור</button>
+      </div>
+    </div>
+  `);
+}
+function confirmSavingsBalanceUpdate(){
+  const target = parseFloat(document.getElementById('savingsBalanceInput').value);
+  if(isNaN(target)) return;
+  const diff = target - savingsBalance();
+  if(Math.abs(diff) < 0.001){ closeModal(); return; }
+  if(diff > 0){
+    state.finances.push({
+      id:uid(), category:FINANCE_SAVINGS_ADJUSTMENT_CATEGORY, subCategory:null,
+      title:'עדכון יתרת חיסכון', amount:diff, type:'expense',
+      date:todayStr(), month:todayStr().slice(0,7),
+      paymentMethod:'checking', creditCharged:false, fromSavings:false, createdAt:Date.now()
+    });
+  }else{
+    state.finances.push({
+      id:uid(), category:FINANCE_SAVINGS_ADJUSTMENT_CATEGORY, subCategory:null,
+      title:'עדכון יתרת חיסכון', amount:Math.abs(diff), type:'income',
+      date:todayStr(), month:todayStr().slice(0,7),
+      paymentMethod:'checking', creditCharged:false, fromSavings:true, createdAt:Date.now()
+    });
+  }
+  saveState();
+  closeModal();
+  render();
 }
 function chargeCreditCard(){
   const pending = pendingCreditTotal();
@@ -959,10 +1001,11 @@ function deleteFinance(txId){
 function financeRowHtml(f){
   const sign = f.type==='income' ? '+' : '-';
   const isPendingCredit = f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged;
-  const isFromSavings = f.type==='income' && f.fromSavings;
+  const isSavingsAdjustment = f.category===FINANCE_SAVINGS_ADJUSTMENT_CATEGORY;
+  const isFromSavings = f.type==='income' && f.fromSavings && !isSavingsAdjustment;
   return `<div class="finance-row">
     <div class="finance-body" onclick="openFinanceModal('${f.id}')">
-      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}</div>
+      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}${isSavingsAdjustment?'<span class="badge savings">עדכון חיסכון</span>':''}</div>
       <div class="finance-meta">${escapeHtml(f.category)}${f.subCategory?` · ${escapeHtml(f.subCategory)}`:''} · ${formatDateShort(f.date)}</div>
     </div>
     <div class="finance-amount ${f.type}">${sign}${f.amount.toLocaleString('he-IL')} ₪</div>
@@ -1937,8 +1980,8 @@ function renderFinanceStats(){
     dayCount = new Date(y, m, 0).getDate();
   }
 
-  const incomeTotal = periodTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
-  const expenseTotal = periodTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const incomeTotal = periodTx.filter(f=>f.type==='income' && f.category!==FINANCE_SAVINGS_ADJUSTMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = periodTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_ADJUSTMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
   const savingsTotal = periodTx.filter(f=>f.category===FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
   const avgDaily = dayCount>0 ? expenseTotal/dayCount : 0;
 
@@ -2023,8 +2066,8 @@ function renderNavTabs(){
 function renderFinancesView(){
   const currentMonth = todayStr().slice(0,7);
   const monthTx = state.finances.filter(f=>f.month===currentMonth);
-  const incomeTotal = monthTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
-  const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const incomeTotal = monthTx.filter(f=>f.type==='income' && f.category!==FINANCE_SAVINGS_ADJUSTMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_ADJUSTMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
 
   let list = monthTx.filter(f=> ui.financeFilterType==='all' || f.type===ui.financeFilterType);
   const byDate = (a,b) => a.date!==b.date ? (a.date<b.date?1:-1) : b.createdAt-a.createdAt;
@@ -2052,7 +2095,11 @@ function renderFinancesView(){
       <div class="tile income"><div class="label">הכנסות החודש</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile expense"><div class="label">הוצאות החודש</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile balance"><div class="label">יתרת עו"ש</div><div class="value">${balance.toLocaleString('he-IL')} ₪</div></div>
-      <div class="tile"><div class="label">יתרת חיסכון</div><div class="value">${savingsBal.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile">
+        <div class="label">יתרת חיסכון</div>
+        <div class="value">${savingsBal.toLocaleString('he-IL')} ₪</div>
+        <button type="button" class="text-btn small" style="margin-top:6px;" onclick="updateSavingsBalance()">עדכון יתרה</button>
+      </div>
       <div class="tile credit">
         <div class="label">אשראי ממתין</div>
         <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
