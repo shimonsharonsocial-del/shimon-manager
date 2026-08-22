@@ -335,6 +335,7 @@
   .finance-summary .tile.balance .value{color:var(--primary);}
   .finance-summary .tile.credit .value{color:var(--warning);}
   .badge.credit{background:var(--warning);color:#fff;}
+  .badge.savings{background:var(--success-tint);color:var(--success);}
 
   .finance-row{
     display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
@@ -409,7 +410,8 @@ function loadState(){
     merged.finances = (merged.finances||[]).map(f=>({
       ...f,
       paymentMethod: f.paymentMethod || 'checking',
-      creditCharged: !!f.creditCharged
+      creditCharged: !!f.creditCharged,
+      fromSavings: !!f.fromSavings
     }));
     return merged;
   }catch(e){
@@ -743,6 +745,8 @@ function toggleFinanceSubcategory(val){
   if(wrap) wrap.classList.toggle('hidden', val!==FINANCE_SAVINGS_CATEGORY);
   const payWrap = document.getElementById('financePaymentWrap');
   if(payWrap) payWrap.classList.toggle('hidden', val===FINANCE_INCOME_CATEGORY);
+  const fromSavingsWrap = document.getElementById('financeFromSavingsWrap');
+  if(fromSavingsWrap) fromSavingsWrap.classList.toggle('hidden', val!==FINANCE_INCOME_CATEGORY);
 }
 function checkingBalance(){
   let bal = 0;
@@ -755,6 +759,14 @@ function checkingBalance(){
 }
 function pendingCreditTotal(){
   return state.finances.filter(f=>f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged).reduce((s,f)=>s+f.amount,0);
+}
+function savingsBalance(){
+  let bal = 0;
+  state.finances.forEach(f=>{
+    if(f.type==='expense' && f.category===FINANCE_SAVINGS_CATEGORY) bal += f.amount;
+    else if(f.type==='income' && f.fromSavings) bal -= f.amount;
+  });
+  return bal;
 }
 function chargeCreditCard(){
   const pending = pendingCreditTotal();
@@ -870,6 +882,7 @@ function openFinanceModal(txId){
   const showSubcat = tx && tx.category===FINANCE_SAVINGS_CATEGORY;
   const initialCat = tx ? tx.category : (state.financeCategories[0]||'');
   const showPaymentWrap = initialCat!==FINANCE_INCOME_CATEGORY;
+  const showFromSavingsWrap = initialCat===FINANCE_INCOME_CATEGORY;
   showModal(`
     <h2>${tx ? 'עריכת תנועה' : 'תנועה חדשה'}</h2>
     <form onsubmit="event.preventDefault(); saveFinanceForm('${txId||''}')">
@@ -888,6 +901,12 @@ function openFinanceModal(txId){
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
           <input type="checkbox" id="financeCreditInput" ${tx&&tx.paymentMethod==='credit'?'checked':''} style="width:auto;">
           לשלם באשראי (ירד מהעו"ש רק אחרי שתסמן שהחיוב ירד)
+        </label>
+      </div>
+      <div id="financeFromSavingsWrap" class="${showFromSavingsWrap?'':'hidden'}">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+          <input type="checkbox" id="financeFromSavingsInput" ${tx&&tx.fromSavings?'checked':''} style="width:auto;">
+          ההכנסה הזו משיכה מהחיסכון
         </label>
       </div>
       <label>כותרת</label>
@@ -917,12 +936,14 @@ function saveFinanceForm(txId){
   const type = category===FINANCE_INCOME_CATEGORY ? 'income' : 'expense';
   const creditCheckbox = document.getElementById('financeCreditInput');
   const paymentMethod = (type==='expense' && creditCheckbox && creditCheckbox.checked) ? 'credit' : 'checking';
+  const fromSavingsCheckbox = document.getElementById('financeFromSavingsInput');
+  const fromSavings = !!(type==='income' && fromSavingsCheckbox && fromSavingsCheckbox.checked);
   if(txId){
     const tx = state.finances.find(f=>f.id===txId);
     const creditCharged = (tx.paymentMethod==='credit' && paymentMethod==='credit') ? tx.creditCharged : false;
-    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged });
+    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged, fromSavings });
   }else{
-    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, createdAt:Date.now() });
+    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, fromSavings, createdAt:Date.now() });
   }
   saveState();
   closeModal();
@@ -938,9 +959,10 @@ function deleteFinance(txId){
 function financeRowHtml(f){
   const sign = f.type==='income' ? '+' : '-';
   const isPendingCredit = f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged;
+  const isFromSavings = f.type==='income' && f.fromSavings;
   return `<div class="finance-row">
     <div class="finance-body" onclick="openFinanceModal('${f.id}')">
-      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}</div>
+      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}</div>
       <div class="finance-meta">${escapeHtml(f.category)}${f.subCategory?` · ${escapeHtml(f.subCategory)}`:''} · ${formatDateShort(f.date)}</div>
     </div>
     <div class="finance-amount ${f.type}">${sign}${f.amount.toLocaleString('he-IL')} ₪</div>
@@ -1523,7 +1545,8 @@ function importBackup(event){
       state.finances = (state.finances||[]).map(f=>({
         ...f,
         paymentMethod: f.paymentMethod || 'checking',
-        creditCharged: !!f.creditCharged
+        creditCharged: !!f.creditCharged,
+        fromSavings: !!f.fromSavings
       }));
       saveState();
       applyTheme();
@@ -2018,6 +2041,7 @@ function renderFinancesView(){
 
   const balance = checkingBalance();
   const pendingCredit = pendingCreditTotal();
+  const savingsBal = savingsBalance();
 
   return `
     <div style="display:flex;gap:8px;margin-bottom:18px;">
@@ -2028,6 +2052,7 @@ function renderFinancesView(){
       <div class="tile income"><div class="label">הכנסות החודש</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile expense"><div class="label">הוצאות החודש</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile balance"><div class="label">יתרת עו"ש</div><div class="value">${balance.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile"><div class="label">יתרת חיסכון</div><div class="value">${savingsBal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile credit">
         <div class="label">אשראי ממתין</div>
         <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
