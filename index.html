@@ -380,6 +380,7 @@ const FINANCE_CATEGORIES = ['הוצאות ובזבוזים','קניות אוכל
 const FINANCE_SAVINGS_SUBCATS = ['חיסכון בבנק','עסק','שוק ההון'];
 const FINANCE_INCOME_CATEGORY = 'הכנסות';
 const FINANCE_SAVINGS_CATEGORY = 'חסכונות והשקעות';
+const FINANCE_CREDIT_SETTLEMENT_CATEGORY = 'עדכון אשראי';
 
 function defaultState(){
   return {
@@ -757,14 +758,39 @@ function pendingCreditTotal(){
 }
 function chargeCreditCard(){
   const pending = pendingCreditTotal();
-  if(pending<=0) return;
-  showConfirm(`לסמן שחיוב אשראי בסך ${pending.toLocaleString('he-IL')} ₪ ירד מהעו"ש?`, () => {
-    state.finances.forEach(f=>{
-      if(f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged) f.creditCharged = true;
+  showModal(`
+    <h2>עדכון חיוב אשראי</h2>
+    <p style="margin:0 0 6px;color:var(--text);font-size:14px;line-height:1.6;">כמה בפועל ירד מהעו"ש בחיוב האשראי?</p>
+    <p style="margin:0 0 18px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">אם הסכום גדול ממה שנרשם באפליקציה (${pending.toLocaleString('he-IL')} ₪), ההפרש יירד מהעו"ש בלי להתווסף להוצאות החודש.</p>
+    <label>סכום שירד (₪)</label>
+    <input type="number" id="creditChargeAmountInput" min="0" step="0.1" value="${pending>0?pending:''}">
+    <div class="modal-actions">
+      <div></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+        <button type="button" class="btn primary" onclick="confirmCreditCharge()">אישור</button>
+      </div>
+    </div>
+  `);
+}
+function confirmCreditCharge(){
+  const amount = parseFloat(document.getElementById('creditChargeAmountInput').value);
+  if(!amount || amount<=0) return;
+  const pendingTx = state.finances.filter(f=>f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged);
+  const trackedTotal = pendingTx.reduce((s,f)=>s+f.amount,0);
+  pendingTx.forEach(f=>{ f.creditCharged = true; });
+  const extra = amount - trackedTotal;
+  if(extra > 0.001){
+    state.finances.push({
+      id:uid(), category:FINANCE_CREDIT_SETTLEMENT_CATEGORY, subCategory:null,
+      title:'עדכון חיוב אשראי', amount:extra, type:'expense',
+      date:todayStr(), month:todayStr().slice(0,7),
+      paymentMethod:'credit', creditCharged:true, createdAt:Date.now()
     });
-    saveState();
-    render();
-  });
+  }
+  saveState();
+  closeModal();
+  render();
 }
 function openAddFinanceCategoryModal(txId){
   showModal(`
@@ -1889,7 +1915,7 @@ function renderFinanceStats(){
   }
 
   const incomeTotal = periodTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
-  const expenseTotal = periodTx.filter(f=>f.type==='expense').reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = periodTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
   const savingsTotal = periodTx.filter(f=>f.category===FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
   const avgDaily = dayCount>0 ? expenseTotal/dayCount : 0;
 
@@ -1975,7 +2001,7 @@ function renderFinancesView(){
   const currentMonth = todayStr().slice(0,7);
   const monthTx = state.finances.filter(f=>f.month===currentMonth);
   const incomeTotal = monthTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
-  const expenseTotal = monthTx.filter(f=>f.type==='expense').reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
 
   let list = monthTx.filter(f=> ui.financeFilterType==='all' || f.type===ui.financeFilterType);
   const byDate = (a,b) => a.date!==b.date ? (a.date<b.date?1:-1) : b.createdAt-a.createdAt;
@@ -2005,7 +2031,7 @@ function renderFinancesView(){
       <div class="tile credit">
         <div class="label">אשראי ממתין</div>
         <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
-        ${pendingCredit>0 ? `<button type="button" class="text-btn small" style="margin-top:6px;" onclick="chargeCreditCard()">אשראי ירד</button>` : ''}
+        <button type="button" class="text-btn small" style="margin-top:6px;" onclick="chargeCreditCard()">עדכון חיוב</button>
       </div>
     </div>
     <div class="range-tabs" style="margin-bottom:8px;">
