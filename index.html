@@ -317,6 +317,18 @@
   .day-chart-value{font-size:9px;font-weight:700;color:var(--text);margin-bottom:4px;white-space:nowrap;}
   .day-chart-label{font-size:9px;color:var(--text-muted);margin-top:5px;white-space:nowrap;}
 
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .photo-thumb{position:relative;border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:1;cursor:pointer;background:var(--surface-hover);box-shadow:var(--shadow);}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photo-thumb .photo-date{position:absolute;bottom:0;right:0;left:0;background:linear-gradient(to top, rgba(0,0,0,.65), transparent);color:#fff;font-size:10px;font-weight:700;padding:4px 6px 3px;text-align:center;}
+  .photo-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .photo-viewer-overlay img{max-width:100%;max-height:80vh;border-radius:12px;}
+  .photo-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+  .photo-compare-grid img{width:100%;border-radius:var(--radius-sm);box-shadow:var(--shadow);}
+  .streak-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;text-align:center;margin-bottom:20px;box-shadow:var(--shadow);}
+  .streak-card .streak-value{font-size:32px;font-weight:800;color:var(--primary);}
+  .streak-card .streak-label{font-size:12px;color:var(--text-muted);margin-top:4px;font-weight:700;}
+
   .compare-chart{display:flex;flex-direction:column;gap:14px;margin-bottom:12px;}
   .compare-row{display:flex;align-items:center;gap:10px;}
   .compare-label{font-size:13px;font-weight:700;color:var(--text-muted);flex-shrink:0;width:56px;}
@@ -367,6 +379,7 @@
       <button class="text-btn" onclick="exportBackup()">גיבוי</button>
       <button class="text-btn" onclick="document.getElementById('restoreInput').click()">שחזור</button>
       <input type="file" id="restoreInput" accept="application/json" class="hidden" onchange="importBackup(event)">
+      <input type="file" id="photoFileInput" accept="image/*" class="hidden" onchange="handlePhotoFileSelected(event)">
     </div>
   </header>
   <main id="mainView"></main>
@@ -383,12 +396,15 @@ const FINANCE_INCOME_CATEGORY = 'הכנסות';
 const FINANCE_SAVINGS_CATEGORY = 'חסכונות והשקעות';
 const FINANCE_CREDIT_SETTLEMENT_CATEGORY = 'עדכון אשראי';
 const FINANCE_SAVINGS_ADJUSTMENT_CATEGORY = 'עדכון חיסכון';
+const WORKOUT_TYPES = ['חזה','גב','רגליים','כתפיים','ידיים','פול באדי','אירובי'];
+const WORKOUT_CUSTOM = 'מותאם אישית';
 
 function defaultState(){
   return {
     version:1, theme:'light', categories:[], tasks:[], events:[], goals:[], finances:[],
     financeCategories:[...FINANCE_CATEGORIES], recurringTasks:[],
-    waterEntries:[], foodEntries:[], calorieTarget:1800, waterTarget:8, googleApiKey:''
+    waterEntries:[], foodEntries:[], calorieTarget:1800, waterTarget:8, googleApiKey:'',
+    workouts:[], bodyWeights:[], progressPhotos:[]
   };
 }
 
@@ -446,7 +462,10 @@ let ui = {
   financeFilterType: 'all',
   financeSortMode: 'time',
   statsExpandedFinanceCategories: {},
-  statsExpandedIncome: false
+  statsExpandedIncome: false,
+  fitnessSubTab: 'workouts',
+  comparePhotoA: null,
+  comparePhotoB: null
 };
 
 /* ---------- Helpers ---------- */
@@ -1206,6 +1225,209 @@ function saveWaterTarget(){
   render();
 }
 
+/* ---------- Fitness ---------- */
+function setFitnessSubTab(v){ ui.fitnessSubTab = v; render(); }
+function toggleWorkoutCustomType(val){
+  const wrap = document.getElementById('workoutCustomTypeWrap');
+  if(wrap) wrap.classList.toggle('hidden', val!==WORKOUT_CUSTOM);
+}
+function openWorkoutModal(workoutId){
+  const w = workoutId ? state.workouts.find(x=>x.id===workoutId) : null;
+  const isCustomType = w && !WORKOUT_TYPES.includes(w.type);
+  const typeOptions = WORKOUT_TYPES.map(t=>
+    `<option value="${t}" ${w&&w.type===t?'selected':''}>${t}</option>`
+  ).join('') + `<option value="${WORKOUT_CUSTOM}" ${isCustomType?'selected':''}>${WORKOUT_CUSTOM}</option>`;
+  showModal(`
+    <h2>${w ? 'עריכת אימון' : 'אימון חדש'}</h2>
+    <form onsubmit="event.preventDefault(); saveWorkoutForm('${workoutId||''}')">
+      <label>תאריך</label>
+      <input type="date" id="workoutDateInput" value="${w?w.date:todayStr()}" required>
+      <label>סוג אימון</label>
+      <select id="workoutTypeInput" onchange="toggleWorkoutCustomType(this.value)">
+        ${typeOptions}
+      </select>
+      <div id="workoutCustomTypeWrap" class="${isCustomType?'':'hidden'}">
+        <label>שם מותאם אישית</label>
+        <input type="text" id="workoutCustomTypeInput" value="${isCustomType?escapeHtml(w.type):''}">
+      </div>
+      <label>משך (דקות)</label>
+      <input type="number" id="workoutDurationInput" min="0" value="${w?w.durationMinutes:''}" required>
+      <label>הערות (לא חובה)</label>
+      <input type="text" id="workoutNotesInput" value="${w&&w.notes?escapeHtml(w.notes):''}">
+      <div class="modal-actions">
+        <div>${w ? `<button type="button" class="btn danger" onclick="deleteWorkout('${w.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveWorkoutForm(workoutId){
+  const date = document.getElementById('workoutDateInput').value;
+  if(!date) return;
+  let type = document.getElementById('workoutTypeInput').value;
+  if(type===WORKOUT_CUSTOM){
+    type = document.getElementById('workoutCustomTypeInput').value.trim();
+    if(!type) return;
+  }
+  const durationMinutes = parseFloat(document.getElementById('workoutDurationInput').value);
+  if(!durationMinutes || durationMinutes<=0) return;
+  const notes = document.getElementById('workoutNotesInput').value.trim();
+  if(workoutId){
+    const w = state.workouts.find(x=>x.id===workoutId);
+    Object.assign(w, { date, type, durationMinutes, notes });
+  }else{
+    state.workouts.push({ id:uid(), date, type, durationMinutes, notes, createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteWorkout(workoutId){
+  showConfirm('למחוק את האימון?', () => {
+    state.workouts = state.workouts.filter(w=>w.id!==workoutId);
+    saveState();
+    closeModal();
+    render();
+  });
+}
+function workoutRowHtml(w){
+  return `<div class="finance-row">
+    <div class="finance-body" onclick="openWorkoutModal('${w.id}')">
+      <div class="finance-title">${escapeHtml(w.type)}</div>
+      <div class="finance-meta">${formatDateShort(w.date)} · ${w.durationMinutes} דקות${w.notes?` · ${escapeHtml(w.notes)}`:''}</div>
+    </div>
+    <div class="row-actions">
+      <button onclick="openWorkoutModal('${w.id}')" title="עריכה">✏️</button>
+      <button onclick="deleteWorkout('${w.id}')" title="מחיקה">🗑️</button>
+    </div>
+  </div>`;
+}
+function openWeightModal(weightId){
+  const wt = weightId ? state.bodyWeights.find(x=>x.id===weightId) : null;
+  showModal(`
+    <h2>${wt ? 'עריכת משקל' : 'עדכון משקל'}</h2>
+    <form onsubmit="event.preventDefault(); saveWeightForm('${weightId||''}')">
+      <label>תאריך</label>
+      <input type="date" id="weightDateInput" value="${wt?wt.date:todayStr()}" required>
+      <label>משקל (ק"ג)</label>
+      <input type="number" id="weightValueInput" min="0" step="0.1" value="${wt?wt.weight:''}" required>
+      <div class="modal-actions">
+        <div>${wt ? `<button type="button" class="btn danger" onclick="deleteWeight('${wt.id}')">מחיקה</button>` : ''}</div>
+        <div class="end">
+          <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+          <button type="submit" class="btn primary">שמירה</button>
+        </div>
+      </div>
+    </form>
+  `);
+}
+function saveWeightForm(weightId){
+  const date = document.getElementById('weightDateInput').value;
+  if(!date) return;
+  const weight = parseFloat(document.getElementById('weightValueInput').value);
+  if(!weight || weight<=0) return;
+  if(weightId){
+    const wt = state.bodyWeights.find(x=>x.id===weightId);
+    Object.assign(wt, { date, weight });
+  }else{
+    state.bodyWeights.push({ id:uid(), date, weight, createdAt:Date.now() });
+  }
+  saveState();
+  closeModal();
+  render();
+}
+function deleteWeight(weightId){
+  showConfirm('למחוק את הרשומה?', () => {
+    state.bodyWeights = state.bodyWeights.filter(w=>w.id!==weightId);
+    saveState();
+    closeModal();
+    render();
+  });
+}
+function weightRowHtml(wt){
+  return `<div class="finance-row">
+    <div class="finance-body" onclick="openWeightModal('${wt.id}')">
+      <div class="finance-title">${wt.weight.toLocaleString('he-IL')} ק"ג</div>
+      <div class="finance-meta">${formatDateShort(wt.date)}</div>
+    </div>
+    <div class="row-actions">
+      <button onclick="openWeightModal('${wt.id}')" title="עריכה">✏️</button>
+      <button onclick="deleteWeight('${wt.id}')" title="מחיקה">🗑️</button>
+    </div>
+  </div>`;
+}
+function compressImage(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('קריאת הקובץ נכשלה'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('טעינת התמונה נכשלה'));
+      img.onload = () => {
+        const maxDim = 1000;
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function openPhotoUpload(){
+  document.getElementById('photoFileInput').click();
+}
+async function handlePhotoFileSelected(event){
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  try{
+    const dataUrl = await compressImage(file);
+    state.progressPhotos.push({ id:uid(), date:todayStr(), imageDataUrl:dataUrl, createdAt:Date.now() });
+    saveState();
+    render();
+  }catch(e){
+    alert('שגיאה בהעלאת התמונה: ' + e.message);
+  }
+}
+function deletePhoto(photoId){
+  showConfirm('למחוק את התמונה?', () => {
+    state.progressPhotos = state.progressPhotos.filter(p=>p.id!==photoId);
+    if(ui.comparePhotoA===photoId) ui.comparePhotoA = null;
+    if(ui.comparePhotoB===photoId) ui.comparePhotoB = null;
+    saveState();
+    closeModal();
+    render();
+  });
+}
+function openPhotoViewer(photoId){
+  const p = state.progressPhotos.find(x=>x.id===photoId);
+  if(!p) return;
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="photo-viewer-overlay" onclick="if(event.target===this) closeModal()">
+      <img src="${p.imageDataUrl}">
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button type="button" class="btn secondary" onclick="closeModal()">סגירה</button>
+        <button type="button" class="btn danger" onclick="deletePhoto('${p.id}')">מחיקה</button>
+      </div>
+    </div>
+  `;
+}
+function setComparePhoto(slot, photoId){
+  if(slot==='a') ui.comparePhotoA = photoId || null;
+  else ui.comparePhotoB = photoId || null;
+  render();
+}
+
 /* ---------- Tasks ---------- */
 function toggleTaskScopeFields(val){
   const wrap = document.getElementById('taskDateWrap');
@@ -1939,10 +2161,12 @@ function renderStatsView(){
       <button class="tab ${ui.statsMode==='tasks'?'active':''}" onclick="setStatsMode('tasks')">משימות</button>
       <button class="tab ${ui.statsMode==='finance'?'active':''}" onclick="setStatsMode('finance')">כספים</button>
       <button class="tab ${ui.statsMode==='nutrition'?'active':''}" onclick="setStatsMode('nutrition')">תזונה</button>
+      <button class="tab ${ui.statsMode==='fitness'?'active':''}" onclick="setStatsMode('fitness')">כושר</button>
     </div>`;
   let body;
   if(ui.statsMode==='finance') body = renderFinanceStats();
   else if(ui.statsMode==='nutrition') body = renderNutritionStats();
+  else if(ui.statsMode==='fitness') body = renderFitnessStats();
   else body = renderTaskStats();
   return modeToggle + body;
 }
@@ -2136,6 +2360,81 @@ function renderFinanceStats(){
     </div>
   `;
 }
+function calcWorkoutStreak(){
+  const dates = new Set(state.workouts.map(w=>w.date));
+  let d = new Date();
+  d.setHours(0,0,0,0);
+  if(!dates.has(toDateStr(d))){
+    d.setDate(d.getDate()-1);
+  }
+  let streak = 0;
+  while(dates.has(toDateStr(d))){
+    streak++;
+    d.setDate(d.getDate()-1);
+  }
+  return streak;
+}
+function renderFitnessStats(){
+  const today = todayStr();
+  const weekStart = toDateStr(startOfWeek(new Date()));
+  const weekEnd = toDateStr(endOfWeek(new Date()));
+  const monthKey = today.slice(0,7);
+  const weekWorkouts = state.workouts.filter(w=>w.date>=weekStart && w.date<=weekEnd);
+  const monthWorkouts = state.workouts.filter(w=>w.date.slice(0,7)===monthKey);
+  const weekDuration = weekWorkouts.reduce((s,w)=>s+w.durationMinutes,0);
+  const monthDuration = monthWorkouts.reduce((s,w)=>s+w.durationMinutes,0);
+  const streak = calcWorkoutStreak();
+
+  const typeBreakdown = {};
+  state.workouts.forEach(w=>{ typeBreakdown[w.type] = (typeBreakdown[w.type]||0)+1; });
+  const breakdownRows = Object.entries(typeBreakdown).sort((a,b)=>b[1]-a[1])
+    .map(([type,count])=>`<div class="stat-row"><span>${escapeHtml(type)}</span><span>${count} אימונים</span></div>`).join('');
+
+  const weightByDate = {};
+  state.bodyWeights.forEach(w=>{ weightByDate[w.date] = w.weight; });
+
+  const photos = [...state.progressPhotos].sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
+  const photoOptionsA = photos.map(p=>`<option value="${p.id}" ${ui.comparePhotoA===p.id?'selected':''}>${formatDateShort(p.date)}</option>`).join('');
+  const photoOptionsB = photos.map(p=>`<option value="${p.id}" ${ui.comparePhotoB===p.id?'selected':''}>${formatDateShort(p.date)}</option>`).join('');
+  const photoA = state.progressPhotos.find(p=>p.id===ui.comparePhotoA);
+  const photoB = state.progressPhotos.find(p=>p.id===ui.comparePhotoB);
+
+  return `
+    <div class="streak-card">
+      <div class="streak-value">🔥 ${streak}</div>
+      <div class="streak-label">ימים רצופים עם אימון</div>
+    </div>
+    <div class="stats-tiles">
+      <div class="stat-tile"><div class="stat-tile-value">${weekWorkouts.length}</div><div class="stat-tile-label">אימונים השבוע</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${monthWorkouts.length}</div><div class="stat-tile-label">אימונים החודש</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${weekDuration}</div><div class="stat-tile-label">דקות אימון השבוע</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${monthDuration}</div><div class="stat-tile-label">דקות אימון החודש</div></div>
+    </div>
+    <h2 class="section-title">פילוח לפי סוג</h2>
+    <div class="stat-breakdown" style="margin-bottom:20px;">
+      ${breakdownRows || `<div class="empty">אין עדיין אימונים.</div>`}
+    </div>
+    <h2 class="section-title">התקדמות משקל</h2>
+    ${dayChartHtml(weightByDate)}
+    <h2 class="section-title">השוואת תמונות</h2>
+    ${photos.length<2 ? `<div class="empty">צריך לפחות שתי תמונות כדי להשוות.</div>` : `
+      <div style="display:flex;gap:10px;">
+        <select onchange="setComparePhoto('a', this.value)" style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;box-shadow:var(--shadow);">
+          <option value="">תמונה א'</option>
+          ${photoOptionsA}
+        </select>
+        <select onchange="setComparePhoto('b', this.value)" style="flex:1;padding:9px 13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;box-shadow:var(--shadow);">
+          <option value="">תמונה ב'</option>
+          ${photoOptionsB}
+        </select>
+      </div>
+      ${(photoA||photoB) ? `<div class="photo-compare-grid">
+        <div>${photoA?`<img src="${photoA.imageDataUrl}"><div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">${formatDateShort(photoA.date)}</div>`:''}</div>
+        <div>${photoB?`<img src="${photoB.imageDataUrl}"><div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">${formatDateShort(photoB.date)}</div>`:''}</div>
+      </div>` : ''}
+    `}
+  `;
+}
 
 /* ---------- Main render ---------- */
 function renderNavTabs(){
@@ -2147,6 +2446,7 @@ function renderNavTabs(){
     <button class="tab ${ui.view==='stats'?'active':''}" onclick="switchView('stats')">📊 סטטיסטיקה</button>
     <button class="tab ${ui.view==='finances'?'active':''}" onclick="switchView('finances')">💰 כספים</button>
     <button class="tab ${ui.view==='nutrition'?'active':''}" onclick="switchView('nutrition')">🥗 תזונה</button>
+    <button class="tab ${ui.view==='fitness'?'active':''}" onclick="switchView('fitness')">💪 כושר</button>
   </nav>`;
 }
 function renderFinancesView(){
@@ -2267,6 +2567,57 @@ function renderNutritionView(){
     ${rows}
   `;
 }
+function renderFitnessView(){
+  const toggle = `
+    <div class="range-tabs" style="margin-bottom:18px;">
+      <button class="tab ${ui.fitnessSubTab==='workouts'?'active':''}" onclick="setFitnessSubTab('workouts')">אימונים</button>
+      <button class="tab ${ui.fitnessSubTab==='weight'?'active':''}" onclick="setFitnessSubTab('weight')">משקל</button>
+      <button class="tab ${ui.fitnessSubTab==='photos'?'active':''}" onclick="setFitnessSubTab('photos')">תמונות</button>
+    </div>`;
+  let body;
+  if(ui.fitnessSubTab==='weight') body = renderWeightSection();
+  else if(ui.fitnessSubTab==='photos') body = renderPhotosSection();
+  else body = renderWorkoutsSection();
+  return toggle + body;
+}
+function renderWorkoutsSection(){
+  const workouts = [...state.workouts].sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:b.createdAt-a.createdAt));
+  let rows = workouts.map(w=>workoutRowHtml(w)).join('');
+  if(workouts.length===0){
+    rows = `<div class="empty">אין עדיין אימונים.</div>`;
+  }
+  return `
+    <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openWorkoutModal()">+ אימון חדש</button>
+    ${rows}
+  `;
+}
+function renderWeightSection(){
+  const weights = [...state.bodyWeights].sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:b.createdAt-a.createdAt));
+  let rows = weights.map(w=>weightRowHtml(w)).join('');
+  if(weights.length===0){
+    rows = `<div class="empty">אין עדיין נתוני משקל.</div>`;
+  }
+  return `
+    <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openWeightModal()">+ עדכון משקל</button>
+    ${rows}
+  `;
+}
+function renderPhotosSection(){
+  const photos = [...state.progressPhotos].sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:a.createdAt-b.createdAt));
+  let grid = photos.map(p=>`
+    <div class="photo-thumb" onclick="openPhotoViewer('${p.id}')">
+      <img src="${p.imageDataUrl}" loading="lazy">
+      <div class="photo-date">${formatDateShort(p.date)}</div>
+    </div>
+  `).join('');
+  if(photos.length===0){
+    grid = `<div class="empty">אין עדיין תמונות התקדמות.</div>`;
+  }
+  return `
+    <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openPhotoUpload()">+ הוספת תמונה</button>
+    <div class="photo-grid">${grid}</div>
+  `;
+}
 function render(){
   const main = document.getElementById('mainView');
   let body;
@@ -2276,6 +2627,7 @@ function render(){
   else if(ui.view==='stats') body = renderStatsView();
   else if(ui.view==='finances') body = renderFinancesView();
   else if(ui.view==='nutrition') body = renderNutritionView();
+  else if(ui.view==='fitness') body = renderFitnessView();
   else body = renderCalendarView();
   main.innerHTML = renderNavTabs() + body;
 }
