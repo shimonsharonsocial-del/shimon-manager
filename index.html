@@ -348,6 +348,7 @@
   .finance-summary .tile.credit .value{color:var(--warning);}
   .badge.credit{background:var(--warning);color:#fff;}
   .badge.savings{background:var(--success-tint);color:var(--success);}
+  .badge.cash{background:var(--primary-tint);color:var(--primary);}
 
   .finance-row{
     display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
@@ -406,7 +407,7 @@ function defaultState(){
     financeCategories:[...FINANCE_CATEGORIES], recurringTasks:[],
     waterEntries:[], foodEntries:[], calorieTarget:1800, waterTarget:8, googleApiKey:'',
     workouts:[], bodyWeights:[], progressPhotos:[],
-    checkingBalanceOffset:0, savingsBalanceOffset:0
+    checkingBalanceOffset:0, savingsBalanceOffset:0, cashBalanceOffset:0
   };
 }
 
@@ -448,7 +449,8 @@ function loadState(){
       ...f,
       paymentMethod: f.paymentMethod || 'checking',
       creditCharged: !!f.creditCharged,
-      fromSavings: !!f.fromSavings
+      fromSavings: !!f.fromSavings,
+      isCash: !!f.isCash
     }));
     migrateBalanceAdjustmentRecords(merged);
     return merged;
@@ -782,16 +784,24 @@ function toggleShowCompletedGoals(){
 
 /* ---------- Finances ---------- */
 function toggleFinanceSubcategory(val){
+  const isIncome = val===FINANCE_INCOME_CATEGORY;
   const wrap = document.getElementById('financeSubcatWrap');
   if(wrap) wrap.classList.toggle('hidden', val!==FINANCE_SAVINGS_CATEGORY);
+  const cashCb = document.getElementById('financeCashInput');
+  const isCash = !!(cashCb && cashCb.checked);
+  const creditCb = document.getElementById('financeCreditInput');
+  if(isCash && creditCb) creditCb.checked = false;
   const payWrap = document.getElementById('financePaymentWrap');
-  if(payWrap) payWrap.classList.toggle('hidden', val===FINANCE_INCOME_CATEGORY);
+  if(payWrap) payWrap.classList.toggle('hidden', isIncome || isCash);
   const fromSavingsWrap = document.getElementById('financeFromSavingsWrap');
-  if(fromSavingsWrap) fromSavingsWrap.classList.toggle('hidden', val!==FINANCE_INCOME_CATEGORY);
+  if(fromSavingsWrap) fromSavingsWrap.classList.toggle('hidden', !isIncome);
+  const cashLabel = document.getElementById('financeCashLabel');
+  if(cashLabel) cashLabel.textContent = isIncome ? 'הכסף נכנס במזומן' : 'שולם במזומן';
 }
 function checkingBalance(){
   let bal = 0;
   state.finances.forEach(f=>{
+    if(f.isCash) return;
     if(f.type==='income') bal += f.amount;
     else if(f.paymentMethod!=='credit') bal -= f.amount;
     else if(f.creditCharged) bal -= f.amount;
@@ -857,6 +867,40 @@ function confirmCheckingBalanceUpdate(){
   const diff = target - checkingBalance();
   if(Math.abs(diff) < 0.001){ closeModal(); return; }
   state.checkingBalanceOffset = (state.checkingBalanceOffset||0) + diff;
+  saveState();
+  closeModal();
+  render();
+}
+function cashBalance(){
+  let bal = 0;
+  state.finances.forEach(f=>{
+    if(!f.isCash) return;
+    bal += f.type==='income' ? f.amount : -f.amount;
+  });
+  return bal + (state.cashBalanceOffset||0);
+}
+function updateCashBalance(){
+  const current = cashBalance();
+  showModal(`
+    <h2>עדכון יתרת מזומן</h2>
+    <p style="margin:0 0 18px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">הזן את היתרה האמיתית במזומן. זה רק יעדכן את המספר המוצג - לא ייווצר שום תנועה חדשה ברשימה.</p>
+    <label>יתרה בפועל (₪)</label>
+    <input type="number" id="cashBalanceInput" step="0.1" value="${current}">
+    <div class="modal-actions">
+      <div></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
+        <button type="button" class="btn primary" onclick="confirmCashBalanceUpdate()">אישור</button>
+      </div>
+    </div>
+  `);
+}
+function confirmCashBalanceUpdate(){
+  const target = parseFloat(document.getElementById('cashBalanceInput').value);
+  if(isNaN(target)) return;
+  const diff = target - cashBalance();
+  if(Math.abs(diff) < 0.001){ closeModal(); return; }
+  state.cashBalanceOffset = (state.cashBalanceOffset||0) + diff;
   saveState();
   closeModal();
   render();
@@ -974,8 +1018,9 @@ function openFinanceModal(txId){
   ).join('');
   const showSubcat = tx && tx.category===FINANCE_SAVINGS_CATEGORY;
   const initialCat = tx ? tx.category : (state.financeCategories[0]||'');
-  const showPaymentWrap = initialCat!==FINANCE_INCOME_CATEGORY;
+  const showPaymentWrap = initialCat!==FINANCE_INCOME_CATEGORY && !(tx && tx.isCash);
   const showFromSavingsWrap = initialCat===FINANCE_INCOME_CATEGORY;
+  const cashLabelText = initialCat===FINANCE_INCOME_CATEGORY ? 'הכסף נכנס במזומן' : 'שולם במזומן';
   showModal(`
     <h2>${tx ? 'עריכת תנועה' : 'תנועה חדשה'}</h2>
     <form onsubmit="event.preventDefault(); saveFinanceForm('${txId||''}')">
@@ -990,6 +1035,10 @@ function openFinanceModal(txId){
           ${subcatOptions}
         </select>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+        <input type="checkbox" id="financeCashInput" onchange="toggleFinanceSubcategory(document.getElementById('financeCatInput').value)" ${tx&&tx.isCash?'checked':''} style="width:auto;">
+        <span id="financeCashLabel">${cashLabelText}</span>
+      </label>
       <div id="financePaymentWrap" class="${showPaymentWrap?'':'hidden'}">
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
           <input type="checkbox" id="financeCreditInput" ${tx&&tx.paymentMethod==='credit'?'checked':''} style="width:auto;">
@@ -1027,16 +1076,18 @@ function saveFinanceForm(txId){
   if(!amount || amount<=0) return;
   const date = document.getElementById('financeDateInput').value || todayStr();
   const type = category===FINANCE_INCOME_CATEGORY ? 'income' : 'expense';
+  const cashCheckbox = document.getElementById('financeCashInput');
+  const isCash = !!(cashCheckbox && cashCheckbox.checked);
   const creditCheckbox = document.getElementById('financeCreditInput');
-  const paymentMethod = (type==='expense' && creditCheckbox && creditCheckbox.checked) ? 'credit' : 'checking';
+  const paymentMethod = (type==='expense' && !isCash && creditCheckbox && creditCheckbox.checked) ? 'credit' : 'checking';
   const fromSavingsCheckbox = document.getElementById('financeFromSavingsInput');
   const fromSavings = !!(type==='income' && fromSavingsCheckbox && fromSavingsCheckbox.checked);
   if(txId){
     const tx = state.finances.find(f=>f.id===txId);
     const creditCharged = (tx.paymentMethod==='credit' && paymentMethod==='credit') ? tx.creditCharged : false;
-    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged, fromSavings });
+    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged, fromSavings, isCash });
   }else{
-    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, fromSavings, createdAt:Date.now() });
+    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, fromSavings, isCash, createdAt:Date.now() });
   }
   saveState();
   closeModal();
@@ -1055,7 +1106,7 @@ function financeRowHtml(f){
   const isFromSavings = f.type==='income' && f.fromSavings;
   return `<div class="finance-row">
     <div class="finance-body" onclick="openFinanceModal('${f.id}')">
-      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}</div>
+      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}${f.isCash?'<span class="badge cash">מזומן</span>':''}</div>
       <div class="finance-meta">${escapeHtml(f.category)}${f.subCategory?` · ${escapeHtml(f.subCategory)}`:''} · ${formatDateShort(f.date)}</div>
     </div>
     <div class="finance-amount ${f.type}">${sign}${f.amount.toLocaleString('he-IL')} ₪</div>
@@ -1928,7 +1979,8 @@ function importBackup(event){
         ...f,
         paymentMethod: f.paymentMethod || 'checking',
         creditCharged: !!f.creditCharged,
-        fromSavings: !!f.fromSavings
+        fromSavings: !!f.fromSavings,
+        isCash: !!f.isCash
       }));
       migrateBalanceAdjustmentRecords(state);
       saveState();
@@ -2503,6 +2555,7 @@ function renderFinancesView(){
   const balance = checkingBalance();
   const pendingCredit = pendingCreditTotal();
   const savingsBal = savingsBalance();
+  const cashBal = cashBalance();
 
   return `
     <div style="display:flex;gap:8px;margin-bottom:18px;">
@@ -2516,6 +2569,11 @@ function renderFinancesView(){
         <div class="label">יתרת עו"ש</div>
         <div class="value">${balance.toLocaleString('he-IL')} ₪</div>
         <button type="button" class="text-btn small" style="margin-top:6px;" onclick="updateCheckingBalance()">עדכון יתרה</button>
+      </div>
+      <div class="tile">
+        <div class="label">יתרת מזומן</div>
+        <div class="value">${cashBal.toLocaleString('he-IL')} ₪</div>
+        <button type="button" class="text-btn small" style="margin-top:6px;" onclick="updateCashBalance()">עדכון יתרה</button>
       </div>
       <div class="tile">
         <div class="label">יתרת חיסכון</div>
