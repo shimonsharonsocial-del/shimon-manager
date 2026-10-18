@@ -349,6 +349,14 @@
   .badge.credit{background:var(--warning);color:#fff;}
   .badge.savings{background:var(--success-tint);color:var(--success);}
   .badge.cash{background:var(--primary-tint);color:var(--primary);}
+  .badge.paid{background:var(--success-tint);color:var(--success);}
+  .badge.expected{background:var(--surface-hover);color:var(--text-muted);}
+  .forecast-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;text-align:center;box-shadow:var(--shadow);}
+  .forecast-card .forecast-top{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .forecast-card .label{font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:.02em;}
+  .forecast-card input[type=date]{width:auto;margin:0;padding:5px 9px;font-size:14px;}
+  .forecast-card .value{font-size:22px;font-weight:800;color:var(--primary);margin-bottom:6px;}
+  .forecast-card .value.neg{color:var(--danger);}
 
   .finance-row{
     display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
@@ -407,8 +415,37 @@ function defaultState(){
     financeCategories:[...FINANCE_CATEGORIES], recurringTasks:[],
     waterEntries:[], foodEntries:[], calorieTarget:1800, waterTarget:8, googleApiKey:'',
     workouts:[], bodyWeights:[], progressPhotos:[],
-    checkingBalanceOffset:0, savingsBalanceOffset:0, cashBalanceOffset:0
+    checkingBalanceOffset:0, savingsBalanceOffset:0, cashBalanceOffset:0,
+    creditSettings:{ closingDay:15, chargeDay:15 }, recurringFinance:[]
   };
+}
+
+/* ---------- Finance schema v2: credit cycles, recurring series, future-dated flows ---------- */
+function normalizeFinanceRecord(f){
+  return {
+    ...f,
+    paymentMethod: f.paymentMethod || 'checking',
+    creditCharged: !!f.creditCharged,
+    fromSavings: !!f.fromSavings,
+    isCash: !!f.isCash,
+    chargeDate: f.chargeDate || null,
+    chargeDateManual: !!f.chargeDateManual,
+    chargedAt: f.chargedAt || null,
+    recurringId: f.recurringId || null,
+    occurrenceDate: f.occurrenceDate || null,
+    legacyCounted: !!f.legacyCounted
+  };
+}
+function migrateFinanceSchema(st){
+  st.creditSettings = Object.assign({ closingDay:15, chargeDay:15 }, st.creditSettings||{});
+  st.recurringFinance = Array.isArray(st.recurringFinance) ? st.recurringFinance : [];
+  if((st.financeSchemaVersion||1) < 2){
+    // Before v2 every transaction counted toward balances immediately, even future-dated ones.
+    // Keep those counted so the balances shown before the upgrade do not move.
+    const today = todayStr();
+    st.finances.forEach(f=>{ if(f.date > today) f.legacyCounted = true; });
+    st.financeSchemaVersion = 2;
+  }
 }
 
 function migrateBalanceAdjustmentRecords(st){
@@ -432,7 +469,7 @@ function migrateBalanceAdjustmentRecords(st){
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return defaultState();
+    if(!raw){ const fresh = defaultState(); fresh.financeSchemaVersion = 2; return fresh; }
     const parsed = JSON.parse(raw);
     const merged = Object.assign(defaultState(), parsed);
     if(!merged.financeCategories || !merged.financeCategories.length) merged.financeCategories = [...FINANCE_CATEGORIES];
@@ -445,14 +482,9 @@ function loadState(){
       return { ...rest, scope, date, order };
     });
     merged.categories = (merged.categories||[]).map(c=>({ ...c, pinned: !!c.pinned }));
-    merged.finances = (merged.finances||[]).map(f=>({
-      ...f,
-      paymentMethod: f.paymentMethod || 'checking',
-      creditCharged: !!f.creditCharged,
-      fromSavings: !!f.fromSavings,
-      isCash: !!f.isCash
-    }));
+    merged.finances = (merged.finances||[]).map(normalizeFinanceRecord);
     migrateBalanceAdjustmentRecords(merged);
+    migrateFinanceSchema(merged);
     return merged;
   }catch(e){
     console.error('Failed to load state', e);
@@ -783,28 +815,103 @@ function toggleShowCompletedGoals(){
 }
 
 /* ---------- Finances ---------- */
+function financeMethodOf(f){
+  if(f.isCash) return 'cash';
+  return f.paymentMethod==='credit' ? 'credit' : 'checking';
+}
 function toggleFinanceSubcategory(val){
   const isIncome = val===FINANCE_INCOME_CATEGORY;
   const wrap = document.getElementById('financeSubcatWrap');
   if(wrap) wrap.classList.toggle('hidden', val!==FINANCE_SAVINGS_CATEGORY);
-  const cashCb = document.getElementById('financeCashInput');
-  const isCash = !!(cashCb && cashCb.checked);
-  const creditCb = document.getElementById('financeCreditInput');
-  if(isCash && creditCb) creditCb.checked = false;
-  const payWrap = document.getElementById('financePaymentWrap');
-  if(payWrap) payWrap.classList.toggle('hidden', isIncome || isCash);
+  const creditBtn = document.getElementById('financeMethodCreditBtn');
+  if(creditBtn) creditBtn.classList.toggle('hidden', isIncome);
+  const methodInput = document.getElementById('financeMethodInput');
+  if(methodInput){
+    if(isIncome && methodInput.value==='credit') setFinanceMethod('checking');
+    else setFinanceMethod(methodInput.value || 'checking');
+  }
   const fromSavingsWrap = document.getElementById('financeFromSavingsWrap');
   if(fromSavingsWrap) fromSavingsWrap.classList.toggle('hidden', !isIncome);
-  const cashLabel = document.getElementById('financeCashLabel');
-  if(cashLabel) cashLabel.textContent = isIncome ? 'הכסף נכנס במזומן' : 'שולם במזומן';
+  const methodLabel = document.getElementById('financeMethodLabel');
+  if(methodLabel) methodLabel.textContent = isIncome ? 'הכסף נכנס ל' : 'אמצעי תשלום';
+  const recurLabel = document.getElementById('financeRecurLabel');
+  if(recurLabel) recurLabel.textContent = isIncome ? 'הכנסה חוזרת' : 'הוצאה חוזרת';
+}
+function setFinanceMethod(m){
+  const input = document.getElementById('financeMethodInput');
+  if(!input) return;
+  input.value = m;
+  document.querySelectorAll('#financeMethodTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.m===m));
+  updateFinanceChargeVisibility();
+  if(m==='credit') autoFillChargeDate(false);
+}
+function updateFinanceChargeVisibility(){
+  const input = document.getElementById('financeMethodInput');
+  const recur = document.getElementById('financeRecurInput');
+  const wrap = document.getElementById('financeChargeWrap');
+  if(!input || !wrap) return;
+  wrap.classList.toggle('hidden', input.value!=='credit' || !!(recur && recur.checked));
+}
+function toggleRecurFields(){
+  const recur = document.getElementById('financeRecurInput');
+  const fields = document.getElementById('financeRecurFields');
+  if(fields) fields.classList.toggle('hidden', !(recur && recur.checked));
+  updateFinanceChargeVisibility();
+}
+function financeChargeHintText(){
+  const c = state.creditSettings;
+  return `מחזור האשראי נסגר ב-${c.closingDay} לחודש ומחויב ב-${c.chargeDay} (ניתן לשנות בהגדרות האשראי).`;
+}
+function autoFillChargeDate(force){
+  const inp = document.getElementById('financeChargeDateInput');
+  const dt = document.getElementById('financeDateInput');
+  if(!inp || !dt || !dt.value) return;
+  if(!force && (ui.financeChargeManual || ui.financeChargeLegacy)) return;
+  inp.value = computeCreditChargeDate(dt.value);
+}
+
+/* ---------- Credit cycle helpers ---------- */
+function pad2(n){ return String(n).padStart(2,'0'); }
+function daysInMonthOf(y,m){ return new Date(y, m, 0).getDate(); }
+function makeDateStr(y,m,d){
+  const t = m-1;
+  y += Math.floor(t/12);
+  m = ((t%12)+12)%12 + 1;
+  return `${y}-${pad2(m)}-${pad2(Math.min(d, daysInMonthOf(y,m)))}`;
+}
+function addDaysStr(ds,n){
+  const d = parseDateStr(ds);
+  d.setDate(d.getDate()+n);
+  return toDateStr(d);
+}
+function endOfMonthStr(ds){
+  const [y,m] = ds.split('-').map(Number);
+  return makeDateStr(y, m, 31);
+}
+// A purchase before the closing day belongs to the cycle closing this month; from the closing day on, to next month's.
+// The charge happens on chargeDay of the month the cycle closes in (or the month after, if chargeDay is earlier than closingDay).
+function computeCreditChargeDate(ds){
+  const { closingDay, chargeDay } = state.creditSettings;
+  const [y,m,d] = ds.split('-').map(Number);
+  const closing = Math.min(closingDay, daysInMonthOf(y,m));
+  let cm = d>=closing ? m+1 : m;
+  if(chargeDay < closingDay) cm += 1;
+  return makeDateStr(y, cm, chargeDay);
+}
+
+/* ---------- Balances ---------- */
+// A transaction affects the current balance once its date arrives. Credit purchases are the exception:
+// they leave the checking account only when the charge is confirmed.
+function isFinanceEffective(f){
+  return !!f.legacyCounted || f.date <= todayStr();
 }
 function checkingBalance(){
   let bal = 0;
   state.finances.forEach(f=>{
     if(f.isCash) return;
-    if(f.type==='income') bal += f.amount;
-    else if(f.paymentMethod!=='credit') bal -= f.amount;
-    else if(f.creditCharged) bal -= f.amount;
+    if(f.type==='income'){ if(isFinanceEffective(f)) bal += f.amount; }
+    else if(f.paymentMethod==='credit'){ if(f.creditCharged) bal -= f.amount; }
+    else if(isFinanceEffective(f)) bal -= f.amount;
   });
   return bal + (state.checkingBalanceOffset||0);
 }
@@ -814,6 +921,7 @@ function pendingCreditTotal(){
 function savingsBalance(){
   let bal = 0;
   state.finances.forEach(f=>{
+    if(!isFinanceEffective(f)) return;
     if(f.type==='expense' && f.category===FINANCE_SAVINGS_CATEGORY) bal += f.amount;
     else if(f.type==='income' && f.fromSavings) bal -= f.amount;
   });
@@ -874,7 +982,7 @@ function confirmCheckingBalanceUpdate(){
 function cashBalance(){
   let bal = 0;
   state.finances.forEach(f=>{
-    if(!f.isCash) return;
+    if(!f.isCash || !isFinanceEffective(f)) return;
     bal += f.type==='income' ? f.amount : -f.amount;
   });
   return bal + (state.cashBalanceOffset||0);
@@ -905,42 +1013,414 @@ function confirmCashBalanceUpdate(){
   closeModal();
   render();
 }
-function chargeCreditCard(){
-  const pending = pendingCreditTotal();
+/* ---------- Pending credit: breakdown by charge date + confirming a charge ---------- */
+function pendingCreditGroups(){
+  const groups = {};
+  state.finances.filter(f=>f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged).forEach(f=>{
+    const key = f.chargeDate || 'none';
+    (groups[key] = groups[key] || []).push(f);
+  });
+  return Object.keys(groups).sort((a,b)=> a==='none' ? 1 : (b==='none' ? -1 : (a<b?-1:1))).map(key=>({
+    key,
+    txs: groups[key].sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0)),
+    total: groups[key].reduce((s,f)=>s+f.amount,0)
+  }));
+}
+function chargeCreditCard(){ openCreditPendingModal(); }
+function openCreditPendingModal(){
+  const today = todayStr();
+  const groups = pendingCreditGroups();
+  const total = pendingCreditTotal();
+  const body = groups.length ? groups.map(g=>{
+    const isNone = g.key==='none';
+    const overdue = !isNone && g.key<=today;
+    const title = isNone ? 'ללא מועד חיוב' : `חיוב ב-${formatDateShort(g.key)}.${g.key.slice(0,4)}`;
+    const note = isNone
+      ? '<div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">עסקאות ישנות שנרשמו לפני שהאפליקציה עקבה אחרי מחזורי חיוב. אפשר לקבוע להן מועד בעריכת העסקה.</div>'
+      : (overdue ? '<div style="font-size:11.5px;color:var(--warning);margin-bottom:6px;font-weight:700;">מועד החיוב הגיע - אשר כשהחיוב ירד בפועל.</div>' : '');
+    const rows = g.txs.map(f=>`<div class="stat-row" style="font-size:13px;font-weight:600;cursor:pointer;" onclick="openFinanceModal('${f.id}')"><span>${escapeHtml(f.title)} · ${formatDateShort(f.date)}</span><span>${f.amount.toLocaleString('he-IL')} ₪</span></div>`).join('');
+    return `<div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+        <strong style="font-size:14px;">${title}</strong>
+        <span style="font-weight:800;color:var(--warning);">${g.total.toLocaleString('he-IL')} ₪</span>
+      </div>
+      ${note}
+      <div class="stat-breakdown" style="margin-bottom:8px;">${rows}</div>
+      <button type="button" class="btn secondary small" onclick="openCreditConfirm('${g.key}')">אישור חיוב</button>
+    </div>`;
+  }).join('') : '<div class="empty">אין חיובי אשראי ממתינים.</div>';
   showModal(`
-    <h2>עדכון חיוב אשראי</h2>
-    <p style="margin:0 0 6px;color:var(--text);font-size:14px;line-height:1.6;">כמה בפועל ירד מהעו"ש בחיוב האשראי?</p>
-    <p style="margin:0 0 18px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">אם הסכום גדול ממה שנרשם באפליקציה (${pending.toLocaleString('he-IL')} ₪), ההפרש יירד מהעו"ש בלי להתווסף להוצאות החודש.</p>
-    <label>סכום שירד (₪)</label>
-    <input type="number" id="creditChargeAmountInput" min="0" step="0.1" value="${pending>0?pending:''}">
+    <h2>אשראי ממתין · ${total.toLocaleString('he-IL')} ₪</h2>
+    ${body}
+    <div class="modal-actions">
+      <div><button type="button" class="text-btn small" onclick="openCreditSettings()">הגדרות מחזור אשראי</button></div>
+      <div class="end"><button type="button" class="btn secondary" onclick="closeModal()">סגירה</button></div>
+    </div>
+  `);
+}
+function openCreditConfirm(key){
+  const group = pendingCreditGroups().find(g=>g.key===key);
+  if(!group){ openCreditPendingModal(); return; }
+  const today = todayStr();
+  const defaultDate = (key!=='none' && key<=today) ? key : today;
+  const expenseCats = state.financeCategories.filter(c=>c!==FINANCE_INCOME_CATEGORY && c!==FINANCE_SAVINGS_CATEGORY);
+  const catOptions = expenseCats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  showModal(`
+    <h2>אישור חיוב אשראי</h2>
+    <p style="margin:0 0 6px;font-size:14px;line-height:1.6;">${key==='none' ? 'עסקאות ללא מועד חיוב' : 'חיוב ב-'+formatDateShort(key)}: ${group.txs.length} עסקאות, ${group.total.toLocaleString('he-IL')} ₪ מתועדות באפליקציה.</p>
+    <p style="margin:0 0 14px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">הסכום יירד מהעו"ש פעם אחת, וההוצאות לא ייספרו שוב. עסקאות של מחזורים אחרים יישארו ממתינות.</p>
+    <label>כמה ירד בפועל מהעו"ש (₪)</label>
+    <input type="number" id="creditActualInput" min="0" step="0.1" value="${group.total}" oninput="updateCreditDiffUI(${group.total})">
+    <label>תאריך הירידה</label>
+    <input type="date" id="creditChargedAtInput" value="${defaultDate}">
+    <div id="creditDiffWrap" class="hidden" style="margin-top:14px;padding:12px;border:1.5px solid var(--border);border-radius:12px;">
+      <div id="creditDiffText" style="font-size:13px;line-height:1.5;margin-bottom:10px;"></div>
+      <div id="creditDiffOptions">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;"><input type="radio" name="creditDiffMode" value="expense" checked style="width:auto;" onchange="updateCreditDiffUI(${group.total})"> ההפרש הוא הוצאה אמיתית</label>
+        <div id="creditDiffCatWrap"><select id="creditDiffCat" style="margin:6px 0 8px;">${catOptions}</select></div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;"><input type="radio" name="creditDiffMode" value="adjust" style="width:auto;" onchange="updateCreditDiffUI(${group.total})"> רק תיקון יתרה (לא נספר כהוצאה)</label>
+      </div>
+    </div>
     <div class="modal-actions">
       <div></div>
       <div class="end">
-        <button type="button" class="btn secondary" onclick="closeModal()">ביטול</button>
-        <button type="button" class="btn primary" onclick="confirmCreditCharge()">אישור</button>
+        <button type="button" class="btn secondary" onclick="openCreditPendingModal()">חזרה</button>
+        <button type="button" class="btn primary" onclick="confirmCreditGroup('${key}')">אשר חיוב</button>
       </div>
     </div>
   `);
 }
-function confirmCreditCharge(){
-  const amount = parseFloat(document.getElementById('creditChargeAmountInput').value);
-  if(!amount || amount<=0) return;
-  const pendingTx = state.finances.filter(f=>f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged);
-  const trackedTotal = pendingTx.reduce((s,f)=>s+f.amount,0);
-  pendingTx.forEach(f=>{ f.creditCharged = true; });
-  const extra = amount - trackedTotal;
-  if(extra > 0.001){
-    state.finances.push({
-      id:uid(), category:FINANCE_CREDIT_SETTLEMENT_CATEGORY, subCategory:null,
-      title:'עדכון חיוב אשראי', amount:extra, type:'expense',
-      date:todayStr(), month:todayStr().slice(0,7),
-      paymentMethod:'credit', creditCharged:true, createdAt:Date.now()
-    });
+function updateCreditDiffUI(tracked){
+  const actual = parseFloat(document.getElementById('creditActualInput').value);
+  const wrap = document.getElementById('creditDiffWrap');
+  const text = document.getElementById('creditDiffText');
+  const opts = document.getElementById('creditDiffOptions');
+  if(isNaN(actual) || Math.abs(actual-tracked)<0.001){ wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  const diff = actual - tracked;
+  if(diff>0){
+    opts.classList.remove('hidden');
+    text.textContent = `ירד ${diff.toLocaleString('he-IL',{maximumFractionDigits:2})} ₪ יותר ממה שתועד. מה זה?`;
+    const mode = document.querySelector('input[name="creditDiffMode"]:checked').value;
+    document.getElementById('creditDiffCatWrap').classList.toggle('hidden', mode!=='expense');
+  }else{
+    opts.classList.add('hidden');
+    text.textContent = `ירד ${(-diff).toLocaleString('he-IL',{maximumFractionDigits:2})} ₪ פחות ממה שתועד. יתרת העו"ש תתוקן בהפרש, וההוצאות שנרשמו נשארות בסטטיסטיקה.`;
+  }
+}
+function confirmCreditGroup(key){
+  const group = pendingCreditGroups().find(g=>g.key===key);
+  if(!group) return;
+  const actual = parseFloat(document.getElementById('creditActualInput').value);
+  if(isNaN(actual) || actual<0) return;
+  const date = document.getElementById('creditChargedAtInput').value || todayStr();
+  group.txs.forEach(f=>{ f.creditCharged = true; f.chargedAt = date; });
+  const diff = actual - group.total;
+  if(diff > 0.001){
+    const modeEl = document.querySelector('input[name="creditDiffMode"]:checked');
+    if(modeEl && modeEl.value==='expense'){
+      state.finances.push({
+        id:uid(), category:document.getElementById('creditDiffCat').value, subCategory:null,
+        title:'הפרש חיוב אשראי', amount:diff, type:'expense',
+        date, month:date.slice(0,7), paymentMethod:'credit', creditCharged:true, chargedAt:date,
+        chargeDate:date, chargeDateManual:true, fromSavings:false, isCash:false,
+        recurringId:null, occurrenceDate:null, legacyCounted:false, createdAt:Date.now()
+      });
+    }else{
+      state.checkingBalanceOffset = (state.checkingBalanceOffset||0) - diff;
+    }
+  }else if(diff < -0.001){
+    state.checkingBalanceOffset = (state.checkingBalanceOffset||0) - diff;
   }
   saveState();
   closeModal();
   render();
 }
+function openCreditSettings(){
+  const c = state.creditSettings;
+  showModal(`
+    <h2>הגדרות מחזור אשראי</h2>
+    <p style="margin:0 0 14px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">עסקה שבוצעה לפני יום הסגירה משויכת לחיוב הקרוב, ומיום הסגירה ואילך - לחיוב שאחריו. ברירת המחדל (15 ו-15) היא הערכה עד שתאמת מול חברת האשראי.</p>
+    <label>יום סגירת המחזור (1-31)</label>
+    <input type="number" id="creditClosingInput" min="1" max="31" step="1" value="${c.closingDay}">
+    <label>יום החיוב בעו"ש (1-31)</label>
+    <input type="number" id="creditChargeDayInput" min="1" max="31" step="1" value="${c.chargeDay}">
+    <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:14px;">
+      <input type="checkbox" id="creditRecalcInput" style="width:auto;">
+      חשב מחדש גם עסקאות ממתינות שמועד החיוב שלהן לא שונה ידנית
+    </label>
+    <div class="modal-actions">
+      <div></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="openCreditPendingModal()">ביטול</button>
+        <button type="button" class="btn primary" onclick="saveCreditSettings()">שמירה</button>
+      </div>
+    </div>
+  `);
+}
+function saveCreditSettings(){
+  const closingDay = parseInt(document.getElementById('creditClosingInput').value, 10);
+  const chargeDay = parseInt(document.getElementById('creditChargeDayInput').value, 10);
+  if(!(closingDay>=1 && closingDay<=31) || !(chargeDay>=1 && chargeDay<=31)) return;
+  state.creditSettings = { closingDay, chargeDay };
+  if(document.getElementById('creditRecalcInput').checked){
+    state.finances.forEach(f=>{
+      if(f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged && f.chargeDate && !f.chargeDateManual){
+        f.chargeDate = computeCreditChargeDate(f.date);
+      }
+    });
+  }
+  saveState();
+  openCreditPendingModal();
+  render();
+}
+
+/* ---------- Recurring series (standing orders, subscriptions) ---------- */
+const RECUR_FREQ_LABELS = { monthly:'חודשית', weekly:'שבועית', yearly:'שנתית' };
+const FINANCE_METHOD_LABELS = { checking:'עו"ש', cash:'מזומן', credit:'אשראי' };
+function recurringOccurrences(s, fromStr, toStr){
+  const out = [];
+  const [sy,sm,sd] = s.startDate.split('-').map(Number);
+  for(let n=0; n<5000; n++){
+    let ds;
+    if(s.frequency==='weekly') ds = addDaysStr(s.startDate, 7*n);
+    else if(s.frequency==='yearly') ds = makeDateStr(sy+n, sm, sd);
+    else ds = makeDateStr(sy, sm+n, sd);
+    if(ds > toStr) break;
+    if(s.endDate && ds > s.endDate) break;
+    if(ds >= fromStr) out.push(ds);
+  }
+  return out;
+}
+function recurringAmountFor(s, ds){
+  const o = s.overrides && s.overrides[ds];
+  return (o && o.amount!=null) ? o.amount : s.amount;
+}
+function buildRecurringTx(s, ds){
+  const isCredit = s.method==='credit';
+  return {
+    id:uid(), category:s.category, subCategory:s.subCategory||null, title:s.title,
+    amount:recurringAmountFor(s, ds), type:s.type, date:ds, month:ds.slice(0,7),
+    paymentMethod:isCredit?'credit':'checking', creditCharged:false, fromSavings:!!s.fromSavings,
+    isCash:s.method==='cash', chargeDate:isCredit?computeCreditChargeDate(ds):null, chargeDateManual:false,
+    chargedAt:null, recurringId:s.id, occurrenceDate:ds, legacyCounted:false, createdAt:Date.now()
+  };
+}
+// Creates the real transactions for every occurrence whose date has arrived, including ones missed while the app was closed.
+// Each occurrence is keyed by (series id, occurrence date), so running this again never duplicates anything.
+function processFinanceRecurring(){
+  const today = todayStr();
+  let changed = false;
+  state.recurringFinance.forEach(s=>{
+    if(!s.active) return;
+    const have = new Set(state.finances.filter(f=>f.recurringId===s.id).map(f=>f.occurrenceDate));
+    recurringOccurrences(s, '0000-00-00', today).forEach(ds=>{
+      if(have.has(ds) || (s.skipDates||[]).includes(ds)) return;
+      state.finances.push(buildRecurringTx(s, ds));
+      have.add(ds);
+      changed = true;
+    });
+  });
+  return changed;
+}
+// Occurrences after today that have not become real transactions yet (shown as "expected").
+function upcomingRecurring(toStr, includeSkipped){
+  const today = todayStr();
+  const out = [];
+  state.recurringFinance.forEach(s=>{
+    if(!s.active) return;
+    recurringOccurrences(s, addDaysStr(today,1), toStr).forEach(ds=>{
+      const skipped = (s.skipDates||[]).includes(ds);
+      if(skipped && !includeSkipped) return;
+      if(state.finances.some(f=>f.recurringId===s.id && f.occurrenceDate===ds)) return;
+      out.push({ series:s, date:ds, amount:recurringAmountFor(s, ds), skipped });
+    });
+  });
+  return out;
+}
+function recurringNextDate(s){
+  if(!s.active) return null;
+  const list = recurringOccurrences(s, addDaysStr(todayStr(),1), makeDateStr(new Date().getFullYear()+3, 12, 31)).filter(ds=>!(s.skipDates||[]).includes(ds));
+  return list[0] || null;
+}
+function recurringScheduleText(s){
+  const d = Number(s.startDate.split('-')[2]);
+  if(s.frequency==='weekly') return `כל שבוע (${WEEKDAY_NAMES[parseDateStr(s.startDate).getDay()]})`;
+  if(s.frequency==='yearly') return `כל שנה ב-${formatDateShort(s.startDate)}`;
+  return `כל חודש ב-${d}`;
+}
+function openRecurringModal(){
+  const rows = state.recurringFinance.map(s=>{
+    const next = recurringNextDate(s);
+    const sign = s.type==='income' ? '+' : '-';
+    return `<div class="finance-row">
+      <div class="finance-body" onclick="openRecurringEdit('${s.id}')">
+        <div class="finance-title">${escapeHtml(s.title)} ${s.active?'':'<span class="badge overdue">מבוטלת</span>'}</div>
+        <div class="finance-meta">${recurringScheduleText(s)} · ${FINANCE_METHOD_LABELS[s.method]} · ${escapeHtml(s.category)}${next?` · הבא ${formatDateShort(next)}`:''}</div>
+      </div>
+      <div class="finance-amount ${s.type}">${sign}${s.amount.toLocaleString('he-IL')} ₪</div>
+    </div>`;
+  }).join('') || '<div class="empty">אין עדיין הוצאות או הכנסות חוזרות.</div>';
+  showModal(`
+    <h2>הוצאות והכנסות חוזרות</h2>
+    ${rows}
+    <div class="modal-actions">
+      <div><button type="button" class="btn primary small" onclick="openFinanceModal(null,{recurring:true})">+ הוספה</button></div>
+      <div class="end"><button type="button" class="btn secondary" onclick="closeModal()">סגירה</button></div>
+    </div>
+  `);
+}
+function openRecurringEdit(id){
+  const s = state.recurringFinance.find(x=>x.id===id);
+  if(!s){ openRecurringModal(); return; }
+  const catOptions = state.financeCategories.map(c=>`<option value="${escapeHtml(c)}" ${s.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  const upcoming = upcomingRecurring(makeDateStr(new Date().getFullYear()+3, 12, 31), true).filter(u=>u.series.id===id).slice(0,4);
+  const upRows = upcoming.map(u=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;${u.skipped?'opacity:.55;':''}">
+      <span style="flex:1;font-size:13px;font-weight:700;${u.skipped?'text-decoration:line-through;':''}">${formatDateShort(u.date)}.${u.date.slice(0,4)}</span>
+      <input type="number" id="recAmt_${u.date}" min="0" step="0.1" value="${u.amount}" style="width:90px;margin:0;" ${u.skipped?'disabled':''}>
+      ${u.skipped ? '' : `<button type="button" class="text-btn small" onclick="setRecurringOverride('${s.id}','${u.date}')">עדכן</button>`}
+      <button type="button" class="text-btn small" onclick="toggleRecurringSkip('${s.id}','${u.date}')">${u.skipped?'בטל דילוג':'דלג'}</button>
+    </div>`).join('') || '<div class="empty" style="margin:0 0 8px;">אין מועדים קרובים.</div>';
+  showModal(`
+    <h2>עריכת סדרה חוזרת</h2>
+    <p style="margin:0 0 14px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">${recurringScheduleText(s)}, החל מ-${formatDateShort(s.startDate)}.${s.startDate.slice(0,4)}. שינוי כאן משפיע רק על מועדים שעוד לא נרשמו. כדי לשנות תדירות או תאריך התחלה, בטל סדרה זו וצור חדשה.</p>
+    <label>כותרת</label>
+    <input type="text" id="recTitleInput" value="${escapeHtml(s.title)}">
+    <label>סכום (₪)</label>
+    <input type="number" id="recAmountInput" min="0" step="0.1" value="${s.amount}">
+    <label>קטגוריה</label>
+    <select id="recCatInput">${catOptions}</select>
+    <label>אמצעי תשלום</label>
+    <select id="recMethodInput">
+      <option value="checking" ${s.method==='checking'?'selected':''}>עו"ש</option>
+      <option value="cash" ${s.method==='cash'?'selected':''}>מזומן</option>
+      ${s.type==='income' ? '' : `<option value="credit" ${s.method==='credit'?'selected':''}>אשראי</option>`}
+    </select>
+    <label>תאריך סיום (אופציונלי)</label>
+    <input type="date" id="recEndInput" value="${s.endDate||''}">
+    <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:14px;">
+      <input type="checkbox" id="recActiveInput" ${s.active?'checked':''} style="width:auto;"> סדרה פעילה
+    </label>
+    <h3 style="margin:18px 0 8px;font-size:14px;">מועדים קרובים (שינוי מופע בודד)</h3>
+    ${upRows}
+    <div class="modal-actions">
+      <div><button type="button" class="btn danger" onclick="deleteRecurringSeries('${s.id}')">מחיקה</button></div>
+      <div class="end">
+        <button type="button" class="btn secondary" onclick="openRecurringModal()">חזרה</button>
+        <button type="button" class="btn primary" onclick="saveRecurringEdit('${s.id}')">שמירה</button>
+      </div>
+    </div>
+  `);
+}
+function saveRecurringEdit(id){
+  const s = state.recurringFinance.find(x=>x.id===id);
+  if(!s) return;
+  const title = document.getElementById('recTitleInput').value.trim();
+  const amount = parseFloat(document.getElementById('recAmountInput').value);
+  if(!title || !amount || amount<=0) return;
+  s.title = title;
+  s.amount = amount;
+  s.category = document.getElementById('recCatInput').value;
+  s.method = document.getElementById('recMethodInput').value;
+  s.endDate = document.getElementById('recEndInput').value || null;
+  s.active = document.getElementById('recActiveInput').checked;
+  processFinanceRecurring();
+  saveState();
+  render();
+  openRecurringModal();
+}
+function setRecurringOverride(id, ds){
+  const s = state.recurringFinance.find(x=>x.id===id);
+  const amount = parseFloat(document.getElementById('recAmt_'+ds).value);
+  if(!s || !amount || amount<=0) return;
+  s.overrides = s.overrides || {};
+  if(Math.abs(amount - s.amount) < 0.001) delete s.overrides[ds];
+  else s.overrides[ds] = { amount };
+  saveState();
+  openRecurringEdit(id);
+}
+function toggleRecurringSkip(id, ds){
+  const s = state.recurringFinance.find(x=>x.id===id);
+  if(!s) return;
+  s.skipDates = s.skipDates || [];
+  if(s.skipDates.includes(ds)) s.skipDates = s.skipDates.filter(x=>x!==ds);
+  else s.skipDates.push(ds);
+  saveState();
+  openRecurringEdit(id);
+}
+function deleteRecurringSeries(id){
+  showConfirm('למחוק את הסדרה החוזרת? תנועות שכבר נרשמו ממנה יישארו ברשימה, ולא ייווצרו תנועות חדשות.', () => {
+    state.recurringFinance = state.recurringFinance.filter(s=>s.id!==id);
+    saveState();
+    render();
+    openRecurringModal();
+  });
+}
+
+/* ---------- Expected balance ---------- */
+function computeForecast(horizon){
+  const today = todayStr();
+  const items = [];
+  state.finances.forEach(f=>{
+    if(f.isCash) return;
+    if(f.type==='income'){
+      if(!isFinanceEffective(f) && f.date<=horizon) items.push({ date:f.date, label:f.title, amount:f.amount, kind:'income' });
+    }else if(f.paymentMethod==='credit'){
+      if(!f.creditCharged && (!f.chargeDate || f.chargeDate<=horizon)){
+        items.push({ date:f.chargeDate||null, label:f.title, amount:-f.amount, kind:'credit' });
+      }
+    }else if(!isFinanceEffective(f) && f.date<=horizon){
+      items.push({ date:f.date, label:f.title, amount:-f.amount, kind:'expense' });
+    }
+  });
+  upcomingRecurring(horizon, false).forEach(u=>{
+    const s = u.series;
+    if(s.method==='cash') return;
+    if(s.type==='income'){
+      items.push({ date:u.date, label:s.title, amount:u.amount, kind:'income' });
+    }else if(s.method==='credit'){
+      const cd = computeCreditChargeDate(u.date);
+      if(cd<=horizon) items.push({ date:cd, label:s.title, amount:-u.amount, kind:'credit' });
+    }else{
+      items.push({ date:u.date, label:s.title, amount:-u.amount, kind:'expense' });
+    }
+  });
+  const current = checkingBalance();
+  const delta = items.reduce((sum,i)=>sum+i.amount, 0);
+  return { current, items, expected: current + delta, horizon };
+}
+function forecastHorizon(){
+  const today = todayStr();
+  const v = ui.financeForecastDate;
+  return (v && v>=today) ? v : endOfMonthStr(today);
+}
+function setForecastDate(v){
+  if(!v) return;
+  ui.financeForecastDate = v;
+  render();
+}
+function openForecastDetail(){
+  const fc = computeForecast(forecastHorizon());
+  const sorted = [...fc.items].sort((a,b)=> a.date===b.date ? 0 : (a.date===null ? -1 : (b.date===null ? 1 : (a.date<b.date?-1:1))));
+  const fmt = n => `${n<0?'-':'+'}${Math.abs(n).toLocaleString('he-IL',{maximumFractionDigits:2})} ₪`;
+  const kindLabel = { income:'הכנסה צפויה', expense:'הוצאה צפויה מהעו"ש', credit:'חיוב אשראי צפוי' };
+  const rows = sorted.map(i=>`<div class="stat-row" style="font-size:13px;font-weight:600;">
+      <span>${i.date ? formatDateShort(i.date) : 'ללא מועד'} · ${escapeHtml(i.label)} <span style="color:var(--text-muted);font-size:11px;">${kindLabel[i.kind]}</span></span>
+      <span style="color:${i.amount<0?'var(--danger)':'var(--success)'};">${fmt(i.amount)}</span>
+    </div>`).join('') || '<div class="empty">אין תנועות צפויות עד התאריך הזה.</div>';
+  const hasUndated = fc.items.some(i=>i.kind==='credit' && !i.date);
+  showModal(`
+    <h2>יתרה צפויה עד ${formatDateShort(fc.horizon)}.${fc.horizon.slice(0,4)}</h2>
+    <div class="stat-breakdown" style="margin-bottom:14px;">
+      <div class="stat-row"><span>יתרת עו"ש נוכחית</span><span>${fc.current.toLocaleString('he-IL')} ₪</span></div>
+      ${rows}
+      <div class="stat-row" style="font-weight:800;"><span>יתרה צפויה</span><span>${fc.expected.toLocaleString('he-IL',{maximumFractionDigits:2})} ₪</span></div>
+    </div>
+    <p style="margin:0;color:var(--text-muted);font-size:12px;line-height:1.5;">התחזית כוללת הכנסות שתועדו מראש, חיובי אשראי ממתינים, הוראות קבע והוצאות עתידיות מהעו"ש. מזומן לא נכלל.${hasUndated?' עסקאות אשראי ישנות ללא מועד חיוב נכללות כחיוב קרוב.':''}</p>
+    <div class="modal-actions"><div></div><div class="end"><button type="button" class="btn secondary" onclick="closeModal()">סגירה</button></div></div>
+  `);
+}
+
 function openAddFinanceCategoryModal(txId){
   showModal(`
     <h2>קטגוריה חדשה</h2>
@@ -1008,7 +1488,8 @@ function deleteFinanceCategory(index){
     openFinanceCategoriesModal();
   });
 }
-function openFinanceModal(txId){
+function openFinanceModal(txId, opts){
+  opts = opts || {};
   const tx = txId ? state.finances.find(f=>f.id===txId) : null;
   const catOptions = state.financeCategories.map(c=>
     `<option value="${escapeHtml(c)}" ${tx&&tx.category===c?'selected':''}>${escapeHtml(c)}</option>`
@@ -1018,9 +1499,16 @@ function openFinanceModal(txId){
   ).join('');
   const showSubcat = tx && tx.category===FINANCE_SAVINGS_CATEGORY;
   const initialCat = tx ? tx.category : (state.financeCategories[0]||'');
-  const showPaymentWrap = initialCat!==FINANCE_INCOME_CATEGORY && !(tx && tx.isCash);
-  const showFromSavingsWrap = initialCat===FINANCE_INCOME_CATEGORY;
-  const cashLabelText = initialCat===FINANCE_INCOME_CATEGORY ? 'הכסף נכנס במזומן' : 'שולם במזומן';
+  const isIncomeInit = initialCat===FINANCE_INCOME_CATEGORY;
+  const method = tx ? financeMethodOf(tx) : 'checking';
+  const showFromSavingsWrap = isIncomeInit;
+  const isCreditTx = !!tx && method==='credit';
+  ui.financeChargeManual = !!(tx && tx.chargeDateManual);
+  ui.financeChargeLegacy = !!(isCreditTx && !tx.chargeDate);
+  const methodBtn = (m, label, extra) => `<button type="button" class="tab ${method===m?'active':''} ${extra||''}" data-m="${m}" ${m==='credit'?'id="financeMethodCreditBtn"':''} onclick="setFinanceMethod('${m}')">${label}</button>`;
+  const recurChecked = !tx && !!opts.recurring;
+  const seriesNote = tx && tx.recurringId
+    ? `<div style="margin:12px 0 0;font-size:12px;color:var(--text-muted);">תנועה זו נוצרה מסדרה חוזרת. שינוי כאן משפיע רק עליה; מחיקה שלה תדלג על המופע הזה בסדרה.</div>` : '';
   showModal(`
     <h2>${tx ? 'עריכת תנועה' : 'תנועה חדשה'}</h2>
     <form onsubmit="event.preventDefault(); saveFinanceForm('${txId||''}')">
@@ -1035,16 +1523,13 @@ function openFinanceModal(txId){
           ${subcatOptions}
         </select>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
-        <input type="checkbox" id="financeCashInput" onchange="toggleFinanceSubcategory(document.getElementById('financeCatInput').value)" ${tx&&tx.isCash?'checked':''} style="width:auto;">
-        <span id="financeCashLabel">${cashLabelText}</span>
-      </label>
-      <div id="financePaymentWrap" class="${showPaymentWrap?'':'hidden'}">
-        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
-          <input type="checkbox" id="financeCreditInput" ${tx&&tx.paymentMethod==='credit'?'checked':''} style="width:auto;">
-          לשלם באשראי (ירד מהעו"ש רק אחרי שתסמן שהחיוב ירד)
-        </label>
+      <label id="financeMethodLabel">${isIncomeInit ? 'הכסף נכנס ל' : 'אמצעי תשלום'}</label>
+      <div class="range-tabs" id="financeMethodTabs">
+        ${methodBtn('checking','עו"ש')}
+        ${methodBtn('cash','מזומן')}
+        ${methodBtn('credit','אשראי', isIncomeInit?'hidden':'')}
       </div>
+      <input type="hidden" id="financeMethodInput" value="${method}">
       <div id="financeFromSavingsWrap" class="${showFromSavingsWrap?'':'hidden'}">
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
           <input type="checkbox" id="financeFromSavingsInput" ${tx&&tx.fromSavings?'checked':''} style="width:auto;">
@@ -1055,8 +1540,35 @@ function openFinanceModal(txId){
       <input type="text" id="financeTitleInput" value="${tx?escapeHtml(tx.title):''}" required>
       <label>סכום (₪)</label>
       <input type="number" id="financeAmountInput" min="0" step="0.1" value="${tx?tx.amount:''}" required>
-      <label>תאריך</label>
-      <input type="date" id="financeDateInput" value="${tx?tx.date:todayStr()}" required>
+      <label>תאריך ביצוע</label>
+      <input type="date" id="financeDateInput" value="${tx?tx.date:todayStr()}" required oninput="autoFillChargeDate(false)">
+      <div id="financeChargeWrap" class="${method==='credit'?'':'hidden'}">
+        <label>תאריך חיוב (ירידה מהעו"ש)</label>
+        <input type="date" id="financeChargeDateInput" value="${tx&&tx.chargeDate?tx.chargeDate:(tx?'':computeCreditChargeDate(todayStr()))}" oninput="ui.financeChargeManual=true">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <span style="flex:1;font-size:11.5px;color:var(--text-muted);line-height:1.4;">${isCreditTx && !tx.chargeDate ? 'עסקה ישנה ללא מועד חיוב. ' : ''}${financeChargeHintText()}${isCreditTx && tx.creditCharged ? ' החיוב כבר אושר.' : ''}</span>
+          <button type="button" class="text-btn small" onclick="ui.financeChargeManual=false;ui.financeChargeLegacy=false;autoFillChargeDate(true)">חישוב אוטומטי</button>
+        </div>
+      </div>
+      ${tx ? '' : `
+      <div style="margin-top:14px;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+          <input type="checkbox" id="financeRecurInput" ${recurChecked?'checked':''} onchange="toggleRecurFields()" style="width:auto;">
+          <span id="financeRecurLabel">${isIncomeInit?'הכנסה חוזרת':'הוצאה חוזרת'}</span>
+        </label>
+        <div id="financeRecurFields" class="${recurChecked?'':'hidden'}">
+          <label>תדירות</label>
+          <select id="financeFreqInput">
+            <option value="monthly">חודשית</option>
+            <option value="weekly">שבועית</option>
+            <option value="yearly">שנתית</option>
+          </select>
+          <label>תאריך סיום (אופציונלי)</label>
+          <input type="date" id="financeEndInput">
+          <div style="margin-top:6px;font-size:11.5px;color:var(--text-muted);line-height:1.4;">התאריך שלמעלה הוא תחילת הסדרה. מועדים עתידיים מוצגים כצפויים ונרשמים אוטומטית כשהם מגיעים. באשראי, מועד החיוב מחושב לכל מופע לפי מחזור האשראי.</div>
+        </div>
+      </div>`}
+      ${seriesNote}
       <div class="modal-actions">
         <div>${tx ? `<button type="button" class="btn danger" onclick="deleteFinance('${tx.id}')">מחיקה</button>` : ''}</div>
         <div class="end">
@@ -1066,6 +1578,7 @@ function openFinanceModal(txId){
       </div>
     </form>
   `);
+  if(recurChecked) updateFinanceChargeVisibility();
 }
 function saveFinanceForm(txId){
   const category = document.getElementById('financeCatInput').value;
@@ -1076,18 +1589,59 @@ function saveFinanceForm(txId){
   if(!amount || amount<=0) return;
   const date = document.getElementById('financeDateInput').value || todayStr();
   const type = category===FINANCE_INCOME_CATEGORY ? 'income' : 'expense';
-  const cashCheckbox = document.getElementById('financeCashInput');
-  const isCash = !!(cashCheckbox && cashCheckbox.checked);
-  const creditCheckbox = document.getElementById('financeCreditInput');
-  const paymentMethod = (type==='expense' && !isCash && creditCheckbox && creditCheckbox.checked) ? 'credit' : 'checking';
+  let method = document.getElementById('financeMethodInput').value || 'checking';
+  if(type==='income' && method==='credit') method = 'checking';
+  const isCash = method==='cash';
+  const paymentMethod = method==='credit' ? 'credit' : 'checking';
   const fromSavingsCheckbox = document.getElementById('financeFromSavingsInput');
   const fromSavings = !!(type==='income' && fromSavingsCheckbox && fromSavingsCheckbox.checked);
+
+  const recurCb = document.getElementById('financeRecurInput');
+  if(!txId && recurCb && recurCb.checked){
+    const series = {
+      id:uid(), title, amount, category, subCategory, type, method, fromSavings,
+      frequency:document.getElementById('financeFreqInput').value,
+      startDate:date, endDate:document.getElementById('financeEndInput').value || null,
+      active:true, skipDates:[], overrides:{}, createdAt:Date.now()
+    };
+    if(series.endDate && series.endDate < series.startDate){
+      alert('תאריך הסיום מוקדם מתאריך ההתחלה.');
+      return;
+    }
+    const pastCount = recurringOccurrences(series, '0000-00-00', todayStr()).length;
+    const create = () => {
+      state.recurringFinance.push(series);
+      processFinanceRecurring();
+      saveState();
+      closeModal();
+      render();
+    };
+    if(pastCount > 1){
+      showConfirm(`תאריך ההתחלה בעבר, ולכן ייווצרו מיד ${pastCount} תנועות מהסדרה וישפיעו על היתרות. להמשיך?`, create);
+    }else{
+      create();
+    }
+    return;
+  }
+
+  let chargeDate = null, chargeDateManual = false;
+  if(method==='credit'){
+    const v = document.getElementById('financeChargeDateInput').value;
+    if(v){
+      chargeDate = v;
+      chargeDateManual = !!ui.financeChargeManual;
+    }else if(!ui.financeChargeLegacy){
+      chargeDate = computeCreditChargeDate(date);
+    }
+  }
   if(txId){
     const tx = state.finances.find(f=>f.id===txId);
-    const creditCharged = (tx.paymentMethod==='credit' && paymentMethod==='credit') ? tx.creditCharged : false;
-    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged, fromSavings, isCash });
+    const wasCredit = tx.paymentMethod==='credit';
+    const creditCharged = (wasCredit && paymentMethod==='credit') ? tx.creditCharged : false;
+    const chargedAt = creditCharged ? tx.chargedAt : null;
+    Object.assign(tx, { category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged, chargedAt, chargeDate, chargeDateManual, fromSavings, isCash, legacyCounted:false });
   }else{
-    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, fromSavings, isCash, createdAt:Date.now() });
+    state.finances.push({ id:uid(), category, subCategory, title, amount, type, date, month:date.slice(0,7), paymentMethod, creditCharged:false, chargedAt:null, chargeDate, chargeDateManual, fromSavings, isCash, recurringId:null, occurrenceDate:null, legacyCounted:false, createdAt:Date.now() });
   }
   saveState();
   closeModal();
@@ -1095,6 +1649,14 @@ function saveFinanceForm(txId){
 }
 function deleteFinance(txId){
   showConfirm('למחוק את התנועה?', () => {
+    const tx = state.finances.find(f=>f.id===txId);
+    if(tx && tx.recurringId){
+      const s = state.recurringFinance.find(x=>x.id===tx.recurringId);
+      if(s && tx.occurrenceDate){
+        s.skipDates = s.skipDates || [];
+        if(!s.skipDates.includes(tx.occurrenceDate)) s.skipDates.push(tx.occurrenceDate);
+      }
+    }
     state.finances = state.finances.filter(f=>f.id!==txId);
     saveState();
     render();
@@ -1102,11 +1664,16 @@ function deleteFinance(txId){
 }
 function financeRowHtml(f){
   const sign = f.type==='income' ? '+' : '-';
-  const isPendingCredit = f.type==='expense' && f.paymentMethod==='credit' && !f.creditCharged;
+  const isCredit = f.type==='expense' && f.paymentMethod==='credit';
+  const isPendingCredit = isCredit && !f.creditCharged;
   const isFromSavings = f.type==='income' && f.fromSavings;
+  const isExpected = !isPendingCredit && !isFinanceEffective(f);
+  const creditBadge = isPendingCredit
+    ? `<span class="badge credit">אשראי · ${f.chargeDate ? 'חיוב '+formatDateShort(f.chargeDate) : 'ללא מועד'}</span>`
+    : (isCredit && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY ? '<span class="badge paid">חויב</span>' : '');
   return `<div class="finance-row">
     <div class="finance-body" onclick="openFinanceModal('${f.id}')">
-      <div class="finance-title">${escapeHtml(f.title)} ${isPendingCredit?'<span class="badge credit">אשראי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}${f.isCash?'<span class="badge cash">מזומן</span>':''}</div>
+      <div class="finance-title">${escapeHtml(f.title)} ${creditBadge}${isExpected?'<span class="badge expected">צפוי</span>':''}${isFromSavings?'<span class="badge savings">מהחיסכון</span>':''}${f.isCash?'<span class="badge cash">מזומן</span>':''}${f.recurringId?'<span class="badge expected">חוזר</span>':''}</div>
       <div class="finance-meta">${escapeHtml(f.category)}${f.subCategory?` · ${escapeHtml(f.subCategory)}`:''} · ${formatDateShort(f.date)}</div>
     </div>
     <div class="finance-amount ${f.type}">${sign}${f.amount.toLocaleString('he-IL')} ₪</div>
@@ -1975,14 +2542,10 @@ function importBackup(event){
         return { ...rest, scope, date, order };
       });
       state.categories = (state.categories||[]).map(c=>({ ...c, pinned: !!c.pinned }));
-      state.finances = (state.finances||[]).map(f=>({
-        ...f,
-        paymentMethod: f.paymentMethod || 'checking',
-        creditCharged: !!f.creditCharged,
-        fromSavings: !!f.fromSavings,
-        isCash: !!f.isCash
-      }));
+      state.finances = (state.finances||[]).map(normalizeFinanceRecord);
       migrateBalanceAdjustmentRecords(state);
+      migrateFinanceSchema(state);
+      processFinanceRecurring();
       saveState();
       applyTheme();
       ui = {
@@ -2374,12 +2937,14 @@ function renderFinanceStats(){
     dayCount = new Date(y, m, 0).getDate();
   }
 
-  const incomeTotal = periodTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
-  const expenseTotal = periodTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const incomeTx = periodTx.filter(f=>f.type==='income' && !f.fromSavings);
+  const incomeTotal = incomeTx.reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = periodTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
   const savingsTotal = periodTx.filter(f=>f.category===FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  const savingsWithdrawTotal = periodTx.filter(f=>f.type==='income' && f.fromSavings).reduce((s,f)=>s+f.amount,0);
   const avgDaily = dayCount>0 ? expenseTotal/dayCount : 0;
 
-  const breakdown = state.financeCategories.filter(c=>c!==FINANCE_INCOME_CATEGORY).map(c=>{
+  const breakdown = state.financeCategories.filter(c=>c!==FINANCE_INCOME_CATEGORY && c!==FINANCE_SAVINGS_CATEGORY).map(c=>{
     const total = periodTx.filter(f=>f.category===c).reduce((s,f)=>s+f.amount,0);
     return { c, total };
   }).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
@@ -2422,11 +2987,22 @@ function renderFinanceStats(){
         return `<div class="stat-row" style="cursor:pointer;" onclick="toggleStatsFinanceCat('${x.c.replace(/'/g,"\\'")}')"><span>${expanded?'▲':'▼'} ${escapeHtml(x.c)}</span><span>${x.total.toLocaleString('he-IL')} ₪</span></div>${detail}`;
       }).join('') : `<div class="empty">אין עדיין הוצאות בתקופה זו.</div>`}
     </div>
+    ${(savingsTotal>0 || savingsWithdrawTotal>0) ? `<h2 class="section-title">תנועות חיסכון (לא נספרות כהוצאה או הכנסה)</h2>
+    <div class="stat-breakdown" style="margin-bottom:20px;">
+      ${(()=>{
+        const expanded = ui.statsExpandedFinanceCategories && ui.statsExpandedFinanceCategories[FINANCE_SAVINGS_CATEGORY];
+        const catTx = periodTx.filter(f=>f.category===FINANCE_SAVINGS_CATEGORY).sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:0));
+        const detail = expanded ? `<div class="stat-breakdown" style="margin:6px 0 10px;padding-inline-start:14px;">${catTx.map(f=>`<div class="stat-row" style="font-size:13px;font-weight:600;"><span>${escapeHtml(f.title)} · ${formatDateShort(f.date)}</span><span>${f.amount.toLocaleString('he-IL')} ₪</span></div>`).join('')}</div>` : '';
+        const transferRow = savingsTotal>0 ? `<div class="stat-row" style="cursor:pointer;" onclick="toggleStatsFinanceCat('${FINANCE_SAVINGS_CATEGORY}')"><span>${expanded?'▲':'▼'} הועבר לחיסכון</span><span>${savingsTotal.toLocaleString('he-IL')} ₪</span></div>${detail}` : '';
+        const withdrawRow = savingsWithdrawTotal>0 ? `<div class="stat-row"><span>נמשך מהחיסכון</span><span>${savingsWithdrawTotal.toLocaleString('he-IL')} ₪</span></div>` : '';
+        return transferRow + withdrawRow;
+      })()}
+    </div>` : ''}
     <h2 class="section-title">הכנסות</h2>
     <div class="stat-breakdown" style="margin-bottom:20px;">
       <div class="stat-row" style="cursor:pointer;" onclick="toggleStatsIncomeExpand()"><span>${ui.statsExpandedIncome?'▲':'▼'} הכנסות</span><span>${incomeTotal.toLocaleString('he-IL')} ₪</span></div>
       ${ui.statsExpandedIncome ? `<div class="stat-breakdown" style="margin:6px 0 10px;padding-inline-start:14px;">
-        ${periodTx.filter(f=>f.type==='income').sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:0)).map(f=>`<div class="stat-row" style="font-size:13px;font-weight:600;"><span>${escapeHtml(f.title)} · ${formatDateShort(f.date)}</span><span>${f.amount.toLocaleString('he-IL')} ₪</span></div>`).join('') || `<div class="empty">אין הכנסות בתקופה זו.</div>`}
+        ${incomeTx.sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:0)).map(f=>`<div class="stat-row" style="font-size:13px;font-weight:600;"><span>${escapeHtml(f.title)} · ${formatDateShort(f.date)}</span><span>${f.amount.toLocaleString('he-IL')} ₪</span></div>`).join('') || `<div class="empty">אין הכנסות בתקופה זו.</div>`}
       </div>` : ''}
     </div>
     <h2 class="section-title">הכנסות מול הוצאות</h2>
@@ -2536,8 +3112,9 @@ function renderNavTabs(){
 function renderFinancesView(){
   const currentMonth = todayStr().slice(0,7);
   const monthTx = state.finances.filter(f=>f.month===currentMonth);
-  const incomeTotal = monthTx.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
-  const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY).reduce((s,f)=>s+f.amount,0);
+  // Moving money to/from savings is a transfer, not income or consumer spending.
+  const incomeTotal = monthTx.filter(f=>f.type==='income' && !f.fromSavings).reduce((s,f)=>s+f.amount,0);
+  const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
 
   let list = monthTx.filter(f=> ui.financeFilterType==='all' || f.type===ui.financeFilterType);
   const byDate = (a,b) => a.date!==b.date ? (a.date<b.date?1:-1) : b.createdAt-a.createdAt;
@@ -2556,10 +3133,12 @@ function renderFinancesView(){
   const pendingCredit = pendingCreditTotal();
   const savingsBal = savingsBalance();
   const cashBal = cashBalance();
+  const forecast = computeForecast(forecastHorizon());
 
   return `
     <div style="display:flex;gap:8px;margin-bottom:18px;">
       <button class="btn primary" style="flex:1;" onclick="openFinanceModal()">+ הוספת תנועה</button>
+      <button class="icon-btn" onclick="openRecurringModal()" title="הוצאות חוזרות">🔁</button>
       <button class="icon-btn" onclick="openFinanceCategoriesModal()" title="ניהול קטגוריות">✏️</button>
     </div>
     <div class="finance-summary">
@@ -2580,11 +3159,19 @@ function renderFinancesView(){
         <div class="value">${savingsBal.toLocaleString('he-IL')} ₪</div>
         <button type="button" class="text-btn small" style="margin-top:6px;" onclick="updateSavingsBalance()">עדכון יתרה</button>
       </div>
-      <div class="tile credit">
+      <div class="tile credit" style="cursor:pointer;" onclick="openCreditPendingModal()">
         <div class="label">אשראי ממתין</div>
         <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
-        <button type="button" class="text-btn small" style="margin-top:6px;" onclick="chargeCreditCard()">עדכון חיוב</button>
+        <button type="button" class="text-btn small" style="margin-top:6px;" onclick="event.stopPropagation();openCreditPendingModal()">פירוט וחיוב</button>
       </div>
+    </div>
+    <div class="forecast-card">
+      <div class="forecast-top">
+        <span class="label">יתרה צפויה בעו"ש עד</span>
+        <input type="date" value="${forecast.horizon}" min="${todayStr()}" onchange="setForecastDate(this.value)">
+      </div>
+      <div class="value ${forecast.expected<0?'neg':''}">${forecast.expected.toLocaleString('he-IL',{maximumFractionDigits:0})} ₪</div>
+      <button type="button" class="text-btn small" onclick="openForecastDetail()">איך חושב</button>
     </div>
     <div class="range-tabs" style="margin-bottom:8px;">
       <button class="tab ${ui.financeFilterType==='all'?'active':''}" onclick="setFinanceFilter('all')">הכל</button>
@@ -2731,8 +3318,15 @@ if(state.recurringTasks.length){
   generateRecurringInstances();
   saveState();
 }
+if(processFinanceRecurring()) saveState();
 applyTheme();
 render();
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState==='visible' && processFinanceRecurring()){
+    saveState();
+    render();
+  }
+});
 </script>
 </body>
 </html>
