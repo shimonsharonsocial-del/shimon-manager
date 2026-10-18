@@ -349,6 +349,13 @@
   .badge.credit{background:var(--warning);color:#fff;}
   .badge.savings{background:var(--success-tint);color:var(--success);}
   .badge.cash{background:var(--primary-tint);color:var(--primary);}
+  .finance-group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px 14px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow);cursor:pointer;font-weight:800;font-size:14px;}
+  .finance-group-count{font-weight:600;color:var(--text-muted);font-size:12px;}
+  .finance-group-sum{font-weight:800;}
+  .finance-group-sum.income{color:var(--success);}
+  .finance-group-sum.expense{color:var(--danger);}
+  .finance-price-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:12.5px;color:var(--text-muted);font-weight:700;}
+  .finance-price-filter input{width:90px;margin:0;padding:7px 10px;font-size:14px;}
   .badge.paid{background:var(--success-tint);color:var(--success);}
   .badge.expected{background:var(--surface-hover);color:var(--text-muted);}
   .forecast-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;text-align:center;box-shadow:var(--shadow);}
@@ -673,7 +680,29 @@ function selectCalendarDay(dateStr){
   render();
 }
 function setFinanceFilter(v){ ui.financeFilterType = v; render(); }
-function setFinanceSort(v){ ui.financeSortMode = v; render(); }
+function setFinanceSort(v){
+  if(v==='price' && ui.financeSortMode==='price') ui.financePriceDir = ui.financePriceDir==='asc' ? 'desc' : 'asc';
+  else if(v==='price') ui.financePriceDir = 'desc';
+  ui.financeSortMode = v;
+  render();
+}
+function toggleFinanceCategoryGroup(cat){
+  ui.financeExpandedCats = ui.financeExpandedCats || {};
+  ui.financeExpandedCats[cat] = !ui.financeExpandedCats[cat];
+  render();
+}
+function setFinancePriceFilter(){
+  const minEl = document.getElementById('financePriceMin');
+  const maxEl = document.getElementById('financePriceMax');
+  ui.financePriceMin = minEl ? minEl.value : '';
+  ui.financePriceMax = maxEl ? maxEl.value : '';
+  render();
+}
+function clearFinancePriceFilter(){
+  ui.financePriceMin = '';
+  ui.financePriceMax = '';
+  render();
+}
 function setFinanceStatsPeriod(v){ ui.financeStatsPeriod = v; render(); }
 function setFinanceStatsMonth(v){ if(!v) return; ui.financeStatsMonth = v; render(); }
 function setFinanceStatsYear(v){ ui.financeStatsYear = Number(v); render(); }
@@ -3116,17 +3145,38 @@ function renderFinancesView(){
   const incomeTotal = monthTx.filter(f=>f.type==='income' && !f.fromSavings).reduce((s,f)=>s+f.amount,0);
   const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
 
-  let list = monthTx.filter(f=> ui.financeFilterType==='all' || f.type===ui.financeFilterType);
+  const priceMin = parseFloat(ui.financePriceMin);
+  const priceMax = parseFloat(ui.financePriceMax);
+  const priceFilterOn = !isNaN(priceMin) || !isNaN(priceMax);
+  let list = monthTx.filter(f=>
+    (ui.financeFilterType==='all' || f.type===ui.financeFilterType) &&
+    (isNaN(priceMin) || f.amount>=priceMin) &&
+    (isNaN(priceMax) || f.amount<=priceMax)
+  );
   const byDate = (a,b) => a.date!==b.date ? (a.date<b.date?1:-1) : b.createdAt-a.createdAt;
-  if(ui.financeSortMode==='category'){
-    list = [...list].sort((a,b)=> a.category===b.category ? byDate(a,b) : a.category.localeCompare(b.category,'he'));
-  }else{
-    list = [...list].sort(byDate);
-  }
-
-  let rows = list.map(f=>financeRowHtml(f)).join('');
+  let rows;
   if(list.length===0){
-    rows = `<div class="empty">אין עדיין תנועות החודש.</div>`;
+    rows = `<div class="empty">${priceFilterOn || monthTx.length ? 'אין תנועות שמתאימות לסינון.' : 'אין עדיין תנועות החודש.'}</div>`;
+  }else if(ui.financeSortMode==='category'){
+    const groups = {};
+    list.forEach(f=>{ (groups[f.category] = groups[f.category] || []).push(f); });
+    const sums = {};
+    Object.keys(groups).forEach(c=>{ sums[c] = groups[c].reduce((t,f)=>t+f.amount,0); });
+    const expanded = ui.financeExpandedCats || {};
+    rows = Object.keys(groups).sort((a,b)=> sums[b]-sums[a]).map(c=>{
+      const open = !!expanded[c];
+      const items = open ? groups[c].sort(byDate).map(f=>financeRowHtml(f)).join('') : '';
+      const isIncomeCat = c===FINANCE_INCOME_CATEGORY;
+      return `<div class="finance-group-head" onclick="toggleFinanceCategoryGroup('${c.replace(/'/g,"\\'")}')">
+          <span>${open?'▲':'▼'} ${escapeHtml(c)} <span class="finance-group-count">(${groups[c].length})</span></span>
+          <span class="finance-group-sum ${isIncomeCat?'income':'expense'}">${sums[c].toLocaleString('he-IL')} ₪</span>
+        </div>${items}`;
+    }).join('');
+  }else if(ui.financeSortMode==='price'){
+    const dir = ui.financePriceDir==='asc' ? 1 : -1;
+    rows = [...list].sort((a,b)=> a.amount===b.amount ? byDate(a,b) : (a.amount-b.amount)*dir).map(f=>financeRowHtml(f)).join('');
+  }else{
+    rows = [...list].sort(byDate).map(f=>financeRowHtml(f)).join('');
   }
 
   const balance = checkingBalance();
@@ -3181,6 +3231,13 @@ function renderFinancesView(){
     <div class="range-tabs" style="margin-bottom:16px;">
       <button class="tab ${ui.financeSortMode==='time'?'active':''}" onclick="setFinanceSort('time')">לפי זמן</button>
       <button class="tab ${ui.financeSortMode==='category'?'active':''}" onclick="setFinanceSort('category')">לפי קטגוריה</button>
+      <button class="tab ${ui.financeSortMode==='price'?'active':''}" onclick="setFinanceSort('price')">לפי מחיר${ui.financeSortMode==='price' ? (ui.financePriceDir==='asc' ? ' ↑' : ' ↓') : ''}</button>
+    </div>
+    <div class="finance-price-filter">
+      <span>סינון מחיר:</span>
+      <input type="number" id="financePriceMin" min="0" step="any" placeholder="מ-" value="${ui.financePriceMin||''}" onchange="setFinancePriceFilter()">
+      <input type="number" id="financePriceMax" min="0" step="any" placeholder="עד" value="${ui.financePriceMax||''}" onchange="setFinancePriceFilter()">
+      ${priceFilterOn ? '<button type="button" class="text-btn small" onclick="clearFinancePriceFilter()">נקה</button>' : ''}
     </div>
     ${rows}
   `;
