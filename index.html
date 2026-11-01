@@ -1399,6 +1399,27 @@ function deleteRecurringSeries(id){
     openRecurringModal();
   });
 }
+function creditTransactions(){
+  return state.finances.filter(f=>f.type==='expense' && f.paymentMethod==='credit');
+}
+// Removes every credit expense and credit recurring series. Charges already confirmed did leave the
+// checking account, so their total moves into the checking offset to keep the balance unchanged.
+function deleteAllCreditData(){
+  const txs = creditTransactions();
+  const series = state.recurringFinance.filter(s=>s.method==='credit');
+  if(!txs.length && !series.length) return;
+  const total = txs.reduce((s,f)=>s+f.amount,0);
+  const chargedTotal = txs.filter(f=>f.creditCharged).reduce((s,f)=>s+f.amount,0);
+  const seriesText = series.length ? ` וגם ${series.length} הוצאות חוזרות באשראי` : '';
+  showConfirm(`למחוק ${txs.length} תנועות אשראי (${total.toLocaleString('he-IL')} ₪)${seriesText}? אי אפשר לבטל את זה, אז כדאי לעשות קודם ייצוא גיבוי. יתרת העו"ש לא תשתנה.`, () => {
+    const ids = new Set(txs.map(f=>f.id));
+    state.finances = state.finances.filter(f=>!ids.has(f.id));
+    state.recurringFinance = state.recurringFinance.filter(s=>s.method!=='credit');
+    state.checkingBalanceOffset = (state.checkingBalanceOffset||0) - chargedTotal;
+    saveState();
+    render();
+  });
+}
 
 /* ---------- Expected balance ---------- */
 function computeForecast(horizon){
@@ -1409,7 +1430,7 @@ function computeForecast(horizon){
     if(f.type==='income'){
       if(!isFinanceEffective(f) && f.date<=horizon) items.push({ date:f.date, label:f.title, amount:f.amount, kind:'income' });
     }else if(f.paymentMethod==='credit'){
-      if(!f.creditCharged && (!f.chargeDate || f.chargeDate<=horizon)){
+      if(CREDIT_UI_ENABLED && !f.creditCharged && (!f.chargeDate || f.chargeDate<=horizon)){
         items.push({ date:f.chargeDate||null, label:f.title, amount:-f.amount, kind:'credit' });
       }
     }else if(!isFinanceEffective(f) && f.date<=horizon){
@@ -1422,6 +1443,7 @@ function computeForecast(horizon){
     if(s.type==='income'){
       items.push({ date:u.date, label:s.title, amount:u.amount, kind:'income' });
     }else if(s.method==='credit'){
+      if(!CREDIT_UI_ENABLED) return;
       const cd = computeCreditChargeDate(u.date);
       if(cd<=horizon) items.push({ date:cd, label:s.title, amount:-u.amount, kind:'credit' });
     }else{
@@ -3264,6 +3286,7 @@ function renderFinancesView(){
       ${priceFilterOn ? '<button type="button" class="text-btn small" onclick="clearFinancePriceFilter()">נקה</button>' : ''}
     </div>
     ${rows}
+    ${(!CREDIT_UI_ENABLED && (creditTransactions().length || state.recurringFinance.some(s=>s.method==='credit'))) ? `<div style="text-align:center;margin-top:18px;"><button type="button" class="text-btn small" onclick="deleteAllCreditData()">🗑️ מחיקת כל תנועות האשראי (${creditTransactions().length})</button></div>` : ''}
   `;
 }
 function renderNutritionView(){
