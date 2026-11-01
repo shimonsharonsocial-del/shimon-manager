@@ -1044,7 +1044,27 @@ function updateCashBalance(){
         <button type="button" class="btn primary" onclick="confirmCashBalanceUpdate()">אישור</button>
       </div>
     </div>
+    <h3 style="margin:22px 0 6px;font-size:14px;">הפקדת מזומן לעו"ש</h3>
+    <p style="margin:0 0 10px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">הסכום יירד מיתרת המזומן ויתווסף ליתרת העו"ש. לא נספר כהכנסה או כהוצאה.</p>
+    <label>סכום שהופקד (₪)</label>
+    <input type="number" id="cashDepositInput" min="0" step="0.1">
+    <div class="modal-actions">
+      <div></div>
+      <div class="end">
+        <button type="button" class="btn primary" onclick="confirmCashDeposit()">הפקדתי</button>
+      </div>
+    </div>
   `);
+}
+// A deposit is a transfer between the two balances, so it moves offsets rather than creating a transaction.
+function confirmCashDeposit(){
+  const amount = parseFloat(document.getElementById('cashDepositInput').value);
+  if(!amount || amount<=0) return;
+  state.cashBalanceOffset = (state.cashBalanceOffset||0) - amount;
+  state.checkingBalanceOffset = (state.checkingBalanceOffset||0) + amount;
+  saveState();
+  closeModal();
+  render();
 }
 function confirmCashBalanceUpdate(){
   const target = parseFloat(document.getElementById('cashBalanceInput').value);
