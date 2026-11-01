@@ -680,6 +680,17 @@ function selectCalendarDay(dateStr){
   render();
 }
 function setFinanceFilter(v){ ui.financeFilterType = v; render(); }
+// null = the current month, so the view follows the calendar when a new month starts.
+function financeViewMonth(){ return ui.financeMonth || todayStr().slice(0,7); }
+function shiftFinanceMonth(n){
+  const [y,m] = financeViewMonth().split('-').map(Number);
+  setFinanceMonth(makeDateStr(y, m+n, 1).slice(0,7));
+}
+function setFinanceMonth(v){
+  if(!v) return;
+  ui.financeMonth = v===todayStr().slice(0,7) ? null : v;
+  render();
+}
 function setFinanceSort(v){
   if(v==='price' && ui.financeSortMode==='price') ui.financePriceDir = ui.financePriceDir==='asc' ? 'desc' : 'asc';
   else if(v==='price') ui.financePriceDir = 'desc';
@@ -3139,8 +3150,11 @@ function renderNavTabs(){
   </nav>`;
 }
 function renderFinancesView(){
-  const currentMonth = todayStr().slice(0,7);
-  const monthTx = state.finances.filter(f=>f.month===currentMonth);
+  const viewMonth = financeViewMonth();
+  const isCurrentMonth = viewMonth===todayStr().slice(0,7);
+  const [viewY, viewM] = viewMonth.split('-').map(Number);
+  const monthLabel = `${HEBREW_MONTHS[viewM-1]} ${viewY}`;
+  const monthTx = state.finances.filter(f=>f.month===viewMonth);
   // Moving money to/from savings is a transfer, not income or consumer spending.
   const incomeTotal = monthTx.filter(f=>f.type==='income' && !f.fromSavings).reduce((s,f)=>s+f.amount,0);
   const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
@@ -3156,7 +3170,7 @@ function renderFinancesView(){
   const byDate = (a,b) => a.date!==b.date ? (a.date<b.date?1:-1) : b.createdAt-a.createdAt;
   let rows;
   if(list.length===0){
-    rows = `<div class="empty">${priceFilterOn || monthTx.length ? 'אין תנועות שמתאימות לסינון.' : 'אין עדיין תנועות החודש.'}</div>`;
+    rows = `<div class="empty">${priceFilterOn || monthTx.length ? 'אין תנועות שמתאימות לסינון.' : (isCurrentMonth ? 'אין עדיין תנועות החודש.' : `אין תנועות ב${monthLabel}.`)}</div>`;
   }else if(ui.financeSortMode==='category'){
     const groups = {};
     list.forEach(f=>{ (groups[f.category] = groups[f.category] || []).push(f); });
@@ -3191,9 +3205,16 @@ function renderFinancesView(){
       <button class="icon-btn" onclick="openRecurringModal()" title="הוצאות חוזרות">🔁</button>
       <button class="icon-btn" onclick="openFinanceCategoriesModal()" title="ניהול קטגוריות">✏️</button>
     </div>
+    <div class="day-nav">
+      <button class="text-btn" onclick="shiftFinanceMonth(-1)" title="חודש קודם">חודש קודם</button>
+      <div class="date-label">${monthLabel}</div>
+      <button class="text-btn" onclick="shiftFinanceMonth(1)" title="חודש הבא">חודש הבא</button>
+      ${isCurrentMonth ? '' : '<button class="text-btn" onclick="setFinanceMonth(todayStr().slice(0,7))">החודש</button>'}
+      <input type="month" value="${viewMonth}" onchange="setFinanceMonth(this.value)" style="padding:8px 10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;max-width:150px;">
+    </div>
     <div class="finance-summary">
-      <div class="tile income"><div class="label">הכנסות החודש</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
-      <div class="tile expense"><div class="label">הוצאות החודש</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile income"><div class="label">${isCurrentMonth ? 'הכנסות החודש' : 'הכנסות ב'+monthLabel}</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
+      <div class="tile expense"><div class="label">${isCurrentMonth ? 'הוצאות החודש' : 'הוצאות ב'+monthLabel}</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
       <div class="tile balance">
         <div class="label">יתרת עו"ש</div>
         <div class="value">${balance.toLocaleString('he-IL')} ₪</div>
