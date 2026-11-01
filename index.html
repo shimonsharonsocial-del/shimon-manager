@@ -3267,7 +3267,6 @@ function renderFinancesView(){
   // Moving money to/from savings is a transfer, not income or consumer spending.
   const incomeTotal = monthTx.filter(f=>f.type==='income' && !f.fromSavings).reduce((s,f)=>s+f.amount,0);
   const expenseTotal = monthTx.filter(f=>f.type==='expense' && f.category!==FINANCE_CREDIT_SETTLEMENT_CATEGORY && f.category!==FINANCE_SAVINGS_CATEGORY).reduce((s,f)=>s+f.amount,0);
-  const creditChargesTotal = monthTx.filter(isCreditCharge).reduce((s,f)=>s+f.amount,0);
 
   const priceMin = parseFloat(ui.financePriceMin);
   const priceMax = parseFloat(ui.financePriceMax);
@@ -3324,9 +3323,7 @@ function renderFinancesView(){
     </div>
     <div class="finance-summary">
       <div class="tile income"><div class="label">${isCurrentMonth ? 'הכנסות החודש' : 'הכנסות ב'+monthLabel}</div><div class="value">${incomeTotal.toLocaleString('he-IL')} ₪</div></div>
-      <div class="tile expense"><div class="label">${isCurrentMonth ? 'הוצאות החודש' : 'הוצאות ב'+monthLabel}</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>
-      <div class="tile"><div class="label">${isCurrentMonth ? 'חיובי אשראי החודש' : 'חיובי אשראי ב'+monthLabel}</div><div class="value">${creditChargesTotal.toLocaleString('he-IL')} ₪</div></div>
-      <div class="tile balance">
+      <div class="tile expense"><div class="label">${isCurrentMonth ? 'הוצאות החודש' : 'הוצאות ב'+monthLabel}</div><div class="value">${expenseTotal.toLocaleString('he-IL')} ₪</div></div>      <div class="tile balance">
         <div class="label">יתרת עו"ש</div>
         <div class="value">${balance.toLocaleString('he-IL')} ₪</div>
         <button type="button" class="text-btn small" style="margin-top:6px;" onclick="updateCheckingBalance()">עדכון יתרה</button>
