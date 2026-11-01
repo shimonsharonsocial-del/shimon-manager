@@ -1444,6 +1444,26 @@ function deleteAllCreditData(){
     render();
   });
 }
+function recurringTransactions(){
+  return state.finances.filter(f=>f.recurringId);
+}
+// Removes every transaction created by a recurring series, and the series themselves.
+// Balances were already synced to reality, so the offsets absorb the change and they stay the same.
+function deleteAllRecurringData(){
+  const txs = recurringTransactions();
+  if(!txs.length && !state.recurringFinance.length) return;
+  const total = txs.reduce((s,f)=>s+f.amount,0);
+  showConfirm(`למחוק ${txs.length} תנועות שנוצרו מהוצאות והכנסות חוזרות (${total.toLocaleString('he-IL')} ₪)? אי אפשר לבטל את זה, אז כדאי לעשות קודם ייצוא גיבוי. היתרות לא ישתנו.`, () => {
+    const before = { checking: checkingBalance(), cash: cashBalance(), savings: savingsBalance() };
+    state.finances = state.finances.filter(f=>!f.recurringId);
+    state.recurringFinance = [];
+    state.checkingBalanceOffset = (state.checkingBalanceOffset||0) + before.checking - checkingBalance();
+    state.cashBalanceOffset = (state.cashBalanceOffset||0) + before.cash - cashBalance();
+    state.savingsBalanceOffset = (state.savingsBalanceOffset||0) + before.savings - savingsBalance();
+    saveState();
+    render();
+  });
+}
 
 /* ---------- Expected balance ---------- */
 function computeForecast(horizon){
@@ -3302,6 +3322,7 @@ function renderFinancesView(){
     </div>
     ${rows}
     ${(!CREDIT_UI_ENABLED && (creditTransactions().length || state.recurringFinance.some(s=>s.method==='credit'))) ? `<div style="text-align:center;margin-top:18px;"><button type="button" class="text-btn small" onclick="deleteAllCreditData()">🗑️ מחיקת כל תנועות האשראי (${creditTransactions().length})</button></div>` : ''}
+    ${(!RECURRING_FINANCE_ENABLED && (recurringTransactions().length || state.recurringFinance.length)) ? `<div style="text-align:center;margin-top:10px;"><button type="button" class="text-btn small" onclick="deleteAllRecurringData()">🗑️ מחיקת כל התנועות החוזרות (${recurringTransactions().length})</button></div>` : ''}
   `;
 }
 function renderNutritionView(){
