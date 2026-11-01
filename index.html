@@ -3222,7 +3222,6 @@ function renderFinancesView(){
   const pendingCredit = pendingCreditTotal();
   const savingsBal = savingsBalance();
   const cashBal = cashBalance();
-  const forecast = computeForecast(forecastHorizon());
 
   return `
     <div style="display:flex;gap:8px;margin-bottom:18px;">
@@ -3260,14 +3259,6 @@ function renderFinancesView(){
         <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
         <button type="button" class="text-btn small" style="margin-top:6px;" onclick="event.stopPropagation();openCreditPendingModal()">פירוט וחיוב</button>
       </div>` : ''}
-    </div>
-    <div class="forecast-card">
-      <div class="forecast-top">
-        <span class="label">יתרה צפויה בעו"ש עד</span>
-        <input type="date" value="${forecast.horizon}" min="${todayStr()}" onchange="setForecastDate(this.value)">
-      </div>
-      <div class="value ${forecast.expected<0?'neg':''}">${forecast.expected.toLocaleString('he-IL',{maximumFractionDigits:0})} ₪</div>
-      <button type="button" class="text-btn small" onclick="openForecastDetail()">איך חושב</button>
     </div>
     <div class="range-tabs" style="margin-bottom:8px;">
       <button class="tab ${ui.financeFilterType==='all'?'active':''}" onclick="setFinanceFilter('all')">הכל</button>
