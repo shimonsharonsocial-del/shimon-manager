@@ -413,6 +413,9 @@ const FINANCE_SAVINGS_CATEGORY = 'חסכונות והשקעות';
 const FINANCE_CREDIT_SETTLEMENT_CATEGORY = 'עדכון אשראי';
 const FINANCE_SAVINGS_ADJUSTMENT_CATEGORY = 'עדכון חיסכון';
 const FINANCE_CHECKING_ADJUSTMENT_CATEGORY = 'עדכון עו"ש';
+// Credit is hidden from the UI for now (pending tile + choosing credit for new transactions).
+// Existing credit data and calculations are untouched; set to true to bring it back.
+const CREDIT_UI_ENABLED = false;
 const WORKOUT_TYPES = ['חזה','גב','רגליים','כתפיים','ידיים','פול באדי','אירובי'];
 const WORKOUT_CUSTOM = 'מותאם אישית';
 
@@ -1334,7 +1337,7 @@ function openRecurringEdit(id){
     <select id="recMethodInput">
       <option value="checking" ${s.method==='checking'?'selected':''}>עו"ש</option>
       <option value="cash" ${s.method==='cash'?'selected':''}>מזומן</option>
-      ${s.type==='income' ? '' : `<option value="credit" ${s.method==='credit'?'selected':''}>אשראי</option>`}
+      ${(s.type==='income' || !(CREDIT_UI_ENABLED || s.method==='credit')) ? '' : `<option value="credit" ${s.method==='credit'?'selected':''}>אשראי</option>`}
     </select>
     <label>תאריך סיום (אופציונלי)</label>
     <input type="date" id="recEndInput" value="${s.endDate||''}">
@@ -1567,7 +1570,7 @@ function openFinanceModal(txId, opts){
       <div class="range-tabs" id="financeMethodTabs">
         ${methodBtn('checking','עו"ש')}
         ${methodBtn('cash','מזומן')}
-        ${methodBtn('credit','אשראי', isIncomeInit?'hidden':'')}
+        ${(CREDIT_UI_ENABLED || isCreditTx) ? methodBtn('credit','אשראי', isIncomeInit?'hidden':'') : ''}
       </div>
       <input type="hidden" id="financeMethodInput" value="${method}">
       <div id="financeFromSavingsWrap" class="${showFromSavingsWrap?'':'hidden'}">
@@ -3230,11 +3233,11 @@ function renderFinancesView(){
         <div class="value">${savingsBal.toLocaleString('he-IL')} ₪</div>
         <button type="button" class="text-btn small" style="margin-top:6px;" onclick="updateSavingsBalance()">עדכון יתרה</button>
       </div>
-      <div class="tile credit" style="cursor:pointer;" onclick="openCreditPendingModal()">
+      ${CREDIT_UI_ENABLED ? `<div class="tile credit" style="cursor:pointer;" onclick="openCreditPendingModal()">
         <div class="label">אשראי ממתין</div>
         <div class="value">${pendingCredit.toLocaleString('he-IL')} ₪</div>
         <button type="button" class="text-btn small" style="margin-top:6px;" onclick="event.stopPropagation();openCreditPendingModal()">פירוט וחיוב</button>
-      </div>
+      </div>` : ''}
     </div>
     <div class="forecast-card">
       <div class="forecast-top">
