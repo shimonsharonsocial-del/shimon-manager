@@ -416,6 +416,9 @@ const FINANCE_CHECKING_ADJUSTMENT_CATEGORY = 'עדכון עו"ש';
 // Credit is hidden from the UI for now (pending tile + choosing credit for new transactions).
 // Existing credit data and calculations are untouched; set to true to bring it back.
 const CREDIT_UI_ENABLED = false;
+// Recurring income/expenses are hidden and no longer create transactions. Saved series stay in the data;
+// set to true to bring them back.
+const RECURRING_FINANCE_ENABLED = false;
 const WORKOUT_TYPES = ['חזה','גב','רגליים','כתפיים','ידיים','פול באדי','אירובי'];
 const WORKOUT_CUSTOM = 'מותאם אישית';
 
@@ -1272,6 +1275,7 @@ function buildRecurringTx(s, ds){
 // Creates the real transactions for every occurrence whose date has arrived, including ones missed while the app was closed.
 // Each occurrence is keyed by (series id, occurrence date), so running this again never duplicates anything.
 function processFinanceRecurring(){
+  if(!RECURRING_FINANCE_ENABLED) return false;
   const today = todayStr();
   let changed = false;
   state.recurringFinance.forEach(s=>{
@@ -1592,7 +1596,7 @@ function openFinanceModal(txId, opts){
   ui.financeChargeLegacy = !!(isCreditTx && !tx.chargeDate);
   const methodBtn = (m, label, extra) => `<button type="button" class="tab ${method===m?'active':''} ${extra||''}" data-m="${m}" ${m==='credit'?'id="financeMethodCreditBtn"':''} onclick="setFinanceMethod('${m}')">${label}</button>`;
   const recurChecked = !tx && !!opts.recurring;
-  const seriesNote = tx && tx.recurringId
+  const seriesNote = RECURRING_FINANCE_ENABLED && tx && tx.recurringId
     ? `<div style="margin:12px 0 0;font-size:12px;color:var(--text-muted);">תנועה זו נוצרה מסדרה חוזרת. שינוי כאן משפיע רק עליה; מחיקה שלה תדלג על המופע הזה בסדרה.</div>` : '';
   showModal(`
     <h2>${tx ? 'עריכת תנועה' : 'תנועה חדשה'}</h2>
@@ -1635,7 +1639,7 @@ function openFinanceModal(txId, opts){
           <button type="button" class="text-btn small" onclick="ui.financeChargeManual=false;ui.financeChargeLegacy=false;autoFillChargeDate(true)">חישוב אוטומטי</button>
         </div>
       </div>
-      ${tx ? '' : `
+      ${(tx || !RECURRING_FINANCE_ENABLED) ? '' : `
       <div style="margin-top:14px;">
         <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
           <input type="checkbox" id="financeRecurInput" ${recurChecked?'checked':''} onchange="toggleRecurFields()" style="width:auto;">
@@ -3246,7 +3250,7 @@ function renderFinancesView(){
   return `
     <div style="display:flex;gap:8px;margin-bottom:18px;">
       <button class="btn primary" style="flex:1;" onclick="openFinanceModal()">+ הוספת תנועה</button>
-      <button class="icon-btn" onclick="openRecurringModal()" title="הוצאות חוזרות">🔁</button>
+      ${RECURRING_FINANCE_ENABLED ? '<button class="icon-btn" onclick="openRecurringModal()" title="הוצאות חוזרות">🔁</button>' : ''}
       <button class="icon-btn" onclick="openFinanceCategoriesModal()" title="ניהול קטגוריות">✏️</button>
     </div>
     <div class="day-nav">
