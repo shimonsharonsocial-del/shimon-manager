@@ -384,6 +384,87 @@
   @media (max-width:480px){
     .topbar h1{display:none;}
   }
+
+  .modal-overlay.dlv-top{align-items:flex-start;padding:max(14px, env(safe-area-inset-top)) 14px 14px;}
+  .dlv-toast{
+    position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:50%;transform:translate(-50%,-20px);z-index:200;
+    background:var(--text);color:var(--surface);padding:10px 18px;border-radius:999px;font-size:13.5px;font-weight:700;
+    max-width:90vw;text-align:center;opacity:0;pointer-events:none;transition:opacity .15s ease,transform .15s ease;
+  }
+  .dlv-toast.show{opacity:1;transform:translate(-50%,0);}
+  .dlv-subtabs{margin-bottom:16px;}
+  .dlv-subtabs .tab{flex:1;padding:12px 8px;font-size:15px;text-align:center;}
+  .dlv-big-btn{width:100%;padding:15px 20px;font-size:16px;margin-bottom:16px;}
+  .dlv-toolbar{display:flex;gap:8px;margin-bottom:14px;}
+  .dlv-toolbar .btn{flex:1;padding:12px 8px;}
+  .dlv-list-select{
+    width:100%;padding:11px 13px;margin-bottom:14px;border-radius:12px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text);font-size:16px;
+  }
+  .dlv-title{font-size:17px;font-weight:800;margin:0 0 12px;}
+  .dlv-counters{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:16px;}
+  .dlv-counter{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 2px;text-align:center;box-shadow:var(--shadow);}
+  .dlv-counter .num{font-size:19px;font-weight:800;}
+  .dlv-counter .lbl{font-size:10.5px;font-weight:700;color:var(--text-muted);margin-top:3px;line-height:1.2;}
+  .dlv-counter.delivered .num{color:var(--success);}
+  .dlv-counter.failed .num{color:var(--danger);}
+  .dlv-counter.unavailable .num{color:var(--warning);}
+  .dlv-counter.remaining .num{color:var(--primary);}
+  .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
+  .dlv-row{
+    display:flex;align-items:stretch;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+    padding:6px;margin-bottom:8px;box-shadow:var(--shadow);transition:background .12s ease,border-color .12s ease;
+  }
+  .dlv-row.status-delivered{background:var(--success-tint);border-color:var(--success);}
+  .dlv-row.status-failed{background:var(--danger-tint);border-color:var(--danger);}
+  .dlv-row.status-unavailable{background:color-mix(in srgb, var(--warning) 16%, var(--surface));border-color:var(--warning);}
+  .dlv-row.dragging,.dlv-street-row.dragging{box-shadow:var(--shadow-md);border-color:var(--primary);opacity:.92;}
+  .dlv-handle{
+    flex-shrink:0;width:32px;border:none;background:none;color:var(--text-muted);font-size:18px;padding:0;
+    cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  }
+  .dlv-body{flex:1;min-width:0;min-height:46px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 2px;cursor:pointer;user-select:none;-webkit-user-select:none;}
+  .dlv-addr{display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-size:15px;font-weight:800;line-height:1.3;}
+  .dlv-town{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--primary-tint);color:var(--primary);white-space:nowrap;}
+  .dlv-town.town-1{background:var(--text);color:var(--surface);}
+  .dlv-state{font-size:11.5px;font-weight:700;color:var(--text-muted);}
+  .dlv-row.status-delivered .dlv-state{color:var(--success);}
+  .dlv-row.status-failed .dlv-state{color:var(--danger);}
+  .dlv-row.status-unavailable .dlv-state{color:var(--warning);}
+  .dlv-btn{
+    flex-shrink:0;width:44px;min-height:46px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);
+    color:var(--text);font-size:18px;font-weight:800;padding:0;
+  }
+  .dlv-btn.edit{width:32px;border:none;background:none;font-size:13px;opacity:.65;}
+  .dlv-btn.fail.on{background:var(--danger);border-color:var(--danger);color:#fff;}
+  .dlv-btn.unavail.on{background:var(--warning);border-color:var(--warning);}
+  .dlv-town-tabs{margin-bottom:2px;}
+  .dlv-town-tabs .tab{flex:1;padding:11px 6px;text-align:center;font-size:14.5px;}
+  .dlv-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .dlv-suggest:empty{display:none;}
+  .dlv-chip{border:1.5px solid var(--border);background:var(--surface-hover);color:var(--text);border-radius:999px;padding:9px 13px;font-size:14px;font-weight:700;}
+  .dlv-chip.add{background:var(--primary-tint);color:var(--primary);border-color:transparent;}
+  .dlv-house-row{display:flex;gap:8px;align-items:flex-end;}
+  .dlv-house-row>div{flex:1;min-width:0;}
+  .dlv-large-btn{flex-shrink:0;height:46px;padding:0 13px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);font-size:14px;font-weight:700;}
+  .dlv-large-btn.on{background:var(--primary-tint);border-color:var(--primary);color:var(--primary);}
+  .dlv-submit{width:100%;padding:15px;font-size:16px;margin-top:16px;}
+  .dlv-close{width:100%;margin-top:8px;}
+  .dlv-update-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+  .dlv-update-row{display:grid;grid-template-columns:1fr .8fr .7fr 1.5fr 74px;align-items:center;gap:4px;padding:8px 10px;font-size:14px;font-weight:700;border-top:1px solid var(--border);text-align:center;}
+  .dlv-update-row:first-child{border-top:none;}
+  .dlv-update-row.head{font-size:11.5px;color:var(--text-muted);background:var(--surface-hover);}
+  .dlv-update-row .actions{display:flex;gap:2px;}
+  .dlv-update-row .actions button{width:36px;height:36px;border:none;background:none;font-size:14px;padding:0;}
+  .dlv-update-row .pay{color:var(--success);}
+  .dlv-warning{font-size:12.5px;color:var(--warning);font-weight:700;margin-top:8px;line-height:1.5;}
+  .dlv-street-row{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border);border-radius:10px;margin-bottom:5px;background:var(--surface);}
+  .dlv-street-row .dlv-handle{height:38px;}
+  .dlv-street-num{font-size:11.5px;color:var(--text-muted);width:20px;text-align:center;flex-shrink:0;}
+  .dlv-street-name{flex:1;min-width:0;font-size:14px;font-weight:700;}
+  .dlv-street-row button:not(.dlv-handle){width:34px;height:38px;border:none;background:none;font-size:13px;padding:0;flex-shrink:0;}
+  .dlv-add-street{display:flex;gap:8px;margin-top:12px;}
+  .dlv-add-street input{flex:1;min-width:0;}
 </style>
 </head>
 <body>
@@ -420,6 +501,15 @@ const CREDIT_UI_ENABLED = false;
 // Recurring income/expenses are hidden and no longer create transactions. Saved series stay in the data;
 // set to true to bring them back.
 const RECURRING_FINANCE_ENABLED = false;
+const DELIVERY_RATE = 9.5;
+const DELIVERY_TOWNS = ['אלקנה','עץ אפרים'];
+const DELIVERY_DEFAULT_ROUTE = {
+  'אלקנה': ['בנות ירושלים','כרמל','אילות השדה','ספיר 14','אל אף נקודת חלוקה (אדני פז)','שיר השירים','אהלי קידר','אפיקי מים','גבעת לבונה','הרי בשמים','חבצלת השרון','חרמון','שניר','שלטי גיבורים','אלף המגן','שושנת העמקים','שומרי החומות','רשפי אש','צרור המור','פלח הרימון','ערוגות הבושם','מגדל הלבנון','טורי זהב','מגדל דוד','סמדר','תאנה','תפוח','הר גלעד','מישרים','עורי צפון','חוט השני','מים חיים','הכרם','ארזים','שושנים','ניצנים'],
+  'עץ אפרים': ['שקמה','אלה','דולב','ארז','שיטה','דקל','אשל','ברוש','אורן','זית','תמר','תאנה','רימון','אלון','עמק הצבאים','חרוב']
+};
+function defaultDeliveryRoute(){
+  return DELIVERY_TOWNS.flatMap(town=>DELIVERY_DEFAULT_ROUTE[town].map((name,order)=>({ id:uid(), town, name, order })));
+}
 const WORKOUT_TYPES = ['חזה','גב','רגליים','כתפיים','ידיים','פול באדי','אירובי'];
 const WORKOUT_CUSTOM = 'מותאם אישית';
 
@@ -430,8 +520,15 @@ function defaultState(){
     waterEntries:[], foodEntries:[], calorieTarget:1800, waterTarget:8, googleApiKey:'',
     workouts:[], bodyWeights:[], progressPhotos:[],
     checkingBalanceOffset:0, savingsBalanceOffset:0, cashBalanceOffset:0,
-    creditSettings:{ closingDay:15, chargeDay:15 }, recurringFinance:[]
+    creditSettings:{ closingDay:15, chargeDay:15 }, recurringFinance:[],
+    deliveryUpdates:[], deliveryLists:[], deliveryItems:[], deliveryRouteStreets:defaultDeliveryRoute(),
+    deliveryLastTown:DELIVERY_TOWNS[0]
   };
+}
+function migrateDeliverySchema(st){
+  ['deliveryUpdates','deliveryLists','deliveryItems'].forEach(k=>{ if(!Array.isArray(st[k])) st[k] = []; });
+  if(!Array.isArray(st.deliveryRouteStreets) || !st.deliveryRouteStreets.length) st.deliveryRouteStreets = defaultDeliveryRoute();
+  if(!DELIVERY_TOWNS.includes(st.deliveryLastTown)) st.deliveryLastTown = DELIVERY_TOWNS[0];
 }
 
 /* ---------- Finance schema v2: credit cycles, recurring series, future-dated flows ---------- */
@@ -499,6 +596,7 @@ function loadState(){
     merged.finances = (merged.finances||[]).map(normalizeFinanceRecord);
     migrateBalanceAdjustmentRecords(merged);
     migrateFinanceSchema(merged);
+    migrateDeliverySchema(merged);
     return merged;
   }catch(e){
     console.error('Failed to load state', e);
@@ -2690,6 +2788,7 @@ function importBackup(event){
       state.finances = (state.finances||[]).map(normalizeFinanceRecord);
       migrateBalanceAdjustmentRecords(state);
       migrateFinanceSchema(state);
+      migrateDeliverySchema(state);
       processFinanceRecurring();
       saveState();
       applyTheme();
@@ -3256,6 +3355,7 @@ function renderNavTabs(){
     <button class="tab ${ui.view==='finances'?'active':''}" onclick="switchView('finances')">💰 כספים</button>
     <button class="tab ${ui.view==='nutrition'?'active':''}" onclick="switchView('nutrition')">🥗 תזונה</button>
     <button class="tab ${ui.view==='fitness'?'active':''}" onclick="switchView('fitness')">💪 כושר</button>
+    <button class="tab ${ui.view==='deliveries'?'active':''}" style="grid-column:1/-1;" onclick="switchView('deliveries')">📦 משלוחים</button>
   </nav>`;
 }
 function renderFinancesView(){
@@ -3478,6 +3578,681 @@ function renderPhotosSection(){
     <div class="photo-grid">${grid}</div>
   `;
 }
+/* ---------- Deliveries: shared helpers ---------- */
+function dlvSave(){
+  try{
+    saveState();
+    return true;
+  }catch(e){
+    console.error('Failed to save deliveries', e);
+    dlvToast('השמירה נכשלה: האחסון בטלפון מלא');
+    return false;
+  }
+}
+let dlvToastTimer = null;
+function dlvToast(msg){
+  let el = document.getElementById('dlvToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'dlvToast';
+    el.className = 'dlv-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(dlvToastTimer);
+  dlvToastTimer = setTimeout(()=>el.classList.remove('show'), 1600);
+}
+function dlvDateShort(ds){ const [y,m,d] = ds.split('-'); return `${d}/${m}`; }
+function dlvDateFull(ds){ const [y,m,d] = ds.split('-'); return `${d}/${m}/${y}`; }
+function dlvMoney(n){
+  const digits = Number.isInteger(n) ? 0 : 2;
+  return `${n.toLocaleString('he-IL',{minimumFractionDigits:digits,maximumFractionDigits:digits})} ₪`;
+}
+function dlvNorm(s){ return String(s||'').trim().replace(/\s+/g,' '); }
+function dlvBlurFocus(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function setDeliverySubTab(v){ ui.deliverySubTab = v; render(); }
+function renderDeliveriesView(){
+  const tab = ui.deliverySubTab || 'list';
+  return `
+    <div class="range-tabs dlv-subtabs">
+      <button class="tab ${tab==='updates'?'active':''}" onclick="setDeliverySubTab('updates')">עדכון יומי</button>
+      <button class="tab ${tab==='list'?'active':''}" onclick="setDeliverySubTab('list')">רשימה</button>
+    </div>
+    ${tab==='updates' ? renderDeliveryUpdates() : renderDeliveryList()}
+  `;
+}
+
+/* ---------- Deliveries: daily update (entered by hand, independent of the route list) ---------- */
+function dlvViewMonth(){ return ui.deliveryMonth || todayStr().slice(0,7); }
+function shiftDeliveryMonth(n){
+  const [y,m] = dlvViewMonth().split('-').map(Number);
+  setDeliveryMonth(makeDateStr(y, m+n, 1).slice(0,7));
+}
+function setDeliveryMonth(v){
+  if(!v) return;
+  ui.deliveryMonth = v===todayStr().slice(0,7) ? null : v;
+  render();
+}
+function renderDeliveryUpdates(){
+  const month = dlvViewMonth();
+  const isCurrent = month===todayStr().slice(0,7);
+  const [y,m] = month.split('-').map(Number);
+  const updates = state.deliveryUpdates.filter(u=>u.date.slice(0,7)===month).sort((a,b)=> a.date<b.date?-1:1);
+  const totalDelivered = updates.reduce((s,u)=>s+u.delivered,0);
+  const avg = updates.length ? totalDelivered/updates.length : 0;
+  const rows = updates.map(u=>`
+    <div class="dlv-update-row">
+      <div>${dlvDateShort(u.date)}</div>
+      <div>${u.delivered}</div>
+      <div>${u.failed}</div>
+      <div class="pay">${dlvMoney(u.delivered*DELIVERY_RATE)}</div>
+      <div class="actions">
+        <button onclick="openDlvUpdateForm('${u.id}')" title="עריכה">✏️</button>
+        <button onclick="deleteDlvUpdate('${u.id}')" title="מחיקה">🗑️</button>
+      </div>
+    </div>`).join('');
+  return `
+    <button class="btn primary dlv-big-btn" onclick="openDlvUpdateForm()">+ הוספת עדכון</button>
+    <div class="day-nav">
+      <button class="text-btn" onclick="shiftDeliveryMonth(-1)">חודש קודם</button>
+      <div class="date-label">${HEBREW_MONTHS[m-1]} ${y}</div>
+      <button class="text-btn" onclick="shiftDeliveryMonth(1)">חודש הבא</button>
+      ${isCurrent ? '' : `<button class="text-btn" onclick="setDeliveryMonth(todayStr().slice(0,7))">החודש</button>`}
+    </div>
+    ${updates.length ? `<div class="dlv-update-table">
+      <div class="dlv-update-row head"><div>תאריך</div><div>נמסרו</div><div>כשל</div><div>שכר משוער</div><div></div></div>
+      ${rows}
+    </div>` : `<div class="empty">אין עדכונים בחודש הזה.</div>`}
+    <div class="stats-tiles">
+      <div class="stat-tile"><div class="stat-tile-value">${totalDelivered.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ משלוחים שנמסרו בחודש</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${avg.toLocaleString('he-IL',{maximumFractionDigits:1})}</div><div class="stat-tile-label">ממוצע משלוחים יומי</div></div>
+      <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(totalDelivered*DELIVERY_RATE)}</div><div class="stat-tile-label">משכורת חודשית משוערת</div></div>
+    </div>
+  `;
+}
+function openDlvUpdateForm(id){
+  const u = id ? state.deliveryUpdates.find(x=>x.id===id) : null;
+  showModal(`
+    <h2>${u ? 'עריכת עדכון' : 'עדכון יומי'}</h2>
+    <form onsubmit="event.preventDefault(); saveDlvUpdate('${u?u.id:''}')">
+      <label>תאריך</label>
+      <input type="date" id="dlvUpdateDate" value="${u?u.date:todayStr()}" onchange="dlvCheckUpdateDate('${u?u.id:''}')">
+      <div id="dlvUpdateWarn"></div>
+      <label>מספר משלוחים שנמסרו</label>
+      <input type="number" id="dlvUpdateDelivered" inputmode="numeric" min="0" step="1" value="${u?u.delivered:''}">
+      <label>מספר משלוחים בכשל</label>
+      <input type="number" id="dlvUpdateFailed" inputmode="numeric" min="0" step="1" value="${u?u.failed:''}">
+      <button type="submit" class="btn primary dlv-submit">שמור עדכון</button>
+      <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
+    </form>
+  `);
+  dlvCheckUpdateDate(u?u.id:'');
+  document.getElementById('dlvUpdateDelivered').focus();
+}
+function dlvFindUpdateConflict(date, id){
+  return state.deliveryUpdates.find(u=>u.date===date && u.id!==id);
+}
+function dlvCheckUpdateDate(id){
+  const date = document.getElementById('dlvUpdateDate').value;
+  const other = date && dlvFindUpdateConflict(date, id);
+  document.getElementById('dlvUpdateWarn').innerHTML = other
+    ? `<div class="dlv-warning">כבר קיים עדכון ל-${dlvDateShort(date)}. <button type="button" class="text-btn small" onclick="openDlvUpdateForm('${other.id}')">עריכת העדכון הקיים</button></div>`
+    : '';
+}
+function saveDlvUpdate(id){
+  const date = document.getElementById('dlvUpdateDate').value;
+  const deliveredRaw = document.getElementById('dlvUpdateDelivered').value;
+  const failedRaw = document.getElementById('dlvUpdateFailed').value;
+  const delivered = Number(deliveredRaw);
+  const failed = failedRaw==='' ? 0 : Number(failedRaw);
+  if(!date){ dlvToast('צריך לבחור תאריך'); return; }
+  if(deliveredRaw==='' || !Number.isInteger(delivered) || delivered<0 || !Number.isInteger(failed) || failed<0){
+    dlvToast('צריך להזין מספרים שלמים');
+    return;
+  }
+  const other = dlvFindUpdateConflict(date, id);
+  if(other){
+    showModal(`
+      <h2>כבר יש עדכון לתאריך הזה</h2>
+      <p style="margin:0 0 6px;font-size:14px;line-height:1.6;">ל-${dlvDateShort(date)} כבר נרשמו ${other.delivered} משלוחים שנמסרו ו-${other.failed} בכשל.</p>
+      <button type="button" class="btn primary dlv-submit" onclick="openDlvUpdateForm('${other.id}')">עריכת העדכון הקיים</button>
+      <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
+    `);
+    return;
+  }
+  const now = Date.now();
+  const u = id ? state.deliveryUpdates.find(x=>x.id===id) : null;
+  if(u) Object.assign(u, { date, delivered, failed, estimatedPay:delivered*DELIVERY_RATE, updatedAt:now });
+  else state.deliveryUpdates.push({ id:uid(), date, delivered, failed, estimatedPay:delivered*DELIVERY_RATE, createdAt:now, updatedAt:now });
+  ui.deliveryMonth = date.slice(0,7)===todayStr().slice(0,7) ? null : date.slice(0,7);
+  dlvSave();
+  closeModal();
+  render();
+}
+function deleteDlvUpdate(id){
+  const u = state.deliveryUpdates.find(x=>x.id===id);
+  if(!u) return;
+  showConfirm(`למחוק את העדכון של ${dlvDateShort(u.date)}?`, () => {
+    state.deliveryUpdates = state.deliveryUpdates.filter(x=>x.id!==id);
+    dlvSave();
+    render();
+  });
+}
+
+/* ---------- Deliveries: lists ---------- */
+const DLV_OPEN_STATUSES = ['pending','unavailable'];
+function dlvCurrentList(){
+  const lists = state.deliveryLists;
+  return lists.find(l=>l.id===ui.deliveryListId)
+    || lists.find(l=>l.date===todayStr())
+    || [...lists].sort((a,b)=> a.date<b.date?1:-1)[0]
+    || null;
+}
+function dlvListItems(listId){
+  return state.deliveryItems.filter(i=>i.listId===listId).sort((a,b)=>a.position-b.position);
+}
+function dlvCountersHtml(listId){
+  const items = state.deliveryItems.filter(i=>i.listId===listId);
+  const count = s => items.filter(i=>i.status===s).length;
+  const tile = (cls,num,lbl) => `<div class="dlv-counter ${cls}"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+  return tile('', items.length, 'סה"כ חבילות')
+    + tile('delivered', count('delivered'), 'נמסרו')
+    + tile('failed', count('failed'), 'בכשל')
+    + tile('unavailable', count('unavailable'), 'לא זמינים')
+    + tile('remaining', items.filter(i=>DLV_OPEN_STATUSES.includes(i.status)).length, 'נותרו לטיפול');
+}
+function dlvRowHtml(i){
+  const stateText = { delivered:'✓ נמסר', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
+  const carried = i.carriedFromDate ? `הועבר מ-${dlvDateShort(i.carriedFromDate)}` : '';
+  const meta = [stateText, carried].filter(Boolean).join(' · ');
+  return `<div class="dlv-row status-${i.status}" data-id="${i.id}">
+    <button type="button" class="dlv-handle" title="גרור לשינוי סדר">⠿</button>
+    <div class="dlv-body" onclick="dlvTapBody('${i.id}')">
+      <div class="dlv-addr">
+        <span class="dlv-town town-${DELIVERY_TOWNS.indexOf(i.town)}">${escapeHtml(i.town)}</span>
+        <span>${escapeHtml(i.street)}${i.houseNumber ? ' '+escapeHtml(i.houseNumber) : ''}</span>
+        ${i.large ? '<span>📦</span>' : ''}
+      </div>
+      ${meta ? `<div class="dlv-state">${meta}</div>` : ''}
+    </div>
+    <button type="button" class="dlv-btn edit" onclick="openDlvItemForm('${i.id}')" title="עריכה">✏️</button>
+    <button type="button" class="dlv-btn unavail ${i.status==='unavailable'?'on':''}" onclick="dlvToggleStatus('${i.id}','unavailable')" title="לא זמין">👎🏼</button>
+    <button type="button" class="dlv-btn fail ${i.status==='failed'?'on':''}" onclick="dlvToggleStatus('${i.id}','failed')" title="כשל">✕</button>
+  </div>`;
+}
+function renderDeliveryList(){
+  const list = dlvCurrentList();
+  const lists = [...state.deliveryLists].sort((a,b)=> a.date<b.date?1:-1);
+  const toolbar = `
+    <div class="dlv-toolbar">
+      <button class="btn secondary" onclick="openDlvNewList()">+ רשימה חדשה</button>
+      <button class="btn secondary" onclick="openDlvRouteModal()">🛣️ סדר רחובות</button>
+    </div>`;
+  if(!list) return toolbar + `<div class="empty">אין עדיין רשימות משלוחים.<br>לחץ על "רשימה חדשה" כדי להתחיל.</div>`;
+  const items = dlvListItems(list.id);
+  const movedOut = state.deliveryItems.filter(i=>i.carriedFromListId===list.id);
+  const options = lists.map(l=>`<option value="${l.id}" ${l.id===list.id?'selected':''}>${dlvDateFull(l.date)}</option>`).join('');
+  return `
+    ${toolbar}
+    ${lists.length>1 ? `<select class="dlv-list-select" onchange="setDeliveryList(this.value)">${options}</select>` : ''}
+    <h2 class="dlv-title">משלוחים – ${dlvDateFull(list.date)}</h2>
+    <div class="dlv-counters" id="dlvCounters">${dlvCountersHtml(list.id)}</div>
+    ${movedOut.length ? `<p class="dlv-note">${movedOut.length} חבילות מהרשימה הזאת הועברו ליום אחר.</p>` : ''}
+    <button class="btn primary dlv-big-btn" onclick="openDlvItemForm()">+ הוסף משלוח</button>
+    <div id="dlvRows">${items.map(dlvRowHtml).join('')}</div>
+    ${items.length ? '' : '<div class="empty">אין עדיין משלוחים ברשימה.</div>'}
+    ${items.length>1 ? `<div style="text-align:center;margin-top:14px;"><button class="text-btn small" onclick="dlvResetOrder('${list.id}')">סידור מחדש לפי סדר הרחובות</button></div>` : ''}
+  `;
+}
+function setDeliveryList(id){ ui.deliveryListId = id; render(); }
+function openDlvNewList(){
+  showModal(`
+    <h2>רשימה חדשה</h2>
+    <label>תאריך</label>
+    <input type="date" id="dlvNewListDate" value="${todayStr()}">
+    <button type="button" class="btn primary dlv-submit" onclick="dlvCreateList()">פתיחת הרשימה</button>
+    <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
+  `);
+  dlvBlurFocus();
+}
+function dlvCreateList(){
+  const date = document.getElementById('dlvNewListDate').value || todayStr();
+  const existing = state.deliveryLists.find(l=>l.date===date);
+  if(existing){
+    ui.deliveryListId = existing.id;
+    closeModal();
+    render();
+    dlvToast('הרשימה לתאריך הזה כבר קיימת, פתחתי אותה');
+    return;
+  }
+  const prev = state.deliveryLists.filter(l=>l.date<date).sort((a,b)=> a.date<b.date?1:-1)[0];
+  const leftover = prev ? state.deliveryItems.filter(i=>i.listId===prev.id && DLV_OPEN_STATUSES.includes(i.status)).length : 0;
+  if(!leftover){ dlvFinishNewList(date, false); return; }
+  showModal(`
+    <h2>חבילות מהיום הקודם</h2>
+    <p style="margin:0;font-size:14.5px;line-height:1.6;">יש לך ${leftover} חבילות מהיום הקודם שעדיין לא נמסרו. האם להעביר אותן לרשימה החדשה?</p>
+    <button type="button" class="btn primary dlv-submit" onclick="dlvFinishNewList('${date}', true)">כן, להעביר</button>
+    <button type="button" class="btn secondary dlv-close" onclick="dlvFinishNewList('${date}', false)">לא, להתחיל רשימה ריקה</button>
+  `);
+}
+// Carried packages move to the new list (same id, one record), so they can never be counted twice.
+function dlvFinishNewList(date, carry){
+  let list = state.deliveryLists.find(l=>l.date===date);
+  if(!list){
+    const prev = state.deliveryLists.filter(l=>l.date<date).sort((a,b)=> a.date<b.date?1:-1)[0];
+    list = { id:uid(), date, createdAt:Date.now() };
+    state.deliveryLists.push(list);
+    if(carry && prev){
+      const now = Date.now();
+      dlvListItems(prev.id).filter(i=>DLV_OPEN_STATUSES.includes(i.status)).forEach(i=>{
+        Object.assign(i, { listId:list.id, carriedFromListId:prev.id, carriedFromDate:prev.date, manualOrder:false, updatedAt:now });
+        dlvPlaceItem(i);
+      });
+    }
+    dlvSave();
+  }
+  ui.deliveryListId = list.id;
+  closeModal();
+  render();
+}
+
+/* ---------- Deliveries: route order ---------- */
+function dlvStreets(town){
+  return state.deliveryRouteStreets.filter(s=>s.town===town).sort((a,b)=>a.order-b.order);
+}
+function dlvRouteComparator(){
+  const order = new Map(state.deliveryRouteStreets.map(s=>[`${s.town}|${s.name}`, s.order]));
+  const houseNum = h => { const n = parseInt(h,10); return isNaN(n) ? -1 : n; };
+  return (a,b) => {
+    const townDiff = DELIVERY_TOWNS.indexOf(a.town) - DELIVERY_TOWNS.indexOf(b.town);
+    if(townDiff) return townDiff;
+    const oa = order.has(`${a.town}|${a.street}`) ? order.get(`${a.town}|${a.street}`) : Infinity;
+    const ob = order.has(`${b.town}|${b.street}`) ? order.get(`${b.town}|${b.street}`) : Infinity;
+    if(oa!==ob) return oa<ob ? -1 : 1;
+    const hd = houseNum(a.houseNumber) - houseNum(b.houseNumber);
+    if(hd) return hd;
+    return String(a.houseNumber||'').localeCompare(String(b.houseNumber||''), 'he');
+  };
+}
+// Slots an item in by route order, using only packages that were not dragged by hand as anchors,
+// so manual moves stay where they were put. Every other item keeps its relative order.
+function dlvPlaceItem(item){
+  const compare = dlvRouteComparator();
+  const others = state.deliveryItems.filter(i=>i.listId===item.listId && i.id!==item.id).sort((a,b)=>a.position-b.position);
+  let at = others.findIndex(x=>!x.manualOrder && compare(x,item)>0);
+  if(at===-1){
+    at = others.length;
+    for(let k=others.length-1; k>=0; k--){
+      if(!others[k].manualOrder){ at = k+1; break; }
+    }
+  }
+  others.splice(at, 0, item);
+  others.forEach((x,i)=>{ x.position = i; });
+}
+function dlvResetOrder(listId){
+  showConfirm('לסדר את כל הרשימה מחדש לפי סדר הרחובות? שינויי הסדר הידניים של הרשימה הזאת יימחקו.', () => {
+    const compare = dlvRouteComparator();
+    dlvListItems(listId).sort(compare).forEach((x,i)=>{ x.position = i; x.manualOrder = false; });
+    dlvSave();
+    render();
+  });
+}
+
+/* ---------- Deliveries: statuses (rows update in place, without redrawing the screen) ---------- */
+function dlvSetStatus(id, status){
+  const item = state.deliveryItems.find(i=>i.id===id);
+  if(!item) return;
+  item.status = status;
+  item.updatedAt = Date.now();
+  dlvSave();
+  const row = document.querySelector(`.dlv-row[data-id="${id}"]`);
+  if(row) row.outerHTML = dlvRowHtml(item);
+  const counters = document.getElementById('dlvCounters');
+  if(counters) counters.innerHTML = dlvCountersHtml(item.listId);
+}
+function dlvTapBody(id){
+  const item = state.deliveryItems.find(i=>i.id===id);
+  if(item) dlvSetStatus(id, item.status==='delivered' ? 'pending' : 'delivered');
+}
+function dlvToggleStatus(id, status){
+  const item = state.deliveryItems.find(i=>i.id===id);
+  if(item) dlvSetStatus(id, item.status===status ? 'pending' : status);
+}
+
+/* ---------- Deliveries: add / edit a package ---------- */
+let dlvForm = null;
+let dlvLastAddAt = 0;
+function openDlvItemForm(itemId, draft){
+  const item = itemId ? state.deliveryItems.find(i=>i.id===itemId) : null;
+  const d = draft || (item
+    ? { town:item.town, street:item.street, house:item.houseNumber, large:item.large }
+    : { town:state.deliveryLastTown, street:'', house:'', large:false });
+  dlvForm = { itemId:item?item.id:null, town:d.town, large:!!d.large };
+  showModal(`
+    <h2>${item ? 'עריכת משלוח' : 'הוספת משלוח'}</h2>
+    <form onsubmit="event.preventDefault(); dlvSubmitItem()" autocomplete="off">
+      <div class="range-tabs dlv-town-tabs" id="dlvTownTabs">
+        ${DELIVERY_TOWNS.map(t=>`<button type="button" class="tab ${t===d.town?'active':''}" data-town="${t}" onclick="dlvSetFormTown(this.dataset.town)">${t}</button>`).join('')}
+      </div>
+      <label>רחוב</label>
+      <input type="text" id="dlvStreetInput" value="${escapeHtml(d.street)}" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next"
+        oninput="dlvRenderSuggest()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('dlvHouseInput').focus();}">
+      <div class="dlv-suggest" id="dlvSuggest"></div>
+      <div class="dlv-house-row">
+        <div>
+          <label>מספר בית</label>
+          <input type="text" id="dlvHouseInput" inputmode="numeric" value="${escapeHtml(d.house||'')}" autocomplete="off" autocorrect="off" enterkeyhint="done">
+        </div>
+        <button type="button" id="dlvLargeBtn" class="dlv-large-btn ${d.large?'on':''}" onclick="dlvToggleLarge()">📦 חבילה גדולה</button>
+      </div>
+      <button type="submit" class="btn primary dlv-submit">${item ? 'שמירה' : 'הוסף משלוח'}</button>
+      ${item ? `<button type="button" class="btn danger dlv-close" onclick="deleteDlvItem('${item.id}')">מחיקת המשלוח</button>` : ''}
+      <button type="button" class="btn secondary dlv-close" onclick="closeModal()">${item ? 'ביטול' : 'סיום'}</button>
+    </form>
+  `);
+  document.querySelector('.modal-overlay').classList.add('dlv-top');
+  dlvRenderSuggest();
+  document.getElementById(d.street ? 'dlvHouseInput' : 'dlvStreetInput').focus();
+}
+function dlvSetFormTown(town){
+  dlvForm.town = town;
+  document.querySelectorAll('#dlvTownTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.town===town));
+  dlvRenderSuggest();
+}
+function dlvToggleLarge(){
+  dlvForm.large = !dlvForm.large;
+  document.getElementById('dlvLargeBtn').classList.toggle('on', dlvForm.large);
+}
+function dlvKnownStreet(town, name){
+  return state.deliveryRouteStreets.some(s=>s.town===town && s.name===name);
+}
+function dlvRenderSuggest(){
+  const box = document.getElementById('dlvSuggest');
+  if(!box) return;
+  const q = dlvNorm(document.getElementById('dlvStreetInput').value);
+  if(!q || dlvKnownStreet(dlvForm.town, q)){ box.innerHTML = ''; return; }
+  const streets = dlvStreets(dlvForm.town).filter(s=>s.name.includes(q));
+  const starts = streets.filter(s=>s.name.startsWith(q));
+  const rest = streets.filter(s=>!s.name.startsWith(q));
+  box.innerHTML = [...starts, ...rest].slice(0,6).map(s=>
+    `<button type="button" class="dlv-chip" data-street="${escapeHtml(s.name)}" onclick="dlvPickStreet(this.dataset.street)">${escapeHtml(s.name)}</button>`
+  ).join('') + `<button type="button" class="dlv-chip add" onclick="dlvAddStreetFromForm()">+ הוסף רחוב חדש למסלול</button>`;
+}
+function dlvPickStreet(name){
+  document.getElementById('dlvStreetInput').value = name;
+  document.getElementById('dlvSuggest').innerHTML = '';
+  document.getElementById('dlvHouseInput').focus();
+}
+function dlvReadDraft(){
+  return {
+    itemId:dlvForm.itemId, town:dlvForm.town, large:dlvForm.large,
+    street:dlvNorm(document.getElementById('dlvStreetInput').value),
+    house:dlvNorm(document.getElementById('dlvHouseInput').value)
+  };
+}
+function dlvAddStreetFromForm(){
+  const draft = dlvReadDraft();
+  if(draft.street) openDlvStreetPlacement({ ...draft, autoAdd:false, from:'form' });
+}
+function dlvSubmitItem(){
+  const draft = dlvReadDraft();
+  if(!draft.street){
+    dlvToast('צריך להזין רחוב');
+    document.getElementById('dlvStreetInput').focus();
+    return;
+  }
+  if(!dlvKnownStreet(draft.town, draft.street)){
+    openDlvStreetPlacement({ ...draft, autoAdd:true, from:'form' });
+    return;
+  }
+  dlvCommitItem(draft);
+}
+function dlvCommitItem(draft){
+  const now = Date.now();
+  if(draft.itemId){
+    const item = state.deliveryItems.find(i=>i.id===draft.itemId);
+    if(!item){ closeModal(); return; }
+    const moved = item.town!==draft.town || item.street!==draft.street || item.houseNumber!==draft.house;
+    Object.assign(item, { town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, updatedAt:now });
+    if(moved){
+      item.manualOrder = false;
+      dlvPlaceItem(item);
+    }
+    dlvSave();
+    closeModal();
+    render();
+    return;
+  }
+  // Guards against a double tap creating the same package twice. Same-address packages are otherwise allowed.
+  if(now-dlvLastAddAt < 500) return;
+  const list = dlvCurrentList();
+  if(!list){ closeModal(); return; }
+  dlvLastAddAt = now;
+  const item = { id:uid(), listId:list.id, town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, status:'pending', position:0, manualOrder:false, createdAt:now, updatedAt:now };
+  state.deliveryItems.push(item);
+  dlvPlaceItem(item);
+  state.deliveryLastTown = draft.town;
+  dlvSave();
+  render();
+  if(!document.getElementById('dlvStreetInput')) openDlvItemForm();
+  document.getElementById('dlvStreetInput').value = '';
+  document.getElementById('dlvHouseInput').value = '';
+  document.getElementById('dlvSuggest').innerHTML = '';
+  dlvForm.large = false;
+  document.getElementById('dlvLargeBtn').classList.remove('on');
+  document.getElementById('dlvStreetInput').focus();
+  dlvToast(`נוסף: ${draft.street}${draft.house ? ' '+draft.house : ''}`);
+}
+function deleteDlvItem(id){
+  showConfirm('למחוק את המשלוח?', () => {
+    const item = state.deliveryItems.find(i=>i.id===id);
+    state.deliveryItems = state.deliveryItems.filter(i=>i.id!==id);
+    if(item) dlvListItems(item.listId).forEach((x,i)=>{ x.position = i; });
+    dlvSave();
+    render();
+  });
+}
+
+/* ---------- Deliveries: adding a street to the route ---------- */
+let dlvPlacement = null;
+function openDlvStreetPlacement(p){
+  const streets = dlvStreets(p.town);
+  dlvPlacement = { ...p, before:false };
+  const options = streets.map((s,i)=>`<option value="${s.id}" ${i===streets.length-1?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+  showModal(`
+    <h2>היכן למקם את רחוב ${escapeHtml(p.street)}?</h2>
+    <p class="dlv-note">ב${escapeHtml(p.town)}. המיקום יישמר גם לימים הבאים.</p>
+    <div class="range-tabs dlv-town-tabs" id="dlvPlaceTabs">
+      <button type="button" class="tab" data-before="1" onclick="dlvSetPlacementSide(true)">לפני רחוב</button>
+      <button type="button" class="tab active" data-before="0" onclick="dlvSetPlacementSide(false)">אחרי רחוב</button>
+    </div>
+    <label>רחוב</label>
+    <select id="dlvPlaceAnchor">${options}</select>
+    <button type="button" class="btn primary dlv-submit" onclick="dlvSavePlacement()">שמירה</button>
+    <button type="button" class="btn secondary dlv-close" onclick="dlvCancelPlacement()">ביטול</button>
+  `);
+  dlvBlurFocus();
+}
+function dlvSetPlacementSide(before){
+  dlvPlacement.before = before;
+  document.querySelectorAll('#dlvPlaceTabs .tab').forEach(b=>b.classList.toggle('active', (b.dataset.before==='1')===before));
+}
+function dlvCancelPlacement(){
+  const p = dlvPlacement;
+  if(p.from==='route') openDlvRouteModal(p.town);
+  else openDlvItemForm(p.itemId, p);
+}
+function dlvSavePlacement(){
+  const p = dlvPlacement;
+  if(!dlvKnownStreet(p.town, p.street)){
+    const streets = dlvStreets(p.town);
+    const anchorIdx = streets.findIndex(s=>s.id===document.getElementById('dlvPlaceAnchor').value);
+    const at = anchorIdx===-1 ? streets.length : anchorIdx + (p.before ? 0 : 1);
+    streets.splice(at, 0, { id:uid(), town:p.town, name:p.street, order:0 });
+    state.deliveryRouteStreets = state.deliveryRouteStreets.filter(s=>s.town!==p.town).concat(streets);
+    streets.forEach((s,i)=>{ s.order = i; });
+    dlvSave();
+  }
+  if(p.from==='route'){ openDlvRouteModal(p.town); return; }
+  openDlvItemForm(p.itemId, p);
+  if(p.autoAdd) dlvCommitItem(p);
+}
+
+/* ---------- Deliveries: editing the route ---------- */
+function openDlvRouteModal(town){
+  const prevModal = document.querySelector('.modal');
+  const keepScroll = town && prevModal && document.getElementById('dlvRouteRows') ? prevModal.scrollTop : 0;
+  ui.deliveryRouteTown = town || ui.deliveryRouteTown || DELIVERY_TOWNS[0];
+  const t = ui.deliveryRouteTown;
+  const rows = dlvStreets(t).map((s,i)=>`
+    <div class="dlv-street-row" data-id="${s.id}">
+      <button type="button" class="dlv-handle" title="גרור לשינוי סדר">⠿</button>
+      <span class="dlv-street-num">${i+1}</span>
+      <span class="dlv-street-name">${escapeHtml(s.name)}</span>
+      <button type="button" onclick="openDlvRenameStreet('${s.id}')" title="שינוי שם">✏️</button>
+      <button type="button" onclick="deleteDlvStreet('${s.id}')" title="מחיקה">🗑️</button>
+    </div>`).join('');
+  showModal(`
+    <h2>סדר רחובות</h2>
+    <div class="range-tabs dlv-town-tabs">
+      ${DELIVERY_TOWNS.map(x=>`<button type="button" class="tab ${x===t?'active':''}" data-town="${x}" onclick="openDlvRouteModal(this.dataset.town)">${x}</button>`).join('')}
+    </div>
+    <p class="dlv-note" style="margin-top:10px;">גרור כדי לשנות את סדר המסלול. השינוי ישפיע על משלוחים שתוסיף מעכשיו. רשימה קיימת לא זזה לבד.</p>
+    <div id="dlvRouteRows">${rows}</div>
+    <div class="dlv-add-street">
+      <input type="text" id="dlvNewStreetInput" placeholder="רחוב חדש" autocomplete="off">
+      <button type="button" class="btn primary" onclick="dlvAddStreetFromRoute()">הוספה</button>
+    </div>
+    <button type="button" class="btn secondary dlv-close" onclick="closeModal()">סגירה</button>
+  `);
+  dlvBlurFocus();
+  document.querySelector('.modal').scrollTop = keepScroll;
+}
+function dlvAddStreetFromRoute(){
+  const name = dlvNorm(document.getElementById('dlvNewStreetInput').value);
+  const town = ui.deliveryRouteTown;
+  if(!name) return;
+  if(dlvKnownStreet(town, name)){ dlvToast('הרחוב כבר קיים במסלול'); return; }
+  openDlvStreetPlacement({ town, street:name, from:'route' });
+}
+function openDlvRenameStreet(id){
+  const s = state.deliveryRouteStreets.find(x=>x.id===id);
+  if(!s) return;
+  showModal(`
+    <h2>שינוי שם</h2>
+    <label>שם הרחוב או נקודת החלוקה</label>
+    <input type="text" id="dlvRenameInput" value="${escapeHtml(s.name)}" autocomplete="off">
+    <button type="button" class="btn primary dlv-submit" onclick="dlvSaveRename('${s.id}')">שמירה</button>
+    <button type="button" class="btn secondary dlv-close" onclick="openDlvRouteModal('${s.town}')">ביטול</button>
+  `);
+}
+function dlvSaveRename(id){
+  const s = state.deliveryRouteStreets.find(x=>x.id===id);
+  const name = dlvNorm(document.getElementById('dlvRenameInput').value);
+  if(!s || !name) return;
+  if(name!==s.name && dlvKnownStreet(s.town, name)){ dlvToast('הרחוב כבר קיים במסלול'); return; }
+  state.deliveryItems.forEach(i=>{ if(i.town===s.town && i.street===s.name) i.street = name; });
+  s.name = name;
+  dlvSave();
+  render();
+  openDlvRouteModal(s.town);
+}
+function deleteDlvStreet(id){
+  const s = state.deliveryRouteStreets.find(x=>x.id===id);
+  if(!s) return;
+  showConfirm(`למחוק את ${s.name} מהמסלול? משלוחים שכבר נרשמו אליו יישארו ברשימות.`, () => {
+    state.deliveryRouteStreets = state.deliveryRouteStreets.filter(x=>x.id!==id);
+    dlvStreets(s.town).forEach((x,i)=>{ x.order = i; });
+    dlvSave();
+    openDlvRouteModal(s.town);
+  });
+}
+
+/* ---------- Deliveries: drag handle (packages and route streets) ---------- */
+// Neighbouring rows move around the dragged row rather than the row itself: detaching the element
+// under the finger can cancel the touch on iPhone.
+let dlvDrag = null;
+function dlvDragStart(e){
+  const handle = e.target.closest && e.target.closest('.dlv-handle');
+  if(!handle) return;
+  const row = handle.closest('.dlv-row, .dlv-street-row');
+  if(!row) return;
+  e.preventDefault();
+  const modal = row.closest('.modal');
+  dlvDrag = { row, x:e.clientX, y:e.clientY, scroller:modal, before:[...row.parentNode.children].indexOf(row), raf:0 };
+  row.classList.add('dragging');
+  dlvDragTick();
+}
+function dlvDragOver(){
+  const d = dlvDrag;
+  const el = document.elementFromPoint(d.x, d.y);
+  const target = el && el.closest('.dlv-row, .dlv-street-row');
+  if(!target || target===d.row || target.parentNode!==d.row.parentNode) return;
+  const rect = target.getBoundingClientRect();
+  const before = d.y-rect.top < rect.height/2;
+  const parent = d.row.parentNode;
+  const rows = [...parent.children];
+  const from = rows.indexOf(d.row);
+  const to = rows.indexOf(target);
+  if(to<from){
+    const start = before ? to : to+1;
+    for(let i=from-1; i>=start; i--) parent.insertBefore(rows[i], d.row.nextSibling);
+  }else{
+    const end = before ? to-1 : to;
+    for(let i=from+1; i<=end; i++) parent.insertBefore(rows[i], d.row);
+  }
+}
+function dlvDragTick(){
+  if(!dlvDrag) return;
+  const d = dlvDrag;
+  const box = d.scroller ? d.scroller.getBoundingClientRect() : { top:110, bottom:window.innerHeight };
+  const zone = 70;
+  let step = 0;
+  if(d.y < box.top+zone) step = -Math.ceil((box.top+zone-d.y)/6);
+  else if(d.y > box.bottom-zone) step = Math.ceil((d.y-box.bottom+zone)/6);
+  if(step){
+    if(d.scroller) d.scroller.scrollTop += step;
+    else window.scrollBy(0, step);
+  }
+  dlvDragOver();
+  d.raf = requestAnimationFrame(dlvDragTick);
+}
+function dlvDragMove(e){
+  if(!dlvDrag) return;
+  dlvDrag.x = e.clientX;
+  dlvDrag.y = e.clientY;
+}
+function dlvDragEnd(){
+  if(!dlvDrag) return;
+  const d = dlvDrag;
+  dlvDrag = null;
+  cancelAnimationFrame(d.raf);
+  d.row.classList.remove('dragging');
+  const rows = [...d.row.parentNode.children];
+  if(rows.indexOf(d.row)===d.before) return;
+  if(d.row.classList.contains('dlv-row')){
+    rows.forEach((r,i)=>{
+      const item = state.deliveryItems.find(x=>x.id===r.dataset.id);
+      if(item) item.position = i;
+    });
+    const moved = state.deliveryItems.find(x=>x.id===d.row.dataset.id);
+    if(moved){ moved.manualOrder = true; moved.updatedAt = Date.now(); }
+  }else{
+    rows.forEach((r,i)=>{
+      const s = state.deliveryRouteStreets.find(x=>x.id===r.dataset.id);
+      if(s) s.order = i;
+      r.querySelector('.dlv-street-num').textContent = i+1;
+    });
+  }
+  dlvSave();
+}
+document.addEventListener('pointerdown', dlvDragStart);
+document.addEventListener('pointermove', dlvDragMove);
+document.addEventListener('pointerup', dlvDragEnd);
+document.addEventListener('pointercancel', dlvDragEnd);
+document.addEventListener('touchmove', e => { if(dlvDrag) e.preventDefault(); }, { passive:false });
+
 function render(){
   const main = document.getElementById('mainView');
   let body;
@@ -3488,6 +4263,7 @@ function render(){
   else if(ui.view==='finances') body = renderFinancesView();
   else if(ui.view==='nutrition') body = renderNutritionView();
   else if(ui.view==='fitness') body = renderFitnessView();
+  else if(ui.view==='deliveries') body = renderDeliveriesView();
   else body = renderCalendarView();
   main.innerHTML = renderNavTabs() + body;
 }
