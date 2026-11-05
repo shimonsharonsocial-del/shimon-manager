@@ -3643,15 +3643,16 @@ function setDeliveryMonth(v){
   render();
 }
 // Extras are packages that were not on the morning list but were delivered, so they are paid too.
-// Collected packages (pickups) are recorded and summed, but are not part of the pay.
+// Collected packages (pickups) are paid at the same rate, but are counted apart from deliveries.
 // Updates saved before this change may still hold an old `failed` count; it is kept but not shown or paid.
-function dlvUpdatePaidCount(u){ return u.delivered+(u.extra||0); }
+function dlvUpdateDeliveredCount(u){ return u.delivered+(u.extra||0); }
+function dlvUpdatePay(u){ return (dlvUpdateDeliveredCount(u)+(u.collected||0))*DELIVERY_RATE; }
 function renderDeliveryUpdates(){
   const month = dlvViewMonth();
   const isCurrent = month===todayStr().slice(0,7);
   const [y,m] = month.split('-').map(Number);
   const updates = state.deliveryUpdates.filter(u=>u.date.slice(0,7)===month).sort((a,b)=> a.date<b.date?-1:1);
-  const totalDelivered = updates.reduce((s,u)=>s+dlvUpdatePaidCount(u),0);
+  const totalDelivered = updates.reduce((s,u)=>s+dlvUpdateDeliveredCount(u),0);
   const avg = updates.length ? totalDelivered/updates.length : 0;
   const totalCollected = updates.reduce((s,u)=>s+(u.collected||0),0);
   const rows = updates.map(u=>`
@@ -3660,7 +3661,7 @@ function renderDeliveryUpdates(){
       <div>${u.delivered}</div>
       <div>${u.extra||0}</div>
       <div>${u.collected||0}</div>
-      <div class="pay">${dlvMoney(dlvUpdatePaidCount(u)*DELIVERY_RATE)}</div>
+      <div class="pay">${dlvMoney(dlvUpdatePay(u))}</div>
       <div class="actions">
         <button onclick="event.stopPropagation();deleteDlvUpdate('${u.id}')" title="מחיקה">🗑️</button>
       </div>
@@ -3680,7 +3681,7 @@ function renderDeliveryUpdates(){
     <div class="stats-tiles">
       <div class="stat-tile"><div class="stat-tile-value">${totalDelivered.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ משלוחים שנמסרו בחודש</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${avg.toLocaleString('he-IL',{maximumFractionDigits:1})}</div><div class="stat-tile-label">ממוצע משלוחים יומי</div></div>
-      <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(totalDelivered*DELIVERY_RATE)}</div><div class="stat-tile-label">משכורת חודשית משוערת</div></div>
+      <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(updates.reduce((s,u)=>s+dlvUpdatePay(u),0))}</div><div class="stat-tile-label">משכורת חודשית משוערת</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${totalCollected.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ חבילות שנאספו בחודש</div></div>
     </div>
   `;
@@ -3741,7 +3742,7 @@ function saveDlvUpdate(id){
   }
   const now = Date.now();
   const u = id ? state.deliveryUpdates.find(x=>x.id===id) : null;
-  const estimatedPay = (delivered+extra)*DELIVERY_RATE;
+  const estimatedPay = dlvUpdatePay({ delivered, extra, collected });
   if(u) Object.assign(u, { date, delivered, extra, collected, estimatedPay, updatedAt:now });
   else state.deliveryUpdates.push({ id:uid(), date, delivered, extra, collected, estimatedPay, createdAt:now, updatedAt:now });
   ui.deliveryMonth = date.slice(0,7)===todayStr().slice(0,7) ? null : date.slice(0,7);
