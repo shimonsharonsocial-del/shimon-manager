@@ -465,6 +465,9 @@
   .dlv-update-row .actions{display:flex;gap:2px;}
   .dlv-update-row .actions button{width:33px;height:36px;border:none;background:none;font-size:14px;padding:0;}
   .dlv-update-row .pay{color:var(--success);}
+  .dlv-update-row.expense{grid-template-columns:.8fr 2.2fr 1.2fr 36px;}
+  .dlv-update-row.expense .title{text-align:start;overflow-wrap:anywhere;}
+  .dlv-update-row.expense .cost{color:var(--danger);}
   .dlv-warning{font-size:12.5px;color:var(--warning);font-weight:700;margin-top:8px;line-height:1.5;}
   .dlv-street-row{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border);border-radius:10px;margin-bottom:5px;background:var(--surface);}
   .dlv-street-row .dlv-handle{height:38px;}
@@ -529,12 +532,12 @@ function defaultState(){
     workouts:[], bodyWeights:[], progressPhotos:[],
     checkingBalanceOffset:0, savingsBalanceOffset:0, cashBalanceOffset:0,
     creditSettings:{ closingDay:15, chargeDay:15 }, recurringFinance:[],
-    deliveryUpdates:[], deliveryLists:[], deliveryItems:[], deliveryRouteStreets:defaultDeliveryRoute(),
+    deliveryUpdates:[], deliveryExpenses:[], deliveryLists:[], deliveryItems:[], deliveryRouteStreets:defaultDeliveryRoute(),
     deliveryLastTown:DELIVERY_TOWNS[0]
   };
 }
 function migrateDeliverySchema(st){
-  ['deliveryUpdates','deliveryLists','deliveryItems'].forEach(k=>{ if(!Array.isArray(st[k])) st[k] = []; });
+  ['deliveryUpdates','deliveryExpenses','deliveryLists','deliveryItems'].forEach(k=>{ if(!Array.isArray(st[k])) st[k] = []; });
   if(!Array.isArray(st.deliveryRouteStreets) || !st.deliveryRouteStreets.length) st.deliveryRouteStreets = defaultDeliveryRoute();
   if(!DELIVERY_TOWNS.includes(st.deliveryLastTown)) st.deliveryLastTown = DELIVERY_TOWNS[0];
 }
@@ -3666,25 +3669,98 @@ function renderDeliveryUpdates(){
         <button onclick="event.stopPropagation();deleteDlvUpdate('${u.id}')" title="מחיקה">🗑️</button>
       </div>
     </div>`).join('');
+  const expenses = state.deliveryExpenses.filter(e=>e.date.slice(0,7)===month).sort((a,b)=> a.date===b.date ? a.createdAt-b.createdAt : (a.date<b.date?-1:1));
+  const totalExpenses = expenses.reduce((s,e)=>s+e.amount,0);
+  const expenseRows = expenses.map(e=>`
+    <div class="dlv-update-row expense tappable" onclick="openDlvExpenseForm('${e.id}')">
+      <div>${dlvDateShort(e.date)}</div>
+      <div class="title">${escapeHtml(e.title)}</div>
+      <div class="cost">${dlvMoney(e.amount)}</div>
+      <div class="actions">
+        <button onclick="event.stopPropagation();deleteDlvExpense('${e.id}')" title="מחיקה">🗑️</button>
+      </div>
+    </div>`).join('');
+  const filter = ui.deliveryUpdateFilter || 'updates';
+  const updatesBlock = updates.length ? `<div class="dlv-update-table">
+      <div class="dlv-update-row head"><div>תאריך</div><div>נמסרו</div><div>נוספים</div><div>נאספו</div><div>שכר משוער</div><div></div></div>
+      ${rows}
+    </div>` : `<div class="empty">אין עדכונים בחודש הזה.</div>`;
+  const expensesBlock = expenses.length ? `<div class="dlv-update-table">
+      <div class="dlv-update-row expense head"><div>תאריך</div><div class="title">כותרת</div><div>מחיר</div><div></div></div>
+      ${expenseRows}
+    </div>` : `<div class="empty">אין הוצאות בחודש הזה.</div>`;
   return `
-    <button class="btn primary dlv-big-btn" onclick="openDlvUpdateForm()">+ הוספת עדכון</button>
+    <div class="dlv-toolbar">
+      <button class="btn primary" onclick="openDlvUpdateForm()">+ הוספת עדכון</button>
+      <button class="btn primary" onclick="openDlvExpenseForm()">+ הוספת הוצאה</button>
+    </div>
     <div class="day-nav">
       <button class="text-btn" onclick="shiftDeliveryMonth(-1)">חודש קודם</button>
       <div class="date-label">${HEBREW_MONTHS[m-1]} ${y}</div>
       <button class="text-btn" onclick="shiftDeliveryMonth(1)">חודש הבא</button>
       ${isCurrent ? '' : `<button class="text-btn" onclick="setDeliveryMonth(todayStr().slice(0,7))">החודש</button>`}
     </div>
-    ${updates.length ? `<div class="dlv-update-table">
-      <div class="dlv-update-row head"><div>תאריך</div><div>נמסרו</div><div>נוספים</div><div>נאספו</div><div>שכר משוער</div><div></div></div>
-      ${rows}
-    </div>` : `<div class="empty">אין עדכונים בחודש הזה.</div>`}
+    <div class="range-tabs" style="margin-bottom:12px;">
+      <button class="tab ${filter==='updates'?'active':''}" onclick="setDeliveryUpdateFilter('updates')">עדכונים</button>
+      <button class="tab ${filter==='expenses'?'active':''}" onclick="setDeliveryUpdateFilter('expenses')">הוצאות</button>
+    </div>
+    ${filter==='expenses' ? expensesBlock : updatesBlock}
     <div class="stats-tiles">
       <div class="stat-tile"><div class="stat-tile-value">${totalDelivered.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ משלוחים שנמסרו בחודש</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${avg.toLocaleString('he-IL',{maximumFractionDigits:1})}</div><div class="stat-tile-label">ממוצע משלוחים יומי</div></div>
       <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(updates.reduce((s,u)=>s+dlvUpdatePay(u),0))}</div><div class="stat-tile-label">משכורת חודשית משוערת</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${totalCollected.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ חבילות שנאספו בחודש</div></div>
+      <div class="stat-tile"><div class="stat-tile-value" style="color:var(--danger);">${dlvMoney(totalExpenses)}</div><div class="stat-tile-label">סה"כ הוצאות בחודש</div></div>
     </div>
   `;
+}
+function setDeliveryUpdateFilter(v){ ui.deliveryUpdateFilter = v; render(); }
+
+/* ---------- Deliveries: expenses (kept apart from the daily updates; they do not change the estimated pay) ---------- */
+function openDlvExpenseForm(id){
+  const e = id ? state.deliveryExpenses.find(x=>x.id===id) : null;
+  const month = dlvViewMonth();
+  const defaultDate = month===todayStr().slice(0,7) ? todayStr() : `${month}-01`;
+  showModal(`
+    <h2>${e ? 'עריכת הוצאה' : 'הוספת הוצאה'}</h2>
+    <form onsubmit="event.preventDefault(); saveDlvExpense('${e?e.id:''}')" autocomplete="off">
+      <label>כותרת</label>
+      <input type="text" id="dlvExpenseTitle" value="${e?escapeHtml(e.title):''}" autocomplete="off">
+      <label>מחיר (₪)</label>
+      <input type="number" id="dlvExpenseAmount" inputmode="decimal" min="0" step="any" value="${e?e.amount:''}">
+      <label>תאריך</label>
+      <input type="date" id="dlvExpenseDate" value="${e?e.date:defaultDate}">
+      <button type="submit" class="btn primary dlv-submit">שמור הוצאה</button>
+      <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
+    </form>
+  `);
+  document.getElementById('dlvExpenseTitle').focus();
+}
+function saveDlvExpense(id){
+  const title = dlvNorm(document.getElementById('dlvExpenseTitle').value);
+  const amount = Number(document.getElementById('dlvExpenseAmount').value);
+  const date = document.getElementById('dlvExpenseDate').value;
+  if(!title){ dlvToast('צריך להזין כותרת'); return; }
+  if(!(amount>0)){ dlvToast('צריך להזין מחיר'); return; }
+  if(!date){ dlvToast('צריך לבחור תאריך'); return; }
+  const now = Date.now();
+  const e = id ? state.deliveryExpenses.find(x=>x.id===id) : null;
+  if(e) Object.assign(e, { title, amount, date, updatedAt:now });
+  else state.deliveryExpenses.push({ id:uid(), title, amount, date, createdAt:now, updatedAt:now });
+  ui.deliveryMonth = date.slice(0,7)===todayStr().slice(0,7) ? null : date.slice(0,7);
+  ui.deliveryUpdateFilter = 'expenses';
+  dlvSave();
+  closeModal();
+  render();
+}
+function deleteDlvExpense(id){
+  const e = state.deliveryExpenses.find(x=>x.id===id);
+  if(!e) return;
+  showConfirm(`למחוק את ההוצאה "${e.title}"?`, () => {
+    state.deliveryExpenses = state.deliveryExpenses.filter(x=>x.id!==id);
+    dlvSave();
+    render();
+  });
 }
 function openDlvUpdateForm(id){
   const u = id ? state.deliveryUpdates.find(x=>x.id===id) : null;
