@@ -458,9 +458,10 @@
   .dlv-submit{width:100%;padding:15px;font-size:16px;margin-top:16px;}
   .dlv-close{width:100%;margin-top:8px;}
   .dlv-update-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
-  .dlv-update-row{display:grid;grid-template-columns:1fr .8fr .8fr .8fr 1.6fr 68px;align-items:center;gap:3px;padding:8px;font-size:13.5px;font-weight:700;border-top:1px solid var(--border);text-align:center;}
+  .dlv-update-row{display:grid;grid-template-columns:1fr .8fr .8fr .8fr 1.6fr 36px;align-items:center;gap:3px;padding:8px;font-size:13.5px;font-weight:700;border-top:1px solid var(--border);text-align:center;}
   .dlv-update-row:first-child{border-top:none;}
   .dlv-update-row.head{font-size:11px;color:var(--text-muted);background:var(--surface-hover);}
+  .dlv-update-row.tappable{cursor:pointer;}
   .dlv-update-row .actions{display:flex;gap:2px;}
   .dlv-update-row .actions button{width:33px;height:36px;border:none;background:none;font-size:14px;padding:0;}
   .dlv-update-row .pay{color:var(--success);}
@@ -3654,15 +3655,14 @@ function renderDeliveryUpdates(){
   const avg = updates.length ? totalDelivered/updates.length : 0;
   const totalCollected = updates.reduce((s,u)=>s+(u.collected||0),0);
   const rows = updates.map(u=>`
-    <div class="dlv-update-row">
+    <div class="dlv-update-row tappable" onclick="openDlvUpdateForm('${u.id}')">
       <div>${dlvDateShort(u.date)}</div>
       <div>${u.delivered}</div>
       <div>${u.extra||0}</div>
       <div>${u.collected||0}</div>
       <div class="pay">${dlvMoney(dlvUpdatePaidCount(u)*DELIVERY_RATE)}</div>
       <div class="actions">
-        <button onclick="openDlvUpdateForm('${u.id}')" title="עריכה">✏️</button>
-        <button onclick="deleteDlvUpdate('${u.id}')" title="מחיקה">🗑️</button>
+        <button onclick="event.stopPropagation();deleteDlvUpdate('${u.id}')" title="מחיקה">🗑️</button>
       </div>
     </div>`).join('');
   return `
