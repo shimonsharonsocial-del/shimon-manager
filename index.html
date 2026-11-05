@@ -458,11 +458,11 @@
   .dlv-submit{width:100%;padding:15px;font-size:16px;margin-top:16px;}
   .dlv-close{width:100%;margin-top:8px;}
   .dlv-update-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
-  .dlv-update-row{display:grid;grid-template-columns:1fr .8fr .7fr 1.5fr 74px;align-items:center;gap:4px;padding:8px 10px;font-size:14px;font-weight:700;border-top:1px solid var(--border);text-align:center;}
+  .dlv-update-row{display:grid;grid-template-columns:1fr .8fr .8fr .8fr 1.6fr 68px;align-items:center;gap:3px;padding:8px;font-size:13.5px;font-weight:700;border-top:1px solid var(--border);text-align:center;}
   .dlv-update-row:first-child{border-top:none;}
-  .dlv-update-row.head{font-size:11.5px;color:var(--text-muted);background:var(--surface-hover);}
+  .dlv-update-row.head{font-size:11px;color:var(--text-muted);background:var(--surface-hover);}
   .dlv-update-row .actions{display:flex;gap:2px;}
-  .dlv-update-row .actions button{width:36px;height:36px;border:none;background:none;font-size:14px;padding:0;}
+  .dlv-update-row .actions button{width:33px;height:36px;border:none;background:none;font-size:14px;padding:0;}
   .dlv-update-row .pay{color:var(--success);}
   .dlv-warning{font-size:12.5px;color:var(--warning);font-weight:700;margin-top:8px;line-height:1.5;}
   .dlv-street-row{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border);border-radius:10px;margin-bottom:5px;background:var(--surface);}
@@ -3642,6 +3642,7 @@ function setDeliveryMonth(v){
   render();
 }
 // Extras are packages that were not on the morning list but were delivered, so they are paid too.
+// Collected packages (pickups) are recorded and summed, but are not part of the pay.
 // Updates saved before this change may still hold an old `failed` count; it is kept but not shown or paid.
 function dlvUpdatePaidCount(u){ return u.delivered+(u.extra||0); }
 function renderDeliveryUpdates(){
@@ -3651,11 +3652,13 @@ function renderDeliveryUpdates(){
   const updates = state.deliveryUpdates.filter(u=>u.date.slice(0,7)===month).sort((a,b)=> a.date<b.date?-1:1);
   const totalDelivered = updates.reduce((s,u)=>s+dlvUpdatePaidCount(u),0);
   const avg = updates.length ? totalDelivered/updates.length : 0;
+  const totalCollected = updates.reduce((s,u)=>s+(u.collected||0),0);
   const rows = updates.map(u=>`
     <div class="dlv-update-row">
       <div>${dlvDateShort(u.date)}</div>
       <div>${u.delivered}</div>
       <div>${u.extra||0}</div>
+      <div>${u.collected||0}</div>
       <div class="pay">${dlvMoney(dlvUpdatePaidCount(u)*DELIVERY_RATE)}</div>
       <div class="actions">
         <button onclick="openDlvUpdateForm('${u.id}')" title="עריכה">✏️</button>
@@ -3671,13 +3674,14 @@ function renderDeliveryUpdates(){
       ${isCurrent ? '' : `<button class="text-btn" onclick="setDeliveryMonth(todayStr().slice(0,7))">החודש</button>`}
     </div>
     ${updates.length ? `<div class="dlv-update-table">
-      <div class="dlv-update-row head"><div>תאריך</div><div>נמסרו</div><div>נוספים</div><div>שכר משוער</div><div></div></div>
+      <div class="dlv-update-row head"><div>תאריך</div><div>נמסרו</div><div>נוספים</div><div>נאספו</div><div>שכר משוער</div><div></div></div>
       ${rows}
     </div>` : `<div class="empty">אין עדכונים בחודש הזה.</div>`}
     <div class="stats-tiles">
       <div class="stat-tile"><div class="stat-tile-value">${totalDelivered.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ משלוחים שנמסרו בחודש</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${avg.toLocaleString('he-IL',{maximumFractionDigits:1})}</div><div class="stat-tile-label">ממוצע משלוחים יומי</div></div>
       <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(totalDelivered*DELIVERY_RATE)}</div><div class="stat-tile-label">משכורת חודשית משוערת</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${totalCollected.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ חבילות שנאספו בחודש</div></div>
     </div>
   `;
 }
@@ -3693,6 +3697,8 @@ function openDlvUpdateForm(id){
       <input type="number" id="dlvUpdateDelivered" inputmode="numeric" min="0" step="1" value="${u?u.delivered:''}">
       <label>מספר משלוחים נוספים</label>
       <input type="number" id="dlvUpdateExtra" inputmode="numeric" min="0" step="1" value="${u?(u.extra||0):''}">
+      <label>מספר חבילות שנאספו</label>
+      <input type="number" id="dlvUpdateCollected" inputmode="numeric" min="0" step="1" value="${u?(u.collected||0):''}">
       <button type="submit" class="btn primary dlv-submit">שמור עדכון</button>
       <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
     </form>
@@ -3716,8 +3722,10 @@ function saveDlvUpdate(id){
   const extraRaw = document.getElementById('dlvUpdateExtra').value;
   const delivered = Number(deliveredRaw);
   const extra = extraRaw==='' ? 0 : Number(extraRaw);
+  const collectedRaw = document.getElementById('dlvUpdateCollected').value;
+  const collected = collectedRaw==='' ? 0 : Number(collectedRaw);
   if(!date){ dlvToast('צריך לבחור תאריך'); return; }
-  if(deliveredRaw==='' || !Number.isInteger(delivered) || delivered<0 || !Number.isInteger(extra) || extra<0){
+  if(deliveredRaw==='' || !Number.isInteger(delivered) || delivered<0 || !Number.isInteger(extra) || extra<0 || !Number.isInteger(collected) || collected<0){
     dlvToast('צריך להזין מספרים שלמים');
     return;
   }
@@ -3725,7 +3733,7 @@ function saveDlvUpdate(id){
   if(other){
     showModal(`
       <h2>כבר יש עדכון לתאריך הזה</h2>
-      <p style="margin:0 0 6px;font-size:14px;line-height:1.6;">ל-${dlvDateShort(date)} כבר נרשמו ${other.delivered} משלוחים שנמסרו ו-${other.extra||0} נוספים.</p>
+      <p style="margin:0 0 6px;font-size:14px;line-height:1.6;">ל-${dlvDateShort(date)} כבר נרשמו ${other.delivered} משלוחים שנמסרו, ${other.extra||0} נוספים ו-${other.collected||0} שנאספו.</p>
       <button type="button" class="btn primary dlv-submit" onclick="openDlvUpdateForm('${other.id}')">עריכת העדכון הקיים</button>
       <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
     `);
@@ -3734,8 +3742,8 @@ function saveDlvUpdate(id){
   const now = Date.now();
   const u = id ? state.deliveryUpdates.find(x=>x.id===id) : null;
   const estimatedPay = (delivered+extra)*DELIVERY_RATE;
-  if(u) Object.assign(u, { date, delivered, extra, estimatedPay, updatedAt:now });
-  else state.deliveryUpdates.push({ id:uid(), date, delivered, extra, estimatedPay, createdAt:now, updatedAt:now });
+  if(u) Object.assign(u, { date, delivered, extra, collected, estimatedPay, updatedAt:now });
+  else state.deliveryUpdates.push({ id:uid(), date, delivered, extra, collected, estimatedPay, createdAt:now, updatedAt:now });
   ui.deliveryMonth = date.slice(0,7)===todayStr().slice(0,7) ? null : date.slice(0,7);
   dlvSave();
   closeModal();
