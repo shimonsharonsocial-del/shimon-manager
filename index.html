@@ -402,6 +402,8 @@
     background:var(--surface);color:var(--text);font-size:16px;
   }
   .dlv-title{font-size:17px;font-weight:800;margin:0 0 12px;}
+  .dlv-item-note{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4;overflow-wrap:anywhere;}
+  .dlv-group-title{font-size:14px;font-weight:800;margin:18px 0 8px;color:var(--warning);}
   .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
   .dlv-row{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:8px;box-shadow:var(--shadow);}
   .dlv-row-inner{
@@ -510,6 +512,32 @@ const DELIVERY_DEFAULT_ROUTE = {
   'אלקנה': ['בנות ירושלים','כרמל','אילות השדה','ספיר 14','אל אף נקודת חלוקה (אדני פז)','שיר השירים','אהלי קידר','אפיקי מים','גבעת לבונה','הרי בשמים','חבצלת השרון','חרמון','שניר','שלטי גיבורים','אלף המגן','שושנת העמקים','שומרי החומות','רשפי אש','צרור המור','פלח הרימון','ערוגות הבושם','מגדל הלבנון','טורי זהב','מגדל דוד','סמדר','תאנה','תפוח','הר גלעד','מישרים','עורי צפון','חוט השני','מים חיים','הכרם','ארזים','שושנים','ניצנים'],
   'עץ אפרים': ['שקמה','אלה','דולב','ארז','שיטה','דקל','אשל','ברוש','אורן','זית','תמר','תאנה','רימון','אלון','עמק הצבאים','חרוב']
 };
+// Elkana route along Shir HaShirim, in driving order. Each landmark is a side street; odd/even are the
+// Shir HaShirim house numbers between it and the next landmark. Edit this table to change the route.
+const DELIVERY_ELKANA_MAP = [
+  { name:'אדני פז', aliases:['אל אף נקודת חלוקה (אדני פז)'], odd:[1,3], even:null },
+  { name:'אוהלי קידר', aliases:['אהלי קידר'], odd:[5,11], even:null },
+  { name:'אפיקי מים', odd:[13,19], even:[12,18] },
+  { name:'גבעת הלבונה', aliases:['גבעת לבונה'], odd:[21,23], even:[20,24] },
+  { name:'גינת אגוז', odd:[25,31], even:[26,32] },
+  { name:'הרי בשמים', odd:[33,35], even:[32,36] },
+  { name:'חבצלת השרון', odd:[37,39], even:[38,42] },
+  { name:'חרמון', odd:[41,81], even:[44,116] },
+  { name:'שניר', odd:[83,99], even:[118,134] },
+  { name:'שלטי גיבורים', odd:null, even:null },
+  { name:'אלף המגן', odd:[101,103], even:[136,140] },
+  { name:'שושנת העמקים', odd:[105,107], even:[140,144] },
+  { name:'שומרי החומות', odd:[109,111], even:[146,148] },
+  { name:'רשפי אש', odd:[113,115], even:[150,152] },
+  { name:'קול התור', odd:[117,119], even:[154,158] },
+  { name:'צרור המור', odd:[121,123], even:[160,164] },
+  { name:'פרי מגדים', odd:[125,129], even:[166,172] },
+  { name:'פלח הרימון', odd:[131,133], even:[174,176] },
+  { name:'עת הזמיר', odd:[135,171], even:[178,240] },
+  { name:'טורי הזהב', aliases:['טורי זהב'], odd:null, even:null },
+  { name:'מגדל דוד', odd:null, even:null },
+  { name:'מגדל הלבנון', odd:[173,199], even:[244,268] }
+];
 function defaultDeliveryRoute(){
   return DELIVERY_TOWNS.flatMap(town=>DELIVERY_DEFAULT_ROUTE[town].map((name,order)=>({ id:uid(), town, name, order })));
 }
@@ -3824,13 +3852,11 @@ function deleteDlvUpdate(id){
 }
 
 /* ---------- Deliveries: lists ---------- */
-const DLV_OPEN_STATUSES = ['pending','unavailable'];
+// There is one running list; the reset button clears it. Lists from older versions stay until the first reset.
 function dlvCurrentList(){
   const lists = state.deliveryLists;
-  return lists.find(l=>l.id===ui.deliveryListId)
-    || lists.find(l=>l.date===todayStr())
-    || [...lists].sort((a,b)=> a.date<b.date?1:-1)[0]
-    || null;
+  if(!lists.length) lists.push({ id:uid(), date:todayStr(), createdAt:Date.now() });
+  return [...lists].sort((a,b)=> a.date<b.date?1:-1)[0];
 }
 function dlvListItems(listId){
   return state.deliveryItems.filter(i=>i.listId===listId).sort((a,b)=>a.position-b.position);
@@ -3838,102 +3864,75 @@ function dlvListItems(listId){
 // Only what rides in the back of the car is listed: large boxes and anything for Shir HaShirim.
 // Ordinary packages saved earlier stay in the data but are not shown or carried over.
 const DLV_SHIR_STREET = 'שיר השירים';
-function dlvIsInCar(i){ return !!i.large || (i.town==='אלקנה' && i.street===DLV_SHIR_STREET); }
+function dlvLandmarkIndex(town, street){
+  if(town!=='אלקנה') return -1;
+  return DELIVERY_ELKANA_MAP.findIndex(l=>l.name===street || (l.aliases||[]).includes(street));
+}
+function dlvIsInCar(i){
+  return !!i.large || (i.town==='אלקנה' && i.street===DLV_SHIR_STREET) || dlvLandmarkIndex(i.town, i.street)!==-1;
+}
+// Where a package sits on the Elkana route: part 0 is the side street itself, part 1 the Shir HaShirim stretch after it.
+// Returns null for an address the map doesn't cover. A number listed in two stretches goes in the first, marked approximate.
+function dlvElkanaSlot(i){
+  const side = dlvLandmarkIndex(i.town, i.street);
+  if(side!==-1) return { landmark:side, part:0, approx:false };
+  if(i.town!=='אלקנה' || i.street!==DLV_SHIR_STREET) return null;
+  const m = String(i.houseNumber||'').trim().match(/^\d+/);
+  if(!m) return null;
+  const n = Number(m[0]);
+  const key = n%2 ? 'odd' : 'even';
+  const hits = [];
+  DELIVERY_ELKANA_MAP.forEach((l,idx)=>{ if(l[key] && n>=l[key][0] && n<=l[key][1]) hits.push(idx); });
+  return hits.length ? { landmark:hits[0], part:1, approx:hits.length>1 } : null;
+}
+function dlvRouteGroup(i, slot){ return i.town==='אלקנה' ? (slot ? 0 : 2) : 1; }
 function dlvRowHtml(i){
   const stateText = { delivered:'✓ נמסר', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
-  const carried = i.carriedFromDate ? `הועבר מ-${dlvDateShort(i.carriedFromDate)}` : '';
-  const meta = [stateText, carried].filter(Boolean).join(' · ');
+  const slot = dlvElkanaSlot(i);
+  const meta = [stateText, slot && slot.approx ? 'מיקום משוער' : ''].filter(Boolean).join(' · ');
   return `<div class="dlv-row status-${i.status}" data-id="${i.id}">
-    <button type="button" class="dlv-del" tabindex="-1" onclick="dlvDeleteSwiped('${i.id}')"><span>🗑️ מחיקה</span><span>🗑️ מחיקה</span></button>
+    <div class="dlv-del" aria-hidden="true"><span>🗑️ מחיקה</span><span>🗑️ מחיקה</span></div>
     <div class="dlv-row-inner">
     <button type="button" class="dlv-handle" title="גרור לשינוי סדר">⠿</button>
     <div class="dlv-body" onclick="dlvTapBody('${i.id}')">
       <div class="dlv-addr">
         <span class="dlv-town town-${DELIVERY_TOWNS.indexOf(i.town)}">${escapeHtml(i.town)}</span>
         <span>${escapeHtml(i.street)}${i.houseNumber ? ' '+escapeHtml(i.houseNumber) : ''}</span>
-        ${i.large ? '<span>📦 ארגז גדול</span>' : ''}
+        ${i.large ? '<span title="ארגז גדול">📦</span>' : ''}
       </div>
+      ${i.note ? `<div class="dlv-item-note">${escapeHtml(i.note)}</div>` : ''}
       ${meta ? `<div class="dlv-state">${meta}</div>` : ''}
     </div>
     <button type="button" class="dlv-btn edit" onclick="openDlvItemForm('${i.id}')" title="עריכה">✏️</button>
     <button type="button" class="dlv-btn unavail ${i.status==='unavailable'?'on':''}" onclick="dlvToggleStatus('${i.id}','unavailable')" title="לא זמין">👎🏼</button>
-    <button type="button" class="dlv-btn fail ${i.status==='failed'?'on':''}" onclick="dlvToggleStatus('${i.id}','failed')" title="כשל">✕</button>
     </div>
   </div>`;
 }
 function renderDeliveryList(){
   const list = dlvCurrentList();
-  const lists = [...state.deliveryLists].sort((a,b)=> a.date<b.date?1:-1);
-  const toolbar = `
-    <div class="dlv-toolbar">
-      <button class="btn secondary" onclick="openDlvNewList()">+ רשימה חדשה</button>
-      <button class="btn secondary" onclick="openDlvRouteModal()">🛣️ סדר רחובות</button>
-    </div>`;
-  if(!list) return toolbar + `<div class="empty">אין עדיין רשימות משלוחים.<br>לחץ על "רשימה חדשה" כדי להתחיל.</div>`;
   const items = dlvListItems(list.id).filter(dlvIsInCar);
-  const movedOut = state.deliveryItems.filter(i=>i.carriedFromListId===list.id && dlvIsInCar(i));
-  const options = lists.map(l=>`<option value="${l.id}" ${l.id===list.id?'selected':''}>${dlvDateFull(l.date)}</option>`).join('');
+  const unmapped = items.filter(i=>dlvRouteGroup(i, dlvElkanaSlot(i))===2);
+  const routed = items.filter(i=>dlvRouteGroup(i, dlvElkanaSlot(i))!==2);
   return `
-    ${toolbar}
-    ${lists.length>1 ? `<select class="dlv-list-select" onchange="setDeliveryList(this.value)">${options}</select>` : ''}
-    <h2 class="dlv-title">מאחורה ברכב – ${dlvDateFull(list.date)}</h2>
-    ${movedOut.length ? `<p class="dlv-note">${movedOut.length} חבילות מהרשימה הזאת הועברו ליום אחר.</p>` : ''}
+    <div class="dlv-toolbar">
+      <button class="icon-btn" onclick="dlvResetList()" title="איפוס רשימה" aria-label="איפוס רשימה">🔄</button>
+      <button class="btn secondary" onclick="openDlvRouteModal()">🛣️ סדר רחובות</button>
+    </div>
+    <h2 class="dlv-title">מאחורה ברכב</h2>
     <button class="btn primary dlv-big-btn" onclick="openDlvItemForm()">+ הוסף לרכב</button>
-    <div id="dlvRows">${items.map(dlvRowHtml).join('')}</div>
-    ${items.length ? '' : '<div class="empty">אין כרגע ארגזים גדולים או חבילות לשיר השירים.</div>'}
+    <div id="dlvRows">${routed.map(dlvRowHtml).join('')}</div>
+    ${unmapped.length ? `<h3 class="dlv-group-title">כתובות שלא מופו</h3><div id="dlvUnmappedRows">${unmapped.map(dlvRowHtml).join('')}</div>` : ''}
+    ${items.length ? '' : '<div class="empty">הרשימה ריקה.</div>'}
     ${items.length>1 ? `<div style="text-align:center;margin-top:14px;"><button class="text-btn small" onclick="dlvResetOrder('${list.id}')">סידור מחדש לפי סדר הרחובות</button></div>` : ''}
   `;
 }
-function setDeliveryList(id){ ui.deliveryListId = id; render(); }
-function openDlvNewList(){
-  showModal(`
-    <h2>רשימה חדשה</h2>
-    <label>תאריך</label>
-    <input type="date" id="dlvNewListDate" value="${todayStr()}">
-    <button type="button" class="btn primary dlv-submit" onclick="dlvCreateList()">פתיחת הרשימה</button>
-    <button type="button" class="btn secondary dlv-close" onclick="closeModal()">ביטול</button>
-  `);
-  dlvBlurFocus();
-}
-function dlvCreateList(){
-  const date = document.getElementById('dlvNewListDate').value || todayStr();
-  const existing = state.deliveryLists.find(l=>l.date===date);
-  if(existing){
-    ui.deliveryListId = existing.id;
-    closeModal();
-    render();
-    dlvToast('הרשימה לתאריך הזה כבר קיימת, פתחתי אותה');
-    return;
-  }
-  const prev = state.deliveryLists.filter(l=>l.date<date).sort((a,b)=> a.date<b.date?1:-1)[0];
-  const leftover = prev ? state.deliveryItems.filter(i=>i.listId===prev.id && dlvIsInCar(i) && DLV_OPEN_STATUSES.includes(i.status)).length : 0;
-  if(!leftover){ dlvFinishNewList(date, false); return; }
-  showModal(`
-    <h2>חבילות מהיום הקודם</h2>
-    <p style="margin:0;font-size:14.5px;line-height:1.6;">יש לך ${leftover} חבילות מהיום הקודם שעדיין לא נמסרו. האם להעביר אותן לרשימה החדשה?</p>
-    <button type="button" class="btn primary dlv-submit" onclick="dlvFinishNewList('${date}', true)">כן, להעביר</button>
-    <button type="button" class="btn secondary dlv-close" onclick="dlvFinishNewList('${date}', false)">לא, להתחיל רשימה ריקה</button>
-  `);
-}
-// Carried packages move to the new list (same id, one record), so they can never be counted twice.
-function dlvFinishNewList(date, carry){
-  let list = state.deliveryLists.find(l=>l.date===date);
-  if(!list){
-    const prev = state.deliveryLists.filter(l=>l.date<date).sort((a,b)=> a.date<b.date?1:-1)[0];
-    list = { id:uid(), date, createdAt:Date.now() };
-    state.deliveryLists.push(list);
-    if(carry && prev){
-      const now = Date.now();
-      dlvListItems(prev.id).filter(i=>dlvIsInCar(i) && DLV_OPEN_STATUSES.includes(i.status)).forEach(i=>{
-        Object.assign(i, { listId:list.id, carriedFromListId:prev.id, carriedFromDate:prev.date, manualOrder:false, updatedAt:now });
-        dlvPlaceItem(i);
-      });
-    }
+function dlvResetList(){
+  showConfirm('לאפס את הרשימה ולהתחיל מחדש? כל החבילות יימחקו.', () => {
+    state.deliveryItems = [];
+    state.deliveryLists = [];
     dlvSave();
-  }
-  ui.deliveryListId = list.id;
-  closeModal();
-  render();
+    render();
+  });
 }
 
 /* ---------- Deliveries: route order ---------- */
@@ -3944,11 +3943,17 @@ function dlvRouteComparator(){
   const order = new Map(state.deliveryRouteStreets.map(s=>[`${s.town}|${s.name}`, s.order]));
   const houseNum = h => { const n = parseInt(h,10); return isNaN(n) ? -1 : n; };
   return (a,b) => {
-    const townDiff = DELIVERY_TOWNS.indexOf(a.town) - DELIVERY_TOWNS.indexOf(b.town);
-    if(townDiff) return townDiff;
-    const oa = order.has(`${a.town}|${a.street}`) ? order.get(`${a.town}|${a.street}`) : Infinity;
-    const ob = order.has(`${b.town}|${b.street}`) ? order.get(`${b.town}|${b.street}`) : Infinity;
-    if(oa!==ob) return oa<ob ? -1 : 1;
+    const sa = dlvElkanaSlot(a), sb = dlvElkanaSlot(b);
+    const ga = dlvRouteGroup(a,sa), gb = dlvRouteGroup(b,sb);
+    if(ga!==gb) return ga-gb;
+    if(ga===0){
+      if(sa.landmark!==sb.landmark) return sa.landmark-sb.landmark;
+      if(sa.part!==sb.part) return sa.part-sb.part;
+    }else{
+      const oa = order.has(`${a.town}|${a.street}`) ? order.get(`${a.town}|${a.street}`) : Infinity;
+      const ob = order.has(`${b.town}|${b.street}`) ? order.get(`${b.town}|${b.street}`) : Infinity;
+      if(oa!==ob) return oa<ob ? -1 : 1;
+    }
     const hd = houseNum(a.houseNumber) - houseNum(b.houseNumber);
     if(hd) return hd;
     return String(a.houseNumber||'').localeCompare(String(b.houseNumber||''), 'he');
@@ -4004,8 +4009,8 @@ let dlvLastAddAt = 0;
 function openDlvItemForm(itemId, draft){
   const item = itemId ? state.deliveryItems.find(i=>i.id===itemId) : null;
   const d = draft || (item
-    ? { town:item.town, street:item.street, house:item.houseNumber, large:item.large }
-    : { town:state.deliveryLastTown, street:'', house:'', large:false });
+    ? { town:item.town, street:item.street, house:item.houseNumber, large:item.large, note:item.note||'' }
+    : { town:state.deliveryLastTown, street:'', house:'', large:false, note:'' });
   dlvForm = { itemId:item?item.id:null, town:d.town, large:!!d.large };
   showModal(`
     <h2>${item ? 'עריכת משלוח' : 'הוספת משלוח'}</h2>
@@ -4023,8 +4028,10 @@ function openDlvItemForm(itemId, draft){
           <label>מספר בית</label>
           <input type="text" id="dlvHouseInput" inputmode="numeric" value="${escapeHtml(d.house||'')}" autocomplete="off" autocorrect="off" enterkeyhint="done">
         </div>
-        <button type="button" id="dlvLargeBtn" class="dlv-large-btn ${d.large?'on':''}" onclick="dlvToggleLarge()">📦 ארגז גדול</button>
+        <button type="button" id="dlvLargeBtn" class="dlv-large-btn ${d.large?'on':''}" onclick="dlvToggleLarge()" title="ארגז גדול" aria-label="ארגז גדול">📦</button>
       </div>
+      <label>הערה</label>
+      <input type="text" id="dlvNoteInput" value="${escapeHtml(d.note||'')}" placeholder="איך נראה הארגז, קומה..." autocomplete="off">
       <button type="submit" class="btn primary dlv-submit">${item ? 'שמירה' : 'הוסף משלוח'}</button>
       ${item ? `<button type="button" class="btn danger dlv-close" onclick="deleteDlvItem('${item.id}')">מחיקת המשלוח</button>` : ''}
       <button type="button" class="btn secondary dlv-close" onclick="closeModal()">${item ? 'ביטול' : 'סיום'}</button>
@@ -4050,12 +4057,14 @@ function dlvRenderSuggest(){
   const box = document.getElementById('dlvSuggest');
   if(!box) return;
   const q = dlvNorm(document.getElementById('dlvStreetInput').value);
-  if(!q || dlvKnownStreet(dlvForm.town, q)){ box.innerHTML = ''; return; }
-  const streets = dlvStreets(dlvForm.town).filter(s=>s.name.includes(q));
-  const starts = streets.filter(s=>s.name.startsWith(q));
-  const rest = streets.filter(s=>!s.name.startsWith(q));
-  box.innerHTML = [...starts, ...rest].slice(0,6).map(s=>
-    `<button type="button" class="dlv-chip" data-street="${escapeHtml(s.name)}" onclick="dlvPickStreet(this.dataset.street)">${escapeHtml(s.name)}</button>`
+  if(!q || dlvKnownStreet(dlvForm.town, q) || dlvLandmarkIndex(dlvForm.town, q)!==-1){ box.innerHTML = ''; return; }
+  const names = dlvStreets(dlvForm.town).map(s=>s.name);
+  if(dlvForm.town==='אלקנה') DELIVERY_ELKANA_MAP.forEach(l=>{ if(![l.name, ...(l.aliases||[])].some(n=>names.includes(n))) names.push(l.name); });
+  const matches = names.filter(n=>n.includes(q));
+  const starts = matches.filter(n=>n.startsWith(q));
+  const rest = matches.filter(n=>!n.startsWith(q));
+  box.innerHTML = [...starts, ...rest].slice(0,6).map(n=>
+    `<button type="button" class="dlv-chip" data-street="${escapeHtml(n)}" onclick="dlvPickStreet(this.dataset.street)">${escapeHtml(n)}</button>`
   ).join('') + `<button type="button" class="dlv-chip add" onclick="dlvAddStreetFromForm()">+ הוסף רחוב חדש למסלול</button>`;
 }
 function dlvPickStreet(name){
@@ -4071,7 +4080,8 @@ function dlvReadDraft(){
   return {
     itemId:dlvForm.itemId, town:dlvForm.town, large:dlvForm.large,
     street:dlvNorm(document.getElementById('dlvStreetInput').value),
-    house:dlvNorm(document.getElementById('dlvHouseInput').value)
+    house:dlvNorm(document.getElementById('dlvHouseInput').value),
+    note:dlvNorm(document.getElementById('dlvNoteInput').value)
   };
 }
 function dlvAddStreetFromForm(){
@@ -4086,10 +4096,10 @@ function dlvSubmitItem(){
     return;
   }
   if(!dlvIsInCar(draft)){
-    dlvToast('כאן נרשמים רק ארגזים גדולים או שיר השירים');
+    dlvToast('הכתובת לא באזור שיר השירים. סמן 📦 כדי להוסיף');
     return;
   }
-  if(!dlvKnownStreet(draft.town, draft.street)){
+  if(!dlvKnownStreet(draft.town, draft.street) && dlvLandmarkIndex(draft.town, draft.street)===-1){
     openDlvStreetPlacement({ ...draft, autoAdd:true, from:'form' });
     return;
   }
@@ -4101,7 +4111,7 @@ function dlvCommitItem(draft){
     const item = state.deliveryItems.find(i=>i.id===draft.itemId);
     if(!item){ closeModal(); return; }
     const moved = item.town!==draft.town || item.street!==draft.street || item.houseNumber!==draft.house;
-    Object.assign(item, { town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, updatedAt:now });
+    Object.assign(item, { town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, note:draft.note||'', updatedAt:now });
     if(moved){
       item.manualOrder = false;
       dlvPlaceItem(item);
@@ -4114,9 +4124,8 @@ function dlvCommitItem(draft){
   // Guards against a double tap creating the same package twice. Same-address packages are otherwise allowed.
   if(now-dlvLastAddAt < 500) return;
   const list = dlvCurrentList();
-  if(!list){ closeModal(); return; }
   dlvLastAddAt = now;
-  const item = { id:uid(), listId:list.id, town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, status:'pending', position:0, manualOrder:false, createdAt:now, updatedAt:now };
+  const item = { id:uid(), listId:list.id, town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, note:draft.note||'', status:'pending', position:0, manualOrder:false, createdAt:now, updatedAt:now };
   state.deliveryItems.push(item);
   dlvPlaceItem(item);
   state.deliveryLastTown = draft.town;
@@ -4125,6 +4134,7 @@ function dlvCommitItem(draft){
   if(!document.getElementById('dlvStreetInput')) openDlvItemForm();
   document.getElementById('dlvStreetInput').value = '';
   document.getElementById('dlvHouseInput').value = '';
+  document.getElementById('dlvNoteInput').value = '';
   document.getElementById('dlvSuggest').innerHTML = '';
   dlvForm.large = false;
   document.getElementById('dlvLargeBtn').classList.remove('on');
@@ -4205,7 +4215,7 @@ function openDlvRouteModal(town){
     <div class="range-tabs dlv-town-tabs">
       ${DELIVERY_TOWNS.map(x=>`<button type="button" class="tab ${x===t?'active':''}" data-town="${x}" onclick="openDlvRouteModal(this.dataset.town)">${x}</button>`).join('')}
     </div>
-    <p class="dlv-note" style="margin-top:10px;">גרור כדי לשנות את סדר המסלול. השינוי ישפיע על משלוחים שתוסיף מעכשיו. רשימה קיימת לא זזה לבד.</p>
+    <p class="dlv-note" style="margin-top:10px;">גרור כדי לשנות את סדר המסלול. השינוי ישפיע על משלוחים שתוסיף מעכשיו. רשימה קיימת לא זזה לבד.${t==='אלקנה' ? ' שיר השירים והרחובות הצדדיים שלו מסודרים לפי המיפוי הקבוע.' : ''}</p>
     <div id="dlvRouteRows">${rows}</div>
     <div class="dlv-add-street">
       <input type="text" id="dlvNewStreetInput" placeholder="רחוב חדש" autocomplete="off">
@@ -4340,26 +4350,14 @@ document.addEventListener('pointerup', dlvDragEnd);
 document.addEventListener('pointercancel', dlvDragEnd);
 document.addEventListener('touchmove', e => { if(dlvDrag || (dlvSwipe && dlvSwipe.active)) e.preventDefault(); }, { passive:false });
 
-/* ---------- Deliveries: swipe a row to reveal delete ---------- */
-// The swipe only reveals the button; deleting takes a second, deliberate tap on it.
-const DLV_SWIPE_OPEN = 104;
+/* ---------- Deliveries: swipe a row far enough sideways to delete it ---------- */
+const DLV_SWIPE_DELETE = 100;
 let dlvSwipe = null;
-let dlvSwipeOpenRow = null;
 let dlvSuppressTap = false;
 function dlvSwipeInner(row){ return row.querySelector('.dlv-row-inner'); }
-function dlvSwipeClose(){
-  if(dlvSwipeOpenRow) dlvSwipeInner(dlvSwipeOpenRow).style.transform = '';
-  dlvSwipeOpenRow = null;
-}
 function dlvSwipeStart(e){
   dlvSuppressTap = false;
-  if(e.target.closest && e.target.closest('.dlv-del')) return;
   const body = e.target.closest && e.target.closest('.dlv-body');
-  if(dlvSwipeOpenRow){
-    if(body) dlvSuppressTap = true;
-    dlvSwipeClose();
-    return;
-  }
   if(body) dlvSwipe = { row:body.closest('.dlv-row'), x:e.clientX, y:e.clientY, dx:0, active:false };
 }
 function dlvSwipeMove(e){
@@ -4372,7 +4370,7 @@ function dlvSwipeMove(e){
     dlvSwipe.active = true;
     dlvSwipeInner(dlvSwipe.row).classList.add('swiping');
   }
-  dlvSwipe.dx = Math.max(-130, Math.min(130, dx));
+  dlvSwipe.dx = Math.max(-140, Math.min(140, dx));
   dlvSwipeInner(dlvSwipe.row).style.transform = `translateX(${dlvSwipe.dx}px)`;
 }
 function dlvSwipeEnd(){
@@ -4383,12 +4381,8 @@ function dlvSwipeEnd(){
   dlvSuppressTap = true;
   const inner = dlvSwipeInner(s.row);
   inner.classList.remove('swiping');
-  if(Math.abs(s.dx)>50){
-    inner.style.transform = `translateX(${s.dx<0 ? -DLV_SWIPE_OPEN : DLV_SWIPE_OPEN}px)`;
-    dlvSwipeOpenRow = s.row;
-  }else{
-    inner.style.transform = '';
-  }
+  if(Math.abs(s.dx)>=DLV_SWIPE_DELETE) dlvDeleteSwiped(s.row.dataset.id);
+  else inner.style.transform = '';
 }
 function dlvDeleteSwiped(id){
   const item = state.deliveryItems.find(i=>i.id===id);
@@ -4396,7 +4390,6 @@ function dlvDeleteSwiped(id){
   state.deliveryItems = state.deliveryItems.filter(i=>i.id!==id);
   dlvListItems(item.listId).forEach((x,i)=>{ x.position = i; });
   dlvSave();
-  dlvSwipeOpenRow = null;
   render();
   dlvToast(`נמחק: ${item.street}${item.houseNumber ? ' '+item.houseNumber : ''}`);
 }
