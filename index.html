@@ -3723,6 +3723,8 @@ function renderDeliveryUpdates(){
       <div class="stat-tile"><div class="stat-tile-value">${totalDelivered.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ משלוחים שנמסרו בחודש</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${avg.toLocaleString('he-IL',{maximumFractionDigits:1})}</div><div class="stat-tile-label">ממוצע משלוחים יומי</div></div>
       <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(updates.reduce((s,u)=>s+dlvUpdatePay(u),0))}</div><div class="stat-tile-label">משכורת חודשית משוערת</div></div>
+      <div class="stat-tile"><div class="stat-tile-value">${updates.length.toLocaleString('he-IL')}</div><div class="stat-tile-label">ימי עבודה</div></div>
+      <div class="stat-tile"><div class="stat-tile-value income">${dlvMoney(updates.length ? Math.round(updates.reduce((s,u)=>s+dlvUpdatePay(u),0)/updates.length*100)/100 : 0)}</div><div class="stat-tile-label">ממוצע משכורת יומי</div></div>
       <div class="stat-tile"><div class="stat-tile-value">${totalCollected.toLocaleString('he-IL')}</div><div class="stat-tile-label">סה"כ חבילות שנאספו בחודש</div></div>
       <div class="stat-tile"><div class="stat-tile-value" style="color:var(--danger);">${dlvMoney(totalExpenses)}</div><div class="stat-tile-label">סה"כ הוצאות בחודש</div></div>
     </div>
