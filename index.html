@@ -540,8 +540,9 @@ const DELIVERY_ELKANA_MAP = [
 function defaultDeliveryRoute(){
   return DELIVERY_TOWNS.flatMap(town=>DELIVERY_DEFAULT_ROUTE[town].map((name,order)=>({ id:uid(), town, name, order })));
 }
-const WORKOUT_TYPES = ['חזה','גב','רגליים','כתפיים','ידיים','פול באדי','אירובי'];
-const WORKOUT_CUSTOM = 'מותאם אישית';
+// Workouts saved earlier may hold other type names; they stay as they are and show in gray.
+const WORKOUT_TYPE_COLORS = { 'הליכה':'#27ae60', 'הליכה+ריצה':'#f2994a', 'בטן':'#9b51e0', 'פלג גוף עליון':'#2d9cdb' };
+const WORKOUT_TYPES = Object.keys(WORKOUT_TYPE_COLORS);
 
 function defaultState(){
   return {
@@ -2149,29 +2150,31 @@ function saveWaterTarget(){
 
 /* ---------- Fitness ---------- */
 function setFitnessSubTab(v){ ui.fitnessSubTab = v; render(); }
-function toggleWorkoutCustomType(val){
-  const wrap = document.getElementById('workoutCustomTypeWrap');
-  if(wrap) wrap.classList.toggle('hidden', val!==WORKOUT_CUSTOM);
+function fitnessViewMonth(){ return ui.fitnessMonth || todayStr().slice(0,7); }
+function setFitnessMonth(v){
+  if(!v) return;
+  ui.fitnessMonth = v===todayStr().slice(0,7) ? null : v;
+  render();
+}
+function shiftFitnessMonth(n){
+  const [y,m] = fitnessViewMonth().split('-').map(Number);
+  setFitnessMonth(makeDateStr(y, m+n, 1).slice(0,7));
 }
 function openWorkoutModal(workoutId){
   const w = workoutId ? state.workouts.find(x=>x.id===workoutId) : null;
-  const isCustomType = w && !WORKOUT_TYPES.includes(w.type);
-  const typeOptions = WORKOUT_TYPES.map(t=>
-    `<option value="${t}" ${w&&w.type===t?'selected':''}>${t}</option>`
-  ).join('') + `<option value="${WORKOUT_CUSTOM}" ${isCustomType?'selected':''}>${WORKOUT_CUSTOM}</option>`;
+  const types = w && !WORKOUT_TYPES.includes(w.type) ? [...WORKOUT_TYPES, w.type] : WORKOUT_TYPES;
+  const typeOptions = types.map(t=>
+    `<option value="${escapeHtml(t)}" ${w&&w.type===t?'selected':''}>${escapeHtml(t)}</option>`
+  ).join('');
   showModal(`
     <h2>${w ? 'עריכת אימון' : 'אימון חדש'}</h2>
     <form onsubmit="event.preventDefault(); saveWorkoutForm('${workoutId||''}')">
       <label>תאריך</label>
       <input type="date" id="workoutDateInput" value="${w?w.date:todayStr()}" required>
       <label>סוג אימון</label>
-      <select id="workoutTypeInput" onchange="toggleWorkoutCustomType(this.value)">
+      <select id="workoutTypeInput">
         ${typeOptions}
       </select>
-      <div id="workoutCustomTypeWrap" class="${isCustomType?'':'hidden'}">
-        <label>שם מותאם אישית</label>
-        <input type="text" id="workoutCustomTypeInput" value="${isCustomType?escapeHtml(w.type):''}">
-      </div>
       <label>משך (דקות)</label>
       <input type="number" id="workoutDurationInput" min="0" value="${w?w.durationMinutes:''}" required>
       <label>הערות (לא חובה)</label>
@@ -2189,11 +2192,7 @@ function openWorkoutModal(workoutId){
 function saveWorkoutForm(workoutId){
   const date = document.getElementById('workoutDateInput').value;
   if(!date) return;
-  let type = document.getElementById('workoutTypeInput').value;
-  if(type===WORKOUT_CUSTOM){
-    type = document.getElementById('workoutCustomTypeInput').value.trim();
-    if(!type) return;
-  }
+  const type = document.getElementById('workoutTypeInput').value;
   const durationMinutes = parseFloat(document.getElementById('workoutDurationInput').value);
   if(!durationMinutes || durationMinutes<=0) return;
   const notes = document.getElementById('workoutNotesInput').value.trim();
@@ -2203,6 +2202,7 @@ function saveWorkoutForm(workoutId){
   }else{
     state.workouts.push({ id:uid(), date, type, durationMinutes, notes, createdAt:Date.now() });
   }
+  setFitnessMonthQuiet(date);
   saveState();
   closeModal();
   render();
@@ -2215,15 +2215,24 @@ function deleteWorkout(workoutId){
     render();
   });
 }
+// After saving, show the month the record belongs to, so it doesn't seem to vanish.
+function setFitnessMonthQuiet(date){
+  const m = date.slice(0,7);
+  ui.fitnessMonth = m===todayStr().slice(0,7) ? null : m;
+}
+function workoutTapBody(id){
+  if(dlvSuppressTap){ dlvSuppressTap = false; return; }
+  openWorkoutModal(id);
+}
 function workoutRowHtml(w){
-  return `<div class="finance-row">
-    <div class="finance-body" onclick="openWorkoutModal('${w.id}')">
-      <div class="finance-title">${escapeHtml(w.type)}</div>
+  const color = WORKOUT_TYPE_COLORS[w.type] || '#9aa0a6';
+  return `<div class="dlv-row" data-id="${w.id}" data-kind="workout">
+    <div class="dlv-del" aria-hidden="true"><span>🗑️ מחיקה</span><span>🗑️ מחיקה</span></div>
+    <div class="dlv-row-inner" style="border-inline-start:7px solid ${color};">
+    <div class="dlv-body" onclick="workoutTapBody('${w.id}')">
+      <div class="finance-title"><span style="color:${color};">●</span> ${escapeHtml(w.type)}</div>
       <div class="finance-meta">${formatDateShort(w.date)} · ${w.durationMinutes} דקות${w.notes?` · ${escapeHtml(w.notes)}`:''}</div>
     </div>
-    <div class="row-actions">
-      <button onclick="openWorkoutModal('${w.id}')" title="עריכה">✏️</button>
-      <button onclick="deleteWorkout('${w.id}')" title="מחיקה">🗑️</button>
     </div>
   </div>`;
 }
@@ -2257,6 +2266,7 @@ function saveWeightForm(weightId){
   }else{
     state.bodyWeights.push({ id:uid(), date, weight, createdAt:Date.now() });
   }
+  setFitnessMonthQuiet(date);
   saveState();
   closeModal();
   render();
@@ -2315,6 +2325,7 @@ async function handlePhotoFileSelected(event){
   try{
     const dataUrl = await compressImage(file);
     state.progressPhotos.push({ id:uid(), date:todayStr(), imageDataUrl:dataUrl, createdAt:Date.now() });
+    setFitnessMonthQuiet(todayStr());
     saveState();
     render();
   }catch(e){
@@ -3559,17 +3570,28 @@ function renderFitnessView(){
       <button class="tab ${ui.fitnessSubTab==='weight'?'active':''}" onclick="setFitnessSubTab('weight')">משקל</button>
       <button class="tab ${ui.fitnessSubTab==='photos'?'active':''}" onclick="setFitnessSubTab('photos')">תמונות</button>
     </div>`;
+  const month = fitnessViewMonth();
+  const isCurrent = month===todayStr().slice(0,7);
+  const [y,m] = month.split('-').map(Number);
+  const monthNav = `
+    <div class="day-nav">
+      <button class="text-btn" onclick="shiftFitnessMonth(-1)">חודש קודם</button>
+      <div class="date-label">${HEBREW_MONTHS[m-1]} ${y}</div>
+      <button class="text-btn" onclick="shiftFitnessMonth(1)">חודש הבא</button>
+      ${isCurrent ? '' : `<button class="text-btn" onclick="setFitnessMonth(todayStr().slice(0,7))">החודש</button>`}
+      <input type="month" value="${month}" onchange="setFitnessMonth(this.value)" style="padding:8px 10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;max-width:150px;">
+    </div>`;
   let body;
   if(ui.fitnessSubTab==='weight') body = renderWeightSection();
   else if(ui.fitnessSubTab==='photos') body = renderPhotosSection();
   else body = renderWorkoutsSection();
-  return toggle + body;
+  return toggle + monthNav + body;
 }
 function renderWorkoutsSection(){
-  const workouts = [...state.workouts].sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:b.createdAt-a.createdAt));
+  const workouts = state.workouts.filter(w=>w.date.slice(0,7)===fitnessViewMonth()).sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:b.createdAt-a.createdAt));
   let rows = workouts.map(w=>workoutRowHtml(w)).join('');
   if(workouts.length===0){
-    rows = `<div class="empty">אין עדיין אימונים.</div>`;
+    rows = `<div class="empty">אין אימונים בחודש הזה.</div>`;
   }
   return `
     <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openWorkoutModal()">+ אימון חדש</button>
@@ -3577,10 +3599,10 @@ function renderWorkoutsSection(){
   `;
 }
 function renderWeightSection(){
-  const weights = [...state.bodyWeights].sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:b.createdAt-a.createdAt));
+  const weights = state.bodyWeights.filter(w=>w.date.slice(0,7)===fitnessViewMonth()).sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:b.createdAt-a.createdAt));
   let rows = weights.map(w=>weightRowHtml(w)).join('');
   if(weights.length===0){
-    rows = `<div class="empty">אין עדיין נתוני משקל.</div>`;
+    rows = `<div class="empty">אין נתוני משקל בחודש הזה.</div>`;
   }
   return `
     <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openWeightModal()">+ עדכון משקל</button>
@@ -3588,7 +3610,7 @@ function renderWeightSection(){
   `;
 }
 function renderPhotosSection(){
-  const photos = [...state.progressPhotos].sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:a.createdAt-b.createdAt));
+  const photos = state.progressPhotos.filter(p=>p.date.slice(0,7)===fitnessViewMonth()).sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:a.createdAt-b.createdAt));
   let grid = photos.map(p=>`
     <div class="photo-thumb" onclick="openPhotoViewer('${p.id}')">
       <img src="${p.imageDataUrl}" loading="lazy">
@@ -3596,7 +3618,7 @@ function renderPhotosSection(){
     </div>
   `).join('');
   if(photos.length===0){
-    grid = `<div class="empty">אין עדיין תמונות התקדמות.</div>`;
+    grid = `<div class="empty">אין תמונות בחודש הזה.</div>`;
   }
   return `
     <button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="openPhotoUpload()">+ הוספת תמונה</button>
@@ -4380,8 +4402,19 @@ function dlvSwipeEnd(){
   dlvSuppressTap = true;
   const inner = dlvSwipeInner(s.row);
   inner.classList.remove('swiping');
-  if(Math.abs(s.dx)>=DLV_SWIPE_DELETE) dlvDeleteSwiped(s.row.dataset.id);
+  if(Math.abs(s.dx)>=DLV_SWIPE_DELETE){
+    if(s.row.dataset.kind==='workout') deleteWorkoutSwiped(s.row.dataset.id);
+    else dlvDeleteSwiped(s.row.dataset.id);
+  }
   else inner.style.transform = '';
+}
+function deleteWorkoutSwiped(id){
+  const w = state.workouts.find(x=>x.id===id);
+  if(!w) return;
+  state.workouts = state.workouts.filter(x=>x.id!==id);
+  saveState();
+  render();
+  dlvToast(`נמחק: ${w.type}`);
 }
 function dlvDeleteSwiped(id){
   const item = state.deliveryItems.find(i=>i.id===id);
