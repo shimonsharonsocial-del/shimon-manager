@@ -403,7 +403,6 @@
   }
   .dlv-title{font-size:17px;font-weight:800;margin:0 0 12px;}
   .dlv-item-note{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4;overflow-wrap:anywhere;}
-  .dlv-group-title{font-size:14px;font-weight:800;margin:18px 0 8px;color:var(--warning);}
   .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
   .dlv-row{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:8px;box-shadow:var(--shadow);}
   .dlv-row-inner{
@@ -3885,7 +3884,8 @@ function dlvElkanaSlot(i){
   DELIVERY_ELKANA_MAP.forEach((l,idx)=>{ if(l[key] && n>=l[key][0] && n<=l[key][1]) hits.push(idx); });
   return hits.length ? { landmark:hits[0], part:1, approx:hits.length>1 } : null;
 }
-function dlvRouteGroup(i, slot){ return i.town==='אלקנה' ? (slot ? 0 : 2) : 1; }
+// Elkana addresses the map doesn't cover follow the mapped ones, in the street order; other towns come after.
+function dlvRouteGroup(i, slot){ return i.town==='אלקנה' ? (slot ? 0 : 1) : 2; }
 function dlvRowHtml(i){
   const stateText = { delivered:'✓ נמסר', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
   const slot = dlvElkanaSlot(i);
@@ -3911,8 +3911,6 @@ function dlvRowHtml(i){
 function renderDeliveryList(){
   const list = dlvCurrentList();
   const items = dlvListItems(list.id).filter(dlvIsInCar);
-  const unmapped = items.filter(i=>dlvRouteGroup(i, dlvElkanaSlot(i))===2);
-  const routed = items.filter(i=>dlvRouteGroup(i, dlvElkanaSlot(i))!==2);
   return `
     <div class="dlv-toolbar">
       <button class="icon-btn" onclick="dlvResetList()" title="איפוס רשימה" aria-label="איפוס רשימה">🔄</button>
@@ -3920,8 +3918,7 @@ function renderDeliveryList(){
     </div>
     <h2 class="dlv-title">מאחורה ברכב</h2>
     <button class="btn primary dlv-big-btn" onclick="openDlvItemForm()">+ הוסף לרכב</button>
-    <div id="dlvRows">${routed.map(dlvRowHtml).join('')}</div>
-    ${unmapped.length ? `<h3 class="dlv-group-title">כתובות שלא מופו</h3><div id="dlvUnmappedRows">${unmapped.map(dlvRowHtml).join('')}</div>` : ''}
+    <div id="dlvRows">${items.map(dlvRowHtml).join('')}</div>
     ${items.length ? '' : '<div class="empty">הרשימה ריקה.</div>'}
     ${items.length>1 ? `<div style="text-align:center;margin-top:14px;"><button class="text-btn small" onclick="dlvResetOrder('${list.id}')">סידור מחדש לפי סדר הרחובות</button></div>` : ''}
   `;
