@@ -3838,7 +3838,7 @@ function dlvListItems(listId){
 // Only what rides in the back of the car is listed: large boxes and anything for Shir HaShirim.
 // Ordinary packages saved earlier stay in the data but are not shown or carried over.
 const DLV_SHIR_STREET = 'שיר השירים';
-function dlvIsInCar(i){ return !!i.large || i.street===DLV_SHIR_STREET; }
+function dlvIsInCar(i){ return !!i.large || (i.town==='אלקנה' && i.street===DLV_SHIR_STREET); }
 function dlvRowHtml(i){
   const stateText = { delivered:'✓ נמסר', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
   const carried = i.carriedFromDate ? `הועבר מ-${dlvDateShort(i.carriedFromDate)}` : '';
