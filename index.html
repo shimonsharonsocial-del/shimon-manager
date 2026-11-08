@@ -244,7 +244,7 @@
   .modal-actions .end{display:flex;gap:8px;margin-inline-start:auto;}
 
   .tabs{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px;padding:6px;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px;padding:6px;
     background:var(--surface-hover);border-radius:16px;
   }
   .tabs .tab{padding:8px 2px;font-size:11.5px;border-radius:12px;text-align:center;white-space:normal;line-height:1.3;word-break:break-word;}
@@ -402,14 +402,6 @@
     background:var(--surface);color:var(--text);font-size:16px;
   }
   .dlv-title{font-size:17px;font-weight:800;margin:0 0 12px;}
-  .dlv-counters{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:16px;}
-  .dlv-counter{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 2px;text-align:center;box-shadow:var(--shadow);}
-  .dlv-counter .num{font-size:19px;font-weight:800;}
-  .dlv-counter .lbl{font-size:10.5px;font-weight:700;color:var(--text-muted);margin-top:3px;line-height:1.2;}
-  .dlv-counter.delivered .num{color:var(--success);}
-  .dlv-counter.failed .num{color:var(--danger);}
-  .dlv-counter.unavailable .num{color:var(--warning);}
-  .dlv-counter.remaining .num{color:var(--primary);}
   .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
   .dlv-row{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:8px;box-shadow:var(--shadow);}
   .dlv-row-inner{
@@ -630,7 +622,7 @@ let ui = {
   expandedChecklists: {},
   taskViewMode: 'today',
   selectedNutritionDate: todayStr(),
-  statsMode: 'tasks',
+  statsMode: 'finance',
   statsTaskCategoryId: null,
   statsNutritionPeriod: 'month',
   statsNutritionMonth: todayStr().slice(0,7),
@@ -2400,8 +2392,7 @@ function openTaskModal(taskId, presetDate, presetCategoryId, presetScope){
     <form onsubmit="event.preventDefault(); saveTaskForm('${taskId||''}')">
       <label>כותרת</label>
       <input type="text" id="taskTitleInput" value="${task?escapeHtml(task.title):''}" required>
-      <label>קטגוריה</label>
-      <select id="taskCatInput">
+      <select id="taskCatInput" class="hidden">
         <option value="">ללא קטגוריה</option>
         ${catOptions}
       </select>
@@ -2423,8 +2414,7 @@ function openTaskModal(taskId, presetDate, presetCategoryId, presetScope){
         <div id="taskChecklistItems">${checklistRowsHtml}</div>
         <button type="button" class="add-inline" onclick="addChecklistItemRow()">+ הוסף פריט</button>
       </div>
-      <label>יעד (לא חובה)</label>
-      <select id="taskGoalInput">
+      <select id="taskGoalInput" class="hidden">
         <option value="">ללא יעד</option>
         ${goalOptions}
       </select>
@@ -2813,7 +2803,7 @@ function importBackup(event){
         expandedChecklists: {},
         taskViewMode: 'today',
         selectedNutritionDate: todayStr(),
-        statsMode: 'tasks',
+        statsMode: 'finance',
         statsTaskCategoryId: null,
         statsNutritionPeriod: 'month',
         statsNutritionMonth: todayStr().slice(0,7),
@@ -3060,7 +3050,6 @@ function renderGoalsView(){
 function renderStatsView(){
   const modeToggle = `
     <div class="range-tabs" style="margin-bottom:20px;">
-      <button class="tab ${ui.statsMode==='tasks'?'active':''}" onclick="setStatsMode('tasks')">משימות</button>
       <button class="tab ${ui.statsMode==='finance'?'active':''}" onclick="setStatsMode('finance')">כספים</button>
       <button class="tab ${ui.statsMode==='nutrition'?'active':''}" onclick="setStatsMode('nutrition')">תזונה</button>
       <button class="tab ${ui.statsMode==='fitness'?'active':''}" onclick="setStatsMode('fitness')">כושר</button>
@@ -3360,8 +3349,6 @@ function renderNavTabs(){
   return `<nav class="tabs">
     <button class="tab ${ui.view==='calendar'?'active':''}" onclick="switchView('calendar')">🗓️ יומן</button>
     <button class="tab ${ui.view==='day'?'active':''}" onclick="switchView('day')">📅 משימות</button>
-    <button class="tab ${ui.view==='categories'?'active':''}" onclick="switchView('categories')">📁 קטגוריות</button>
-    <button class="tab ${ui.view==='goals'?'active':''}" onclick="switchView('goals')">🎯 יעדים</button>
     <button class="tab ${ui.view==='stats'?'active':''}" onclick="switchView('stats')">📊 סטטיסטיקה</button>
     <button class="tab ${ui.view==='finances'?'active':''}" onclick="switchView('finances')">💰 כספים</button>
     <button class="tab ${ui.view==='nutrition'?'active':''}" onclick="switchView('nutrition')">🥗 תזונה</button>
@@ -3848,16 +3835,10 @@ function dlvCurrentList(){
 function dlvListItems(listId){
   return state.deliveryItems.filter(i=>i.listId===listId).sort((a,b)=>a.position-b.position);
 }
-function dlvCountersHtml(listId){
-  const items = state.deliveryItems.filter(i=>i.listId===listId);
-  const count = s => items.filter(i=>i.status===s).length;
-  const tile = (cls,num,lbl) => `<div class="dlv-counter ${cls}"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
-  return tile('', items.length, 'סה"כ חבילות')
-    + tile('delivered', count('delivered'), 'נמסרו')
-    + tile('failed', count('failed'), 'בכשל')
-    + tile('unavailable', count('unavailable'), 'לא זמינים')
-    + tile('remaining', items.filter(i=>DLV_OPEN_STATUSES.includes(i.status)).length, 'נותרו לטיפול');
-}
+// Only what rides in the back of the car is listed: large boxes and anything for Shir HaShirim.
+// Ordinary packages saved earlier stay in the data but are not shown or carried over.
+const DLV_SHIR_STREET = 'שיר השירים';
+function dlvIsInCar(i){ return !!i.large || i.street===DLV_SHIR_STREET; }
 function dlvRowHtml(i){
   const stateText = { delivered:'✓ נמסר', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
   const carried = i.carriedFromDate ? `הועבר מ-${dlvDateShort(i.carriedFromDate)}` : '';
@@ -3870,7 +3851,7 @@ function dlvRowHtml(i){
       <div class="dlv-addr">
         <span class="dlv-town town-${DELIVERY_TOWNS.indexOf(i.town)}">${escapeHtml(i.town)}</span>
         <span>${escapeHtml(i.street)}${i.houseNumber ? ' '+escapeHtml(i.houseNumber) : ''}</span>
-        ${i.large ? '<span>📦</span>' : ''}
+        ${i.large ? '<span>📦 ארגז גדול</span>' : ''}
       </div>
       ${meta ? `<div class="dlv-state">${meta}</div>` : ''}
     </div>
@@ -3889,18 +3870,17 @@ function renderDeliveryList(){
       <button class="btn secondary" onclick="openDlvRouteModal()">🛣️ סדר רחובות</button>
     </div>`;
   if(!list) return toolbar + `<div class="empty">אין עדיין רשימות משלוחים.<br>לחץ על "רשימה חדשה" כדי להתחיל.</div>`;
-  const items = dlvListItems(list.id);
-  const movedOut = state.deliveryItems.filter(i=>i.carriedFromListId===list.id);
+  const items = dlvListItems(list.id).filter(dlvIsInCar);
+  const movedOut = state.deliveryItems.filter(i=>i.carriedFromListId===list.id && dlvIsInCar(i));
   const options = lists.map(l=>`<option value="${l.id}" ${l.id===list.id?'selected':''}>${dlvDateFull(l.date)}</option>`).join('');
   return `
     ${toolbar}
     ${lists.length>1 ? `<select class="dlv-list-select" onchange="setDeliveryList(this.value)">${options}</select>` : ''}
-    <h2 class="dlv-title">משלוחים – ${dlvDateFull(list.date)}</h2>
-    <div class="dlv-counters" id="dlvCounters">${dlvCountersHtml(list.id)}</div>
+    <h2 class="dlv-title">מאחורה ברכב – ${dlvDateFull(list.date)}</h2>
     ${movedOut.length ? `<p class="dlv-note">${movedOut.length} חבילות מהרשימה הזאת הועברו ליום אחר.</p>` : ''}
-    <button class="btn primary dlv-big-btn" onclick="openDlvItemForm()">+ הוסף משלוח</button>
+    <button class="btn primary dlv-big-btn" onclick="openDlvItemForm()">+ הוסף לרכב</button>
     <div id="dlvRows">${items.map(dlvRowHtml).join('')}</div>
-    ${items.length ? '' : '<div class="empty">אין עדיין משלוחים ברשימה.</div>'}
+    ${items.length ? '' : '<div class="empty">אין כרגע ארגזים גדולים או חבילות לשיר השירים.</div>'}
     ${items.length>1 ? `<div style="text-align:center;margin-top:14px;"><button class="text-btn small" onclick="dlvResetOrder('${list.id}')">סידור מחדש לפי סדר הרחובות</button></div>` : ''}
   `;
 }
@@ -3926,7 +3906,7 @@ function dlvCreateList(){
     return;
   }
   const prev = state.deliveryLists.filter(l=>l.date<date).sort((a,b)=> a.date<b.date?1:-1)[0];
-  const leftover = prev ? state.deliveryItems.filter(i=>i.listId===prev.id && DLV_OPEN_STATUSES.includes(i.status)).length : 0;
+  const leftover = prev ? state.deliveryItems.filter(i=>i.listId===prev.id && dlvIsInCar(i) && DLV_OPEN_STATUSES.includes(i.status)).length : 0;
   if(!leftover){ dlvFinishNewList(date, false); return; }
   showModal(`
     <h2>חבילות מהיום הקודם</h2>
@@ -3944,7 +3924,7 @@ function dlvFinishNewList(date, carry){
     state.deliveryLists.push(list);
     if(carry && prev){
       const now = Date.now();
-      dlvListItems(prev.id).filter(i=>DLV_OPEN_STATUSES.includes(i.status)).forEach(i=>{
+      dlvListItems(prev.id).filter(i=>dlvIsInCar(i) && DLV_OPEN_STATUSES.includes(i.status)).forEach(i=>{
         Object.assign(i, { listId:list.id, carriedFromListId:prev.id, carriedFromDate:prev.date, manualOrder:false, updatedAt:now });
         dlvPlaceItem(i);
       });
@@ -4007,8 +3987,6 @@ function dlvSetStatus(id, status){
   dlvSave();
   const row = document.querySelector(`.dlv-row[data-id="${id}"]`);
   if(row) row.outerHTML = dlvRowHtml(item);
-  const counters = document.getElementById('dlvCounters');
-  if(counters) counters.innerHTML = dlvCountersHtml(item.listId);
 }
 function dlvTapBody(id){
   if(dlvSuppressTap){ dlvSuppressTap = false; return; }
@@ -4035,6 +4013,7 @@ function openDlvItemForm(itemId, draft){
       <div class="range-tabs dlv-town-tabs" id="dlvTownTabs">
         ${DELIVERY_TOWNS.map(t=>`<button type="button" class="tab ${t===d.town?'active':''}" data-town="${t}" onclick="dlvSetFormTown(this.dataset.town)">${t}</button>`).join('')}
       </div>
+      <div class="dlv-suggest" style="margin-top:10px;"><button type="button" class="dlv-chip" onclick="dlvPickShir()">שיר השירים</button></div>
       <label>רחוב</label>
       <input type="text" id="dlvStreetInput" value="${escapeHtml(d.street)}" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next"
         oninput="dlvRenderSuggest()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('dlvHouseInput').focus();}">
@@ -4044,7 +4023,7 @@ function openDlvItemForm(itemId, draft){
           <label>מספר בית</label>
           <input type="text" id="dlvHouseInput" inputmode="numeric" value="${escapeHtml(d.house||'')}" autocomplete="off" autocorrect="off" enterkeyhint="done">
         </div>
-        <button type="button" id="dlvLargeBtn" class="dlv-large-btn ${d.large?'on':''}" onclick="dlvToggleLarge()">📦 חבילה גדולה</button>
+        <button type="button" id="dlvLargeBtn" class="dlv-large-btn ${d.large?'on':''}" onclick="dlvToggleLarge()">📦 ארגז גדול</button>
       </div>
       <button type="submit" class="btn primary dlv-submit">${item ? 'שמירה' : 'הוסף משלוח'}</button>
       ${item ? `<button type="button" class="btn danger dlv-close" onclick="deleteDlvItem('${item.id}')">מחיקת המשלוח</button>` : ''}
@@ -4084,6 +4063,10 @@ function dlvPickStreet(name){
   document.getElementById('dlvSuggest').innerHTML = '';
   document.getElementById('dlvHouseInput').focus();
 }
+function dlvPickShir(){
+  dlvSetFormTown('אלקנה');
+  dlvPickStreet(DLV_SHIR_STREET);
+}
 function dlvReadDraft(){
   return {
     itemId:dlvForm.itemId, town:dlvForm.town, large:dlvForm.large,
@@ -4100,6 +4083,10 @@ function dlvSubmitItem(){
   if(!draft.street){
     dlvToast('צריך להזין רחוב');
     document.getElementById('dlvStreetInput').focus();
+    return;
+  }
+  if(!dlvIsInCar(draft)){
+    dlvToast('כאן נרשמים רק ארגזים גדולים או שיר השירים');
     return;
   }
   if(!dlvKnownStreet(draft.town, draft.street)){
