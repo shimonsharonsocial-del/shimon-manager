@@ -3,298 +3,962 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#f7f5f1">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="הבית שלנו">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>הבית שלנו</title>
 <style>
-:root{--bg:#f4f6f5;--card:#fff;--ink:#1c2321;--muted:#6b7672;--line:#e3e8e6;--accent:#0f766e;--accent-soft:#e0f2ef;--danger:#c2410c;--me:#0f766e;--other:#7c3aed}
-@media (prefers-color-scheme:dark){:root{--bg:#111615;--card:#1b2220;--ink:#e8eeec;--muted:#93a19c;--line:#2a3431;--accent:#2dd4bf;--accent-soft:#16312d;--danger:#fb923c;--me:#2dd4bf;--other:#c4b5fd}}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Arial,sans-serif;font-size:16px}
-body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
-header{position:sticky;top:0;z-index:5;background:var(--accent);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between}
-@media (prefers-color-scheme:dark){header{color:#06201d}}
-header h1{margin:0;font-size:20px}
-header button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:8px;padding:4px 10px;font-size:13px}
-main{max-width:640px;margin:0 auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-.add{display:flex;gap:8px;flex-wrap:wrap}
-.add input,.add select{flex:1 1 140px;min-width:0;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
-.add input[type=date],.add input[type=time]{flex:1 1 120px}
-button.primary{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-size:16px;font-weight:600}
-@media (prefers-color-scheme:dark){button.primary{color:#06201d}}
-button.link{background:none;border:0;color:var(--accent);font-size:14px;padding:6px 0}
-ul.list{list-style:none;margin:0;padding:0}
-ul.list li{display:flex;align-items:center;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line)}
-ul.list li:last-child{border-bottom:0}
-.check{width:26px;height:26px;flex:0 0 26px;border-radius:50%;border:2px solid var(--line);background:none;display:grid;place-items:center;color:#fff;font-size:15px;padding:0}
-li.done .check{background:var(--accent);border-color:var(--accent)}
-li.done .text{text-decoration:line-through;color:var(--muted)}
-.body{flex:1;min-width:0}
-.text{word-wrap:break-word;white-space:pre-wrap}
-.meta{font-size:12px;color:var(--muted);margin-top:2px}
-.who-me{color:var(--me)}.who-other{color:var(--other)}
-.del{background:none;border:0;color:var(--muted);font-size:20px;padding:4px 6px}
-.empty{color:var(--muted);text-align:center;padding:18px 0}
-.date-badge{flex:0 0 52px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:6px 0;font-weight:700;line-height:1.1}
-.date-badge small{display:block;font-weight:500;font-size:11px}
-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;background:none;border:0;color:var(--muted);padding:10px 0 12px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
-nav button .ic{font-size:22px}
-nav button.on{color:var(--accent);font-weight:700}
-nav .dot{position:absolute;top:6px;right:calc(50% - 18px);background:var(--danger);color:#fff;border-radius:9px;font-size:10px;min-width:16px;padding:1px 4px}
-.center{max-width:440px;margin:40px auto;padding:0 16px;text-align:center}
-.center .card{text-align:right}
-.center h2{margin-top:0}
-.code{font-family:monospace;background:var(--bg);padding:8px;border-radius:8px;word-break:break-all;direction:ltr;text-align:left;font-size:13px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}
-.toast.show{opacity:1}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+:root{
+  --bg:#f7f5f1;--card:#ffffff;--ink:#22201c;--muted:#7a756c;--faint:#a8a297;--line:#ebe7df;--soft:#f1eee8;
+  --accent:#3e8a76;--accent-ink:#ffffff;--accent-soft:#e3f0ec;
+  --shimon:#4d72b0;--shimon-soft:#e6edf8;--aviya:#c0647e;--aviya-soft:#f8e8ed;
+  --done:#3e8a76;--warn:#b7791f;--danger:#c0473a;
+  --r:18px;--shadow:0 1px 2px rgba(40,30,10,.04),0 4px 14px rgba(40,30,10,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.4}
+body{min-height:100vh;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:var(--ink)}
 .hidden{display:none!important}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.chip{border:1px solid var(--line);background:none;color:var(--ink);border-radius:20px;padding:5px 12px;font-size:14px}
-.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.banner{background:#fef3c7;color:#78350f;font-size:13px;padding:8px 16px;text-align:center}
+
+/* top */
+.top{position:sticky;top:0;z-index:10;background:rgba(247,245,241,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+.top-row{display:flex;align-items:center;justify-content:space-between;max-width:640px;margin:0 auto 10px}
+.brand{font-weight:800;font-size:21px;letter-spacing:-.2px}
+.hello{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.net{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+.net.off{background:var(--warn)}
+.icon-btn{width:40px;height:40px;border-radius:12px;border:0;background:var(--card);box-shadow:var(--shadow);font-size:18px;display:grid;place-items:center}
+.seg{display:flex;background:#ebe7df;border-radius:14px;padding:4px;gap:4px;max-width:640px;margin:0 auto}
+.seg button{flex:1;border:0;background:none;padding:10px 6px;border-radius:11px;font-weight:600;font-size:15px;color:var(--muted);transition:background .2s,color .2s}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.seg.small button{padding:8px 6px;font-size:14px}
+.seg .badge{display:inline-block;min-width:20px;padding:0 6px;margin-inline-start:6px;border-radius:10px;background:var(--accent);color:#fff;font-size:12px;line-height:20px}
+.offline-bar{max-width:640px;margin:8px auto 0;background:#fdf3e1;color:#7a5414;border-radius:10px;padding:7px 12px;font-size:13px;text-align:center}
+.test-bar{background:#fff4d6;color:#6b4d00;font-size:12.5px;text-align:center;padding:6px 12px}
+
+main{max-width:640px;margin:0 auto;padding:14px 16px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.muted{color:var(--muted)}.small{font-size:13px}
+h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;letter-spacing:.2px}
+
+/* summary */
+.sum-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sum-big{font-size:26px;font-weight:800}
+.sum-big small{font-size:15px;color:var(--muted);font-weight:600}
+.bar{height:10px;background:var(--soft);border-radius:6px;overflow:hidden;margin:10px 0 12px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.people{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:4px 11px;font-size:13.5px;font-weight:600}
+.ptag.shimon{background:var(--shimon-soft);color:var(--shimon)}
+.ptag.aviya{background:var(--aviya-soft);color:var(--aviya)}
+.ptag.free{background:var(--soft);color:var(--muted)}
+
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:7px 14px;font-size:14px;color:var(--muted)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* task rows */
+.list{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);min-height:62px;transition:background .2s,opacity .25s}
+.row:last-child{border-bottom:0}
+.row.busy{opacity:.55;pointer-events:none}
+.chk{flex:0 0 32px;width:32px;height:32px;border-radius:50%;border:2px solid #d8d2c7;background:none;display:grid;place-items:center;padding:0;transition:all .2s}
+.chk svg{width:16px;height:16px;stroke:#fff;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.4);transition:all .25s cubic-bezier(.3,1.6,.5,1)}
+.row.done .chk{background:var(--done);border-color:var(--done)}
+.row.done .chk svg{opacity:1;transform:scale(1)}
+.row.pop .chk{animation:pop .45s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.rbody{flex:1;min-width:0}
+.rname{font-size:16px;font-weight:600;word-wrap:break-word}
+.row.done .rname{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1.5px}
+.rmeta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.ract{display:flex;gap:6px;flex:0 0 auto}
+.pill{border:0;border-radius:20px;padding:8px 13px;font-size:14px;font-weight:600;min-height:36px;white-space:nowrap}
+.pill.me{background:var(--accent);color:#fff}
+.pill.ghost{background:var(--soft);color:var(--muted)}
+.pill.shimon{background:var(--shimon-soft);color:var(--shimon)}
+.pill.aviya{background:var(--aviya-soft);color:var(--aviya)}
+.spin{width:18px;height:18px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--muted);padding:28px 16px}
+.empty .big{font-size:40px;margin-bottom:6px}
+.link-btn{border:0;background:none;color:var(--accent);font-weight:600;padding:10px 4px;font-size:15px}
+.week-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* shopping */
+.search{position:relative;margin-bottom:12px}
+.search input{width:100%;border:0;background:var(--card);box-shadow:var(--shadow);border-radius:14px;padding:13px 44px 13px 14px;font-size:16px;outline:none}
+.search .ic{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.tools{display:flex;justify-content:space-between;align-items:center;margin:-2px 2px 8px}
+.cat{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.cat-h{display:flex;align-items:center;gap:8px;padding:13px 14px;font-weight:700;border:0;background:none;width:100%;text-align:right;font-size:15.5px}
+.cat-h .name{flex:1}
+.cat-h .cnt{font-size:12px;font-weight:700;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:2px 8px}
+.cat-h .arrow{color:var(--faint);transition:transform .2s;font-size:13px}
+.cat.closed .arrow{transform:rotate(90deg)}
+.cat.closed .prods{display:none}
+.prod{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line);min-height:52px;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:right;font-size:15.5px}
+.prod .box{flex:0 0 26px;height:26px;border-radius:8px;border:2px solid #d8d2c7;display:grid;place-items:center;transition:all .2s}
+.prod .box svg{width:14px;height:14px;stroke:#fff;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .2s}
+.prod.miss .box{background:var(--warn);border-color:var(--warn)}
+.prod.miss .box svg{opacity:1}
+.prod .pname{flex:1}
+.prod .tag{font-size:12px;color:var(--warn);font-weight:700}
+.prod .pend{font-size:11.5px;color:var(--faint)}
+.edit-ic{border:0;background:var(--soft);border-radius:10px;width:34px;height:34px;flex:0 0 34px;font-size:15px;display:grid;place-items:center}
+.cat-tools{display:flex;gap:6px}
+.add-row{border-top:1px solid var(--line)}
+.list-head{display:flex;align-items:center;justify-content:space-between}
+.list-head .num{font-size:30px;font-weight:800}
+.buy-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line);min-height:56px;transition:opacity .25s,transform .25s,max-height .3s;max-height:90px}
+.buy-row.gone{opacity:0;transform:translateX(-30px)}
+.buy-row .pname{flex:1;font-size:16px;font-weight:600}
+.buy-btn{border:0;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-weight:700;padding:9px 14px;min-height:38px;display:flex;align-items:center;gap:6px}
+.cat-title{padding:12px 14px 6px;font-weight:700;color:var(--muted);font-size:13.5px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(30,25,15,.35);z-index:40;opacity:0;transition:opacity .2s}
+.scrim.show{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--card);border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-width:640px;margin:0 auto}
+.sheet.show{transform:none}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sheet h2{font-size:19px;margin:4px 0 14px}
+.sheet label.l{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 8px}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:700;margin-top:10px;background:var(--soft);color:var(--ink)}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.danger{background:#fbeceb;color:var(--danger)}
+.btn:disabled{opacity:.5}
+.field{width:100%;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 13px;font-size:16px;outline:none}
+.field:focus{border-color:var(--accent)}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick button{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:13px;font-weight:700;font-size:15.5px}
+.pick button.on.shimon{border-color:var(--shimon);background:var(--shimon-soft);color:var(--shimon)}
+.pick button.on.aviya{border-color:var(--aviya);background:var(--aviya-soft);color:var(--aviya)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.days button{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:8px 0;font-weight:700;font-size:15px;line-height:1.15}
+.days button small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+.days button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.mrow{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.mrow .nm{flex:1;font-weight:600;border:0;background:none;text-align:right;padding:6px 0;font-size:15.5px}
+.mrow.off .nm{color:var(--faint);text-decoration:line-through}
+.switch{position:relative;width:46px;height:28px;flex:0 0 46px;border-radius:14px;background:#d8d2c7;border:0;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch.on{background:var(--accent)}
+.switch.on::after{transform:translateX(-18px)}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#2a2722;color:#fff;padding:12px 18px;border-radius:14px;font-size:14.5px;z-index:60;opacity:0;transition:all .25s;max-width:calc(100vw - 32px);text-align:center;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{background:var(--danger)}
+
+/* auth */
+.auth{max-width:420px;margin:0 auto;padding:calc(48px + env(safe-area-inset-top)) 20px 20px;text-align:center}
+.auth .logo{width:84px;height:84px;border-radius:24px;margin:0 auto 14px;display:block;box-shadow:var(--shadow)}
+.auth h1{margin:0 0 6px;font-size:26px}
+.auth .card{text-align:right;margin-top:22px}
+.err-txt{color:var(--danger);font-size:14px;margin-top:10px;min-height:1em}
+.who{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.who button{border:0;border-radius:20px;padding:26px 10px;font-size:20px;font-weight:800;box-shadow:var(--shadow)}
+.who .shimon{background:var(--shimon-soft);color:var(--shimon)}
+.who .aviya{background:var(--aviya-soft);color:var(--aviya)}
+.who button:disabled{opacity:.4}
 </style>
 </head>
 <body>
-<div id="banner" class="banner hidden"></div>
-<div id="screen"></div>
-<div id="toast" class="toast"></div>
+<div id="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
-// ===== הגדרות Firebase =====
-// מדביקים כאן את ה־firebaseConfig מהמסוף של Firebase (זה לא סוד, מותר שיהיה בקוד).
+/* =====================================================================
+   הגדרות חיבור ל־Firebase. מדביקים כאן את firebaseConfig מהמסוף של Firebase.
+   כל עוד זה null, האפליקציה רצה במצב בדיקה מקומי בלבד ומציגה זאת בבירור.
+   ===================================================================== */
 const FIREBASE_CONFIG = null;
-const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
-const $ = s => document.querySelector(s);
+/* ---------- אנשים ---------- */
+const PEOPLE = { shimon:{name:'שמעון', f:false}, aviya:{name:'אביה', f:true} };
+const other = p => p === 'shimon' ? 'aviya' : 'shimon';
+const pname = p => PEOPLE[p]?.name || '';
+const gv = (p, m, f) => PEOPLE[p]?.f ? f : m;
+
+/* ---------- עזרי תצוגה ---------- */
+const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const screen = $('#screen');
-const params = new URLSearchParams(location.search);
-const DEMO = params.has('demo') || !FIREBASE_CONFIG;
+const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function toast(msg, err=false){ const t=$('#toast'); t.textContent=msg; t.classList.toggle('err',err); t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), err?4200:2400); }
+const store = { get(k,d){ try{ const v=localStorage.getItem('bayit-'+k); return v==null?d:JSON.parse(v);}catch{return d} }, set(k,v){ try{localStorage.setItem('bayit-'+k,JSON.stringify(v))}catch{} } };
 
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+/* =====================================================================
+   זמן: הכול לפי שעון ישראל (Asia/Jerusalem), כולל מעבר שעון קיץ/חורף.
+   יום = תאריך ישראלי. שבוע = ממוצאי שבת 21:30 עד מוצאי השבת הבאה 21:29:59.
+   כל יום/שבוע נשמר ברשומה נפרדת, ולכן "איפוס" קורה מעצמו בתחילת תקופה חדשה,
+   גם אם אף אחד לא פתח את האפליקציה, והתקופות הקודמות נשמרות כהיסטוריה.
+   ===================================================================== */
+const TZ = 'Asia/Jerusalem';
+const ilFmt = new Intl.DateTimeFormat('en-US',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',weekday:'short'});
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function il(ms){ const o={}; for(const p of ilFmt.formatToParts(new Date(ms))) o[p.type]=p.value; return {y:+o.year,m:+o.month,d:+o.day,h:+o.hour%24,mi:+o.minute,wd:WD.indexOf(o.weekday)}; }
+const pad = n => String(n).padStart(2,'0');
+const ymd = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+function addDays(id,n){ const [y,m,d]=id.split('-').map(Number); const t=new Date(Date.UTC(y,m-1,d+n)); return ymd(t.getUTCFullYear(),t.getUTCMonth()+1,t.getUTCDate()); }
+function dayIdOf(ms){ const p=il(ms); return ymd(p.y,p.m,p.d); }
+const WEEK_RESET_MIN = 21*60+30;
+function weekIdOf(ms){ const p=il(ms); const today=ymd(p.y,p.m,p.d);
+  if(p.wd===6 && p.h*60+p.mi >= WEEK_RESET_MIN) return today;          // מוצאי שבת אחרי 21:30: שבוע חדש
+  return addDays(today, -(p.wd===6 ? 7 : p.wd+1)); }                    // אחרת: מוצאי השבת הקודמת
+const DAY_NAMES = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const DAY_SHORT = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+const MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const dm = id => { const [,m,d]=id.split('-').map(Number); return `${d}.${m}`; };
+const weekDate = (wid, dayIdx) => addDays(wid, dayIdx+1);   // ראשון = יום אחרי מוצאי שבת
+function hhmm(ms){ const p=il(ms); return `${pad(p.h)}:${pad(p.mi)}`; }
 
-// ===== שכבת נתונים: Firebase אמיתי או מצב הדגמה מקומי =====
-let backend;
+let clockOffset = 0;          // הפרש מול שעון השרת (כדי ששעון שגוי בטלפון לא יבלבל)
+let testShift = 0;            // רק במצב בדיקה מקומי
+const now = () => Date.now() + clockOffset + testShift;
 
-async function firebaseBackend(){
-  const [{initializeApp},{getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,signOut},fs] = await Promise.all([
-    import(FB+'firebase-app.js'), import(FB+'firebase-auth.js'), import(FB+'firebase-firestore.js')]);
-  const app = initializeApp(FIREBASE_CONFIG);
-  const auth = getAuth(app);
-  const db = fs.initializeFirestore(app,{localCache:fs.persistentLocalCache({tabManager:fs.persistentMultipleTabManager()})});
+/* =====================================================================
+   שכבת נתונים. אותו ממשק בדיוק ל־Firebase ולמצב בדיקה מקומי.
+   ===================================================================== */
+const LOCAL_MODE = !FIREBASE_CONFIG;
+let B;
+
+class Conflict extends Error { constructor(cur){ super('conflict'); this.code='conflict'; this.cur=cur; } }
+
+async function firebaseBackend(cfg){
+  const [appM, authM, fs] = await Promise.all([import(FB_SDK+'firebase-app.js'), import(FB_SDK+'firebase-auth.js'), import(FB_SDK+'firebase-firestore.js')]);
+  const app = appM.initializeApp(cfg);
+  const auth = authM.getAuth(app);
+  let db;
+  try { db = fs.initializeFirestore(app, {localCache: fs.persistentLocalCache({tabManager: fs.persistentMultipleTabManager()})}); }
+  catch { db = fs.getFirestore(app); }
+  const ref = p => fs.doc(db, p), col = p => fs.collection(db, p);
+  const snapDocs = s => s.docs.map(d => ({id:d.id, ...d.data(), _pending:d.metadata.hasPendingWrites}));
   return {
-    onUser: cb => onAuthStateChanged(auth, u => cb(u && {uid:u.uid, name:(u.displayName||u.email||'').split(' ')[0]})),
-    async signIn(){const p=new GoogleAuthProvider();try{await signInWithPopup(auth,p)}catch(e){if(/popup/.test(e.code||''))await signInWithRedirect(auth,p);else throw e}},
-    signOut: () => signOut(auth),
-    async getHome(uid){const s=await fs.getDoc(fs.doc(db,'users',uid));return s.exists()?s.data().household:null},
-    async createHome(user){
-      const ref=fs.doc(fs.collection(db,'households'));
-      await fs.setDoc(ref,{members:[user.uid],names:{[user.uid]:user.name},created:fs.serverTimestamp()});
-      await fs.setDoc(fs.doc(db,'users',user.uid),{household:ref.id});return ref.id},
-    async joinHome(user,hid){
-      await fs.updateDoc(fs.doc(db,'households',hid),{members:fs.arrayUnion(user.uid),['names.'+user.uid]:user.name});
-      await fs.setDoc(fs.doc(db,'users',user.uid),{household:hid})},
-    async leaveHome(user){await fs.deleteDoc(fs.doc(db,'users',user.uid))},
-    watchHome:(hid,cb,err)=>fs.onSnapshot(fs.doc(db,'households',hid),s=>cb(s.data()),err),
-    watchItems:(hid,cb,err)=>fs.onSnapshot(fs.collection(db,'households',hid,'items'),s=>{
-      cb(s.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toMillis?.()??Date.now()})),
-         s.docChanges().filter(c=>c.type==='added'&&!s.metadata.hasPendingWrites).map(c=>c.doc.data()))},err),
-    add:(hid,item)=>fs.addDoc(fs.collection(db,'households',hid,'items'),{...item,createdAt:fs.serverTimestamp()}),
-    update:(hid,id,patch)=>fs.updateDoc(fs.doc(db,'households',hid,'items',id),patch),
-    remove:(hid,id)=>fs.deleteDoc(fs.doc(db,'households',hid,'items',id)),
+    onUser: cb => authM.onAuthStateChanged(auth, u => cb(u ? {uid:u.uid, email:u.email} : null)),
+    signIn: (e,p) => authM.signInWithEmailAndPassword(auth, e, p),
+    signUp: (e,p) => authM.createUserWithEmailAndPassword(auth, e, p),
+    resetPassword: e => authM.sendPasswordResetEmail(auth, e),
+    signOut: () => authM.signOut(auth),
+    watchCol: (p, cb, err) => fs.onSnapshot(col(p), {includeMetadataChanges:true}, s => cb(snapDocs(s)), err),
+    get: async p => { const s = await fs.getDoc(ref(p)); return s.exists() ? s.data() : null; },
+    set: (p, d, merge=false) => fs.setDoc(ref(p), d, {merge}),
+    del: p => fs.deleteDoc(ref(p)),
+    newId: () => fs.doc(col('_')).id,
+    batch: async ops => { const b = fs.writeBatch(db); for(const o of ops){ if(o.del) b.delete(ref(o.path)); else b.set(ref(o.path), o.data, {merge:!!o.merge}); } await b.commit(); },
+    tx: (p, fn) => fs.runTransaction(db, async t => { const s = await t.get(ref(p)); const nd = fn(s.exists() ? s.data() : null); t.set(ref(p), nd); return nd; }),
+    async syncClock(uid){ try{ await fs.setDoc(ref('users/'+uid), {ping: fs.serverTimestamp()}, {merge:true}); const s = await fs.getDocFromServer(ref('users/'+uid)); const t = s.data()?.ping?.toMillis?.(); if(t) clockOffset = t - Date.now(); }catch{} },
   };
 }
 
-function demoBackend(){
-  const K='family-demo-v1';
-  const load=()=>{try{return JSON.parse(localStorage.getItem(K))||{}}catch{return{}}};
-  let st=load(); const subs=new Set();
-  const save=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch{} subs.forEach(f=>f())};
-  window.addEventListener('storage',e=>{if(e.key===K){st=load();subs.forEach(f=>f())}});
-  const user={uid:'demo-me',name:'שמעון'};
+/* מצב בדיקה מקומי: מסד נתונים בתוך הדפדפן, משותף בין לשוניות (כל לשונית = "מכשיר").
+   משמש רק לבדיקות. מתנהג כמו Firebase: עסקאות עם בדיקת גרסה, השהיה, וסימולציית ניתוק. */
+function localBackend(){
+  const K = 'bayit-localdb';
+  const read = () => { try{ return JSON.parse(localStorage.getItem(K)) || {}; }catch{ return {}; } };
+  let db = read(); const subs = new Set();
+  const notify = () => subs.forEach(f => f());
+  const commit = () => { localStorage.setItem(K, JSON.stringify(db)); notify(); };
+  addEventListener('storage', e => { if(e.key === K){ db = read(); notify(); } });
+  const parent = k => k.slice(0, k.lastIndexOf('/'));
+  const wait = () => new Promise(r => setTimeout(r, 150));
+  const net = () => { if(window.__offline || !navigator.onLine){ const e = new Error('offline'); e.code = 'unavailable'; throw e; } };
+  const sess = () => { try{ return JSON.parse(sessionStorage.getItem('bayit-local-user')); }catch{ return null; } };
+  let userCb;
   return {
-    onUser: cb => cb(st.signed?user:null) || subs.add(()=>{}),
-    async signIn(){st.signed=true;save();location.reload()},
-    async signOut(){st.signed=false;save();location.reload()},
-    async getHome(){return st.home||null},
-    async createHome(){st.home='demo-home';st.members=[user.uid,'demo-wife'];st.names={[user.uid]:'שמעון','demo-wife':'אשתי'};st.items=[];save();return st.home},
-    async joinHome(u,hid){st.home=hid;st.members=[user.uid,'demo-wife'];st.names={[user.uid]:'שמעון','demo-wife':'אשתי'};st.items=st.items||[];save()},
-    async leaveHome(){delete st.home;save()},
-    watchHome(hid,cb){const f=()=>cb({members:st.members,names:st.names});subs.add(f);f();return()=>subs.delete(f)},
-    watchItems(hid,cb){const f=()=>cb((st.items||[]).slice(),[]);subs.add(f);f();return()=>subs.delete(f)},
-    async add(hid,item){st.items.push({...item,id:Math.random().toString(36).slice(2),createdAt:Date.now()});save()},
-    async update(hid,id,patch){const it=st.items.find(i=>i.id===id);Object.assign(it,patch);save()},
-    async remove(hid,id){st.items=st.items.filter(i=>i.id!==id);save()},
+    onUser: cb => { userCb = cb; cb(sess()); },
+    async signIn(person){ const u = {uid:'local-'+person, email:person+'@local.test'}; sessionStorage.setItem('bayit-local-user', JSON.stringify(u)); userCb(u); },
+    async signOut(){ sessionStorage.removeItem('bayit-local-user'); userCb(null); },
+    watchCol(p, cb){ const f = () => cb(Object.entries(db).filter(([k]) => parent(k) === p).map(([k,v]) => ({id:k.slice(k.lastIndexOf('/')+1), ...v}))); subs.add(f); setTimeout(f); return () => subs.delete(f); },
+    async get(p){ await wait(); net(); db = read(); return db[p] ? {...db[p]} : null; },
+    async set(p, d, merge=false){ await wait(); net(); db = read(); db[p] = merge ? {...db[p], ...d} : {...d}; commit(); },
+    async del(p){ await wait(); net(); db = read(); delete db[p]; commit(); },
+    newId: () => Math.random().toString(36).slice(2, 12) + Date.now().toString(36),
+    async batch(ops){ await wait(); net(); db = read(); for(const o of ops){ if(o.del) delete db[o.path]; else db[o.path] = o.merge ? {...db[o.path], ...o.data} : {...o.data}; } commit(); },
+    async tx(p, fn){ await wait(); net(); db = read(); const nd = fn(db[p] ? {...db[p]} : null); db[p] = nd; commit(); return nd; },
+    async syncClock(){},
   };
 }
 
-// ===== מצב האפליקציה =====
-let me=null, hid=null, home={members:[],names:{}}, items=[], tab='shop', unsub=[];
-const TABS={shop:{ic:'🛒',label:'קניות'},task:{ic:'✅',label:'משימות'},event:{ic:'📅',label:'אירועים'},note:{ic:'📝',label:'פתקים'}};
-let seen={}; try{seen=JSON.parse(localStorage.getItem('family-seen')||'{}')}catch{}
-const markSeen=t=>{seen[t]=Date.now();try{localStorage.setItem('family-seen',JSON.stringify(seen))}catch{}};
-let taskFilter='all', showPast=false, onInvite=false;
-
-const nameOf = uid => uid===me?.uid ? 'אני' : (home.names?.[uid] || 'מישהו');
-const whoCls = uid => uid===me?.uid ? 'who-me' : 'who-other';
-const ago = ms => {const m=Math.round((Date.now()-ms)/60000);if(m<1)return'עכשיו';if(m<60)return`לפני ${m} דק׳`;const h=Math.round(m/60);if(h<24)return`לפני ${h} שע׳`;return new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})};
-
-// ===== מסכי כניסה והגדרה =====
-function showSignIn(){
-  screen.innerHTML=`<div class="center"><div style="font-size:56px">🏠</div><h2>הבית שלנו</h2>
-  <p style="color:var(--muted)">רשימת קניות, משימות, אירועים ופתקים, משותפים לשניכם ומתעדכנים מיד.</p>
-  <button class="primary" id="signin">כניסה עם חשבון Google</button></div>`;
-  $('#signin').onclick=()=>backend.signIn().catch(e=>toast('הכניסה נכשלה: '+(e.code||e.message)));
+/* ---------- הודעות שגיאה ברורות ---------- */
+function errMsg(e){
+  if(e?.code === 'conflict') return conflictMsg(e.cur);
+  if(!navigator.onLine || e?.code === 'unavailable' || e?.code === 'failed-precondition' && /offline/i.test(e.message)) return 'אין חיבור לאינטרנט. הפעולה לא נשמרה.';
+  if(e?.code === 'permission-denied') return 'אין הרשאה לפעולה הזו.';
+  return 'השמירה נכשלה. נסו שוב.';
+}
+function conflictMsg(cur){
+  if(cur?.done) return `המשימה כבר סומנה כבוצעה ע״י ${pname(cur.doneBy || cur.updatedBy)}.`;
+  if(cur?.assignee && cur.assignee !== S.person && cur.updatedBy === cur.assignee) return `${pname(cur.assignee)} ${gv(cur.assignee,'כבר לקח','כבר לקחה')} את המשימה הזו.`;
+  if(cur?.assignee && cur.updatedBy && cur.updatedBy !== S.person) return `${pname(cur.updatedBy)} ${gv(cur.updatedBy,'שינה','שינתה')} את המשימה הזו הרגע. בדקו ונסו שוב.`;
+  return 'המשימה עודכנה בינתיים ממכשיר אחר. בדקו ונסו שוב.';
 }
 
-function showHomeSetup(){
-  const joinId=params.get('join');
-  if(joinId){
-    screen.innerHTML=`<div class="center"><h2>מצטרפים לבית…</h2></div>`;
-    backend.joinHome(me,joinId).then(()=>{history.replaceState(null,'',location.pathname+(DEMO?'?demo':''));start(joinId)})
-      .catch(e=>{toast('הקישור לא תקין');console.warn(e);params.delete('join');showHomeSetup()});
+/* =====================================================================
+   נתוני התחלה (נוצרים פעם אחת, עם מזהים קבועים כדי שלא ייווצרו כפילויות)
+   ===================================================================== */
+const SEED_DAILY = ['שטיפת כלים','הפעלת מכונת כביסה','תליית כביסה / העברה למייבש','קיפול כביסה והכנסה לארונות','איפוס הבית – סידור הסלון והמרחב המרכזי','זריקת זבל','סידור המטבח בסוף היום','ניקוי השיש ושולחן האוכל'];
+const SEED_WEEKLY = ['שטיפת רצפות בכל הבית','סידור וניקיון חדר הילדים','סידור וניקיון חדר העבודה','סידור וניקיון חדר ההורים','ניקיון מקלחת ההורים','ניקיון השירותים','ניקיון המקרר','ניקיון אזור מכונת הכביסה והמייבש','סידור המחסן','ניקיון יסודי של המטבח','סידור וניקיון החצר','ניקיון הרכבים','החלפת מצעים','שאיבת אבק יסודית','ניקוי אבק ממשטחים ורהיטים'];
+const SEED_SHOP = [
+  ['ירקות ופירות',['עגבניות','מלפפונים','בצל','שום','תפוחי אדמה','בטטות','גזר','פלפלים','חסה','לימונים','בננות','תפוחים','אבוקדו']],
+  ['מוצרי חלב ותחליפים',['חלב','חלב סויה','משקה שיבולת שועל','יוגורט','גבינה צהובה','גבינה לבנה','קוטג׳','חמאה','ביצים']],
+  ['לחמים ומאפים',['לחם','פיתות','לחמניות','טורטיות','פריכיות']],
+  ['מוצרים יבשים ומזווה',['אורז','פסטה','קמח','סוכר','מלח','שמן זית','שמן קנולה','רסק עגבניות','טחינה','קפה','תה','שיבולת שועל','תבלינים']],
+  ['קטניות ומוצרי חלבון מהצומח',['עדשים כתומות','עדשים ירוקות','חומוס יבש','שעועית לבנה','טופו','גרגרי סויה']],
+  ['מוצרים קפואים',['ירקות קפואים','אפונה קפואה','תירס קפוא','פירות קפואים','בצק עלים']],
+  ['חטיפים ומתוקים',['במבה','ביסלי','שוקולד','עוגיות','אגוזים','פירות יבשים']],
+  ['שתייה',['מים מינרליים','סודה','מיץ','תרכיז פטל']],
+  ['חומרי ניקיון',['נוזל כלים','טבליות למדיח','אבקת כביסה','מרכך כביסה','אקונומיקה','מנקה רצפות','ספוגים','שקיות זבל']],
+  ['היגיינה וטיפוח',['נייר טואלט','מגבונים','משחת שיניים','מברשות שיניים','שמפו','סבון גוף','סבון ידיים','דאודורנט']],
+  ['מוצרי תינוקות וילדים',['חיתולים','מגבונים לתינוק','קרם החתלה','דייסה']],
+  ['מוצרים לבית',['נייר סופג','נייר אפייה','נייר כסף','ניילון נצמד','שקיות אוכל','סוללות','נורות']],
+  ['שונות',['נרות','גפרורים']],
+];
+const nkey = s => String(s).trim().replace(/\s+/g,' ').replace(/[״"׳'`]/g,'').toLowerCase();
+
+async function seedIfNeeded(){
+  if(await B.get('meta/seed')) return;
+  const ops = [], t = now();
+  SEED_DAILY.forEach((n,i) => ops.push({path:`taskDefs/d${pad(i+1)}`, data:{name:n, kind:'daily', order:i+1, active:true, createdAt:t}}));
+  SEED_WEEKLY.forEach((n,i) => ops.push({path:`taskDefs/w${pad(i+1)}`, data:{name:n, kind:'weekly', order:i+1, active:true, createdAt:t}}));
+  SEED_SHOP.forEach(([cat, prods], ci) => {
+    const cid = `c${pad(ci+1)}`;
+    ops.push({path:`categories/${cid}`, data:{name:cat, order:ci+1}});
+    prods.forEach((p,pi) => ops.push({path:`products/${cid}p${pad(pi+1)}`, data:{name:p, key:nkey(p), categoryId:cid, order:pi+1}}));
+  });
+  ops.push({path:'meta/seed', data:{at:t, by:S.person}});
+  await B.batch(ops);   // מזהים קבועים: גם אם שני המכשירים יריצו בו־זמנית, לא ייווצרו כפילויות
+}
+
+/* =====================================================================
+   מצב האפליקציה
+   ===================================================================== */
+const S = {
+  user:null, person:null, users:[], ready:false,
+  defs:[], daily:{}, weekly:{}, cats:[], prods:[], missing:{},
+  dayId:null, weekId:null,
+  main: store.get('main','tasks'), taskTab: store.get('taskTab','daily'), shopTab: store.get('shopTab','catalog'),
+  filter:'all', search:'', editShop:false, closed: store.get('closed',{}),
+};
+const busy = new Set(); const justDone = new Set(); const leaving = new Set();
+let unsubs = [], periodUnsubs = [], loaded = {};
+const app = $('#app');
+
+const activeDefs = kind => S.defs.filter(d => d.kind===kind && d.active && !d.deleted).sort((a,b) => a.order-b.order);
+const slotOf = (map, id) => map[id] || {v:0, assignee:null, done:false};
+const catsSorted = () => S.cats.slice().sort((a,b) => a.order-b.order);
+
+/* ---------- מנויים בזמן אמת ---------- */
+function onErr(e){ console.warn(e); if(e?.code==='permission-denied') showUnauthorized(); }
+function subscribe(){
+  unsubs.forEach(f=>f()); unsubs = [];
+  const mark = k => { if(!loaded[k]){ loaded[k]=true; if(['defs','cats','prods','missing'].every(x=>loaded[x])){ S.ready=true; } } };
+  unsubs.push(B.watchCol('taskDefs', d => { S.defs=d; mark('defs'); paint(); }, onErr));
+  unsubs.push(B.watchCol('categories', d => { S.cats=d; mark('cats'); paint(); }, onErr));
+  unsubs.push(B.watchCol('products', d => { S.prods=d; mark('prods'); paint(); }, onErr));
+  unsubs.push(B.watchCol('missing', d => { S.missing=Object.fromEntries(d.map(x=>[x.id,x])); mark('missing'); paint(); }, onErr));
+  checkPeriod(true);
+}
+function checkPeriod(force=false){
+  const d = dayIdOf(now()), w = weekIdOf(now());
+  if(!force && d===S.dayId && w===S.weekId) return;
+  const changed = S.dayId && (d!==S.dayId || w!==S.weekId);
+  S.dayId = d; S.weekId = w;
+  periodUnsubs.forEach(f=>f()); periodUnsubs = [];
+  S.daily = {}; S.weekly = {};
+  periodUnsubs.push(B.watchCol(`daily/${d}/slots`, docs => { S.daily = Object.fromEntries(docs.map(x=>[x.id,x])); paint(); }, onErr));
+  periodUnsubs.push(B.watchCol(`weekly/${w}/slots`, docs => { S.weekly = Object.fromEntries(docs.map(x=>[x.id,x])); paint(); }, onErr));
+  if(changed) toast('התחילה תקופה חדשה, הרשימה התאפסה');
+  paint();
+}
+
+/* =====================================================================
+   פעולות משימות: כל שינוי הוא עסקה שבודקת שהמשימה לא השתנתה מאז שראיתם אותה
+   (מספר גרסה v). כך שני אנשים לא יכולים לתפוס את אותה משימה בו־זמנית.
+   ===================================================================== */
+async function slotOp(kind, taskId, expectedV, change, okMsg){
+  const key = kind+':'+taskId;
+  if(busy.has(key)) return false;
+  const path = (kind==='d' ? `daily/${S.dayId}` : `weekly/${S.weekId}`) + '/slots/' + taskId;
+  busy.add(key); paint();
+  try{
+    await B.tx(path, cur => {
+      cur = cur || {v:0, assignee:null, done:false};
+      if((cur.v||0) !== expectedV) throw new Conflict(cur);
+      return {...cur, ...change(cur), v:(cur.v||0)+1, updatedBy:S.person, updatedAt:now()};
+    });
+    if(okMsg) toast(okMsg);
+    return true;
+  }catch(e){ console.warn(e); toast(errMsg(e), true); return false; }
+  finally{ busy.delete(key); paint(); }
+}
+const assignDaily = (id, v, who) => slotOp('d', id, v, () => ({assignee:who}));
+async function toggleDaily(id){
+  const s = slotOf(S.daily, id);
+  const done = !s.done;
+  const ok = await slotOp('d', id, s.v||0, cur => done
+      ? {done:true, doneBy:S.person, doneAt:now(), assignee: cur.assignee || S.person}
+      : {done:false, doneBy:null, doneAt:null});
+  if(ok && done){ justDone.add('d:'+id); setTimeout(()=>justDone.delete('d:'+id), 700); paint(); }
+}
+async function toggleWeekly(id){
+  const s = slotOf(S.weekly, id);
+  const done = !s.done;
+  const ok = await slotOp('w', id, s.v||0, () => done ? {done:true, doneBy:S.person, doneAt:now()} : {done:false, doneBy:null, doneAt:null});
+  if(ok && done){ justDone.add('w:'+id); setTimeout(()=>justDone.delete('w:'+id), 700); paint(); }
+}
+
+/* =====================================================================
+   ציור המסכים
+   ===================================================================== */
+let shellKey = '';
+function paint(){
+  if(!S.user || !S.person) return;
+  if(!S.ready){ if(shellKey!=='loading'){ shellKey='loading'; app.innerHTML = `<div class="auth"><div class="spin" style="margin:40px auto"></div><div class="muted">טוען…</div></div>`; } return; }
+  const key = S.main + '|' + (S.main==='tasks' ? S.taskTab : S.shopTab);
+  if(key !== shellKey){ shellKey = key; buildShell(); }
+  paintTop();
+  if(S.main==='tasks'){ paintSummary(); S.taskTab==='daily' ? paintDaily() : paintWeekly(); }
+  else { S.shopTab==='catalog' ? paintCatalog() : paintList(); }
+}
+
+function buildShell(){
+  const y = scrollY;
+  app.innerHTML = `
+  ${LOCAL_MODE ? `<div class="test-bar">מצב בדיקה מקומי: עדיין לא מחובר לשרת, הנתונים לא משותפים בין מכשירים</div>` : ''}
+  <div class="top">
+    <div class="top-row">
+      <div><div class="brand">הבית שלנו</div><div class="hello"><span class="net" id="net"></span><span id="hello"></span></div></div>
+      <button class="icon-btn" data-act="menu" aria-label="הגדרות">⚙︎</button>
+    </div>
+    <div class="seg">
+      <button data-act="main" data-v="tasks" class="${S.main==='tasks'?'on':''}">משימות</button>
+      <button data-act="main" data-v="shop" class="${S.main==='shop'?'on':''}">קניות<span id="missBadge"></span></button>
+    </div>
+    <div id="offline" class="offline-bar hidden">אין חיבור לאינטרנט. מה שתשנו יישמר כשהחיבור יחזור.</div>
+  </div>
+  <main>
+    ${S.main==='tasks' ? `
+      <div class="card" id="summary"></div>
+      <div class="seg small" style="margin-bottom:14px">
+        <button data-act="taskTab" data-v="daily" class="${S.taskTab==='daily'?'on':''}">יומיות</button>
+        <button data-act="taskTab" data-v="weekly" class="${S.taskTab==='weekly'?'on':''}">שבועיות</button>
+      </div>
+      ${S.taskTab==='daily' ? `<div class="chips" id="filters"></div>` : ''}
+      <div id="body"></div>
+      <button class="link-btn" data-act="manageDefs">✎ עריכת רשימת המשימות ה${S.taskTab==='daily'?'יומיות':'שבועיות'}</button>
+    ` : `
+      <div class="seg small" style="margin-bottom:14px">
+        <button data-act="shopTab" data-v="catalog" class="${S.shopTab==='catalog'?'on':''}">כל המוצרים</button>
+        <button data-act="shopTab" data-v="list" class="${S.shopTab==='list'?'on':''}">רשימת קניות<span id="listBadge"></span></button>
+      </div>
+      ${S.shopTab==='catalog' ? `
+        <div class="search"><span class="ic">🔍</span><input id="search" type="search" placeholder="חיפוש או הוספת מוצר" value="${esc(S.search)}" autocomplete="off" enterkeyhint="search"></div>
+        <div class="tools"><span class="small muted" id="catInfo"></span><button class="link-btn" data-act="editShop">${S.editShop?'סיום עריכה':'✎ עריכה'}</button></div>` : ''}
+      <div id="body"></div>
+    `}
+  </main>`;
+  const si = $('#search');
+  if(si) si.addEventListener('input', () => { S.search = si.value; paintCatalog(); });
+  scrollTo(0, y);
+}
+
+function paintTop(){
+  $('#hello').textContent = `שלום ${pname(S.person)}`;
+  const off = !navigator.onLine;
+  $('#net').classList.toggle('off', off);
+  $('#offline').classList.toggle('hidden', !off);
+  const n = missingProducts().length;
+  $('#missBadge').innerHTML = n ? `<span class="badge">${n}</span>` : '';
+  const lb = $('#listBadge'); if(lb) lb.innerHTML = n ? `<span class="badge">${n}</span>` : '';
+}
+
+/* ---------- סיכום יומי ---------- */
+function paintSummary(){
+  const defs = activeDefs('daily');
+  const sl = defs.map(d => slotOf(S.daily, d.id));
+  const done = sl.filter(s=>s.done).length;
+  const c = p => sl.filter(s=>s.assignee===p).length;
+  const free = sl.filter(s=>!s.assignee && !s.done).length;
+  const p = il(now());
+  const pct = defs.length ? Math.round(done/defs.length*100) : 0;
+  $('#summary').innerHTML = `
+    <div class="sum-top"><div class="sum-big">${done} <small>מתוך ${defs.length} בוצעו היום</small></div>
+    <div class="small muted">יום ${DAY_NAMES[p.wd]}, ${p.d} ב${MONTHS[p.m-1]}</div></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="people"><span class="ptag shimon">שמעון · ${c('shimon')}</span><span class="ptag aviya">אביה · ${c('aviya')}</span><span class="ptag free">לא שובצו · ${free}</span></div>`;
+}
+
+/* ---------- משימות יומיות ---------- */
+function paintDaily(){
+  const me = S.person, partner = other(me);
+  const F = [['all','הכול'],['mine','שלי'],['partner',`של ${pname(partner)}`],['free','לא שובצו']];
+  $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('');
+  let defs = activeDefs('daily');
+  defs = defs.filter(d => { const s = slotOf(S.daily, d.id);
+    return S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done); });
+  if(!defs.length){ $('#body').innerHTML = `<div class="list"><div class="empty">${S.filter==='free'?'כל המשימות שובצו 👏':'אין משימות להצגה'}</div></div>`; return; }
+  $('#body').innerHTML = `<div class="list">${defs.map(d => taskRow('d', d, slotOf(S.daily, d.id))).join('')}</div>`;
+}
+
+function taskRow(kind, d, s){
+  const me = S.person, partner = other(me), k = kind+':'+d.id;
+  const isBusy = busy.has(k);
+  let meta = '', act = '';
+  if(s.done){
+    meta = `✓ בוצע ע״י ${pname(s.doneBy)}${s.doneAt ? ' · '+hhmm(s.doneAt) : ''}`;
+    act = s.assignee ? `<span class="ptag ${s.assignee}">${pname(s.assignee)}</span>` : '';
+  } else if(s.assignee){
+    if(s.updatedBy && s.updatedBy !== s.assignee) meta = `שובץ ע״י ${pname(s.updatedBy)}`;
+    act = `<button class="pill ${s.assignee}" data-act="${kind}-sheet" data-id="${d.id}">${s.assignee===me?'אני':pname(s.assignee)} ▾</button>`;
+  } else if(kind==='d'){
+    act = `<button class="pill me" data-act="d-assign" data-id="${d.id}" data-p="${me}">אני</button><button class="pill ghost" data-act="d-assign" data-id="${d.id}" data-p="${partner}">${pname(partner)}</button>`;
+  }
+  if(isBusy) act = `<div class="spin"></div>`;
+  if(kind==='w' && s.done) act = `<button class="pill ${s.assignee}" data-act="w-sheet" data-id="${d.id}">${s.assignee===me?'אני':pname(s.assignee)} ▾</button>`;
+  return `<div class="row ${s.done?'done':''} ${isBusy?'busy':''} ${justDone.has(k)?'pop':''}">
+    <button class="chk" data-act="${kind}-done" data-id="${d.id}" aria-label="${s.done?'ביטול סימון ביצוע':'סימון כבוצע'}">${CHECK}</button>
+    <div class="rbody"><div class="rname">${esc(d.name)}</div>${meta?`<div class="rmeta">${meta}</div>`:''}</div>
+    <div class="ract">${act}</div></div>`;
+}
+
+/* ---------- משימות שבועיות ---------- */
+function paintWeekly(){
+  const defs = activeDefs('weekly');
+  const sched = [], free = [];
+  for(const d of defs){ const s = slotOf(S.weekly, d.id); (s.assignee && s.day!=null ? sched : free).push([d,s]); }
+  const doneN = sched.filter(([,s])=>s.done).length;
+  let html = `<div class="card week-head"><div><div style="font-weight:800">השבוע: ${dm(weekDate(S.weekId,0))}–${dm(weekDate(S.weekId,6))}</div>
+    <div class="small muted">מתאפס במוצאי שבת ב־21:30</div></div>
+    <div class="ptag free">${doneN} מתוך ${sched.length} ששובצו בוצעו</div></div>`;
+  if(sched.length){
+    for(let day=0; day<7; day++){
+      const items = sched.filter(([,s]) => s.day===day).sort((a,b)=>a[0].order-b[0].order);
+      if(!items.length) continue;
+      html += `<h3 class="sec">יום ${DAY_NAMES[day]} · ${dm(weekDate(S.weekId,day))}</h3><div class="list">${items.map(([d,s]) => taskRow('w', d, s)).join('')}</div>`;
+    }
+  }
+  html += `<h3 class="sec">${sched.length ? 'עוד לא שובצו' : 'בחרו משימות לשבוע'}</h3>`;
+  html += free.length ? `<div class="list">${free.map(([d]) => `<div class="row ${busy.has('w:'+d.id)?'busy':''}"><div class="rbody"><div class="rname">${esc(d.name)}</div></div>
+      <div class="ract">${busy.has('w:'+d.id)?'<div class="spin"></div>':`<button class="pill me" data-act="w-sheet" data-id="${d.id}">שיבוץ</button>`}</div></div>`).join('')}</div>`
+    : `<div class="list"><div class="empty">כל המשימות השבועיות שובצו 👏</div></div>`;
+  $('#body').innerHTML = html;
+}
+
+/* ---------- קניות: קטלוג ---------- */
+function missingProducts(){ return S.prods.filter(p => S.missing[p.id] && S.cats.some(c=>c.id===p.categoryId)); }
+function paintCatalog(){
+  const q = nkey(S.search);
+  const cats = catsSorted();
+  const missN = missingProducts().length;
+  $('#catInfo').textContent = missN ? `${missN} מוצרים חסרים` : `${S.prods.length} מוצרים בקטלוג`;
+  let html = '';
+  if(q){
+    const exact = S.prods.some(p => p.key === q);
+    if(!exact) html += `<div class="list"><button class="prod" data-act="addFromSearch"><span class="box" style="border-style:dashed">+</span><span class="pname">הוספת "<b>${esc(S.search.trim())}</b>" כמוצר חדש</span></button></div>`;
+  }
+  for(const [ci, c] of cats.entries()){
+    let prods = S.prods.filter(p => p.categoryId===c.id).sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,'he'));
+    if(q) prods = prods.filter(p => p.key.includes(q));
+    if(q && !prods.length) continue;
+    const closed = !q && S.closed[c.id];
+    const nm = prods.filter(p=>S.missing[p.id]).length;
+    html += `<div class="cat ${closed?'closed':''}">
+      <div style="display:flex;align-items:center"><button class="cat-h" data-act="toggleCat" data-id="${c.id}"><span class="arrow">▼</span><span class="name">${esc(c.name)}</span>${nm?`<span class="cnt">${nm} חסרים</span>`:''}</button>
+      ${S.editShop ? `<div class="cat-tools" style="padding-left:10px">
+        <button class="edit-ic" data-act="catUp" data-id="${c.id}" ${ci===0?'disabled':''} aria-label="למעלה">↑</button>
+        <button class="edit-ic" data-act="catDown" data-id="${c.id}" ${ci===cats.length-1?'disabled':''} aria-label="למטה">↓</button>
+        <button class="edit-ic" data-act="catEdit" data-id="${c.id}" aria-label="עריכה">✎</button></div>` : ''}</div>
+      <div class="prods">${prods.map(p => {
+        const m = S.missing[p.id];
+        return `<div style="display:flex;align-items:center"><button class="prod ${m?'miss':''}" data-act="toggleMiss" data-id="${p.id}"><span class="box">${CHECK}</span><span class="pname">${esc(p.name)}</span>
+          ${m?(m._pending?'<span class="pend">ממתין לסנכרון…</span>':'<span class="tag">חסר</span>'):''}</button>
+          ${S.editShop?`<button class="edit-ic" style="margin-left:10px" data-act="prodEdit" data-id="${p.id}" aria-label="עריכת מוצר">✎</button>`:''}</div>`;
+      }).join('')}
+      ${S.editShop ? `<button class="prod add-row" data-act="prodAdd" data-id="${c.id}" style="color:var(--accent);font-weight:600">＋ הוספת מוצר ל${esc(c.name)}</button>` : ''}</div></div>`;
+  }
+  if(S.editShop) html += `<button class="btn" data-act="catAdd">＋ קטגוריה חדשה</button>`;
+  if(!html) html = `<div class="list"><div class="empty">לא נמצאו מוצרים</div></div>`;
+  $('#body').innerHTML = html;
+}
+
+/* ---------- קניות: רשימה ---------- */
+function paintList(){
+  const miss = missingProducts();
+  if(!miss.length){
+    $('#body').innerHTML = `<div class="card"><div class="empty"><div class="big">🧺</div><b>הכול מסודר, אין כרגע מוצרים לקנייה</b><div class="small" style="margin-top:6px">מסמנים מוצר כ"חסר" בלשונית "כל המוצרים" והוא יופיע כאן.</div></div></div>`;
     return;
   }
-  screen.innerHTML=`<div class="center"><h2>שלום ${esc(me.name)} 👋</h2>
-  <div class="card"><b>יוצרים בית חדש</b><p class="meta">אחרי זה תקבל קישור לשלוח לבן/בת הזוג.</p>
-  <button class="primary" id="create">צור בית</button></div>
-  <div class="card"><b>יש לך קישור הזמנה?</b><p class="meta">פשוט פותחים אותו מהוואטסאפ, וההצטרפות תהיה אוטומטית. או מדביקים כאן את הקוד:</p>
-  <div class="add"><input id="code" placeholder="קוד הבית" dir="ltr"><button class="primary" id="join">הצטרף</button></div></div>
-  <button class="link" id="out">התנתקות</button></div>`;
-  $('#create').onclick=async()=>{const id=await backend.createHome(me);start(id,true)};
-  $('#join').onclick=async()=>{const c=$('#code').value.trim().split('join=').pop();if(!c)return;
-    try{await backend.joinHome(me,c);start(c)}catch(e){toast('קוד לא תקין')}};
-  $('#out').onclick=()=>backend.signOut();
+  let html = `<div class="card list-head"><div><div class="small muted">חסרים כרגע</div><div class="num">${miss.length} <span style="font-size:16px;font-weight:600">מוצרים</span></div></div><div style="font-size:34px">🛒</div></div>`;
+  for(const c of catsSorted()){
+    const ps = miss.filter(p=>p.categoryId===c.id).sort((a,b)=>a.order-b.order);
+    if(!ps.length) continue;
+    html += `<div class="list"><div class="cat-title">${esc(c.name)}</div>${ps.map(p => {
+      const m = S.missing[p.id];
+      return `<div class="buy-row ${leaving.has(p.id)?'gone':''}"><div style="flex:1"><div class="pname">${esc(p.name)}</div>
+        <div class="rmeta">${m._pending?'ממתין לסנכרון…':`נוסף ע״י ${pname(m.by)}`}</div></div>
+        <button class="buy-btn" data-act="bought" data-id="${p.id}">✓ נקנה</button></div>`;
+    }).join('')}</div>`;
+  }
+  $('#body').innerHTML = html;
 }
 
-function inviteLink(){return location.origin+location.pathname+'?join='+hid}
-
-function showInvite(){
-  onInvite=true;
-  const link=inviteLink();
-  const wa='https://wa.me/?text='+encodeURIComponent('הצטרפי לאפליקציה המשותפת שלנו 🏠\n'+link);
-  screen.innerHTML=`<div class="center"><h2>הזמנה לבית</h2>
-  <div class="card"><p>שלח את הקישור הזה. מי שפותח אותו ונכנס עם Google מצטרף לבית ורואה הכול.</p>
-  <div class="code">${esc(link)}</div>
-  <div class="add" style="margin-top:12px"><a class="primary" style="text-decoration:none;text-align:center;flex:1" href="${wa}" target="_blank">שליחה בוואטסאפ</a>
-  <button class="primary" id="copy" style="flex:1">העתקה</button></div></div>
-  <div class="card"><b>מי בבית:</b><div class="meta" style="font-size:15px">${(home.members||[]).map(u=>esc(nameOf(u))).join(' · ')}</div></div>
-  <button class="link" id="back">חזרה</button> · <button class="link" id="out">התנתקות</button></div>`;
-  $('#copy').onclick=()=>navigator.clipboard?.writeText(link).then(()=>toast('הקישור הועתק'));
-  $('#back').onclick=()=>{onInvite=false;render()}; $('#out').onclick=()=>backend.signOut();
+/* =====================================================================
+   גיליון תחתון (Bottom sheet)
+   ===================================================================== */
+function sheet(html, mount){
+  closeSheet(true);
+  const scrim = document.createElement('div'); scrim.className='scrim';
+  const sh = document.createElement('div'); sh.className='sheet'; sh.setAttribute('role','dialog');
+  sh.innerHTML = `<div class="grab"></div>${html}`;
+  document.body.append(scrim, sh);
+  requestAnimationFrame(() => { scrim.classList.add('show'); sh.classList.add('show'); });
+  scrim.onclick = () => closeSheet();
+  mount && mount(sh);
+  return sh;
+}
+function closeSheet(instant){
+  document.querySelectorAll('.sheet,.scrim').forEach(el => { if(instant) el.remove(); else { el.classList.remove('show'); setTimeout(()=>el.remove(), 260); } });
+}
+function askText(title, value='', btn='שמירה'){
+  return new Promise(res => sheet(`<h2>${esc(title)}</h2><input class="field" id="tx" value="${esc(value)}" autocomplete="off"><button class="btn primary" id="ok">${btn}</button><button class="btn" id="cn">ביטול</button>`, sh => {
+    const i = $('#tx',sh); setTimeout(()=>i.focus(), 280);
+    const done = v => { closeSheet(); res(v); };
+    $('#ok',sh).onclick = () => done(i.value.trim() || null);
+    i.onkeydown = e => { if(e.key==='Enter') done(i.value.trim() || null); };
+    $('#cn',sh).onclick = () => done(null);
+  }));
+}
+function confirmSheet(title, text, btn='מחיקה'){
+  return new Promise(res => sheet(`<h2>${esc(title)}</h2><p class="muted">${text}</p><button class="btn danger" id="ok">${btn}</button><button class="btn" id="cn">ביטול</button>`, sh => {
+    $('#ok',sh).onclick = () => { closeSheet(); res(true); };
+    $('#cn',sh).onclick = () => { closeSheet(); res(false); };
+  }));
 }
 
-// ===== המסך הראשי =====
-function start(id,justCreated){
-  hid=id; unsub.forEach(f=>f()); unsub=[];
-  let first=true;
-  unsub.push(backend.watchHome(hid,d=>{if(!d){toast('הבית לא נמצא');backend.leaveHome(me).then(showHomeSetup);return}home=d;if(!first)render()},onErr));
-  unsub.push(backend.watchItems(hid,(list,added)=>{
-    items=list;
-    if(!first) added.filter(a=>a.by!==me.uid).forEach(a=>toast(`${nameOf(a.by)} הוסיפ/ה: ${a.text}`));
-    if(first&&justCreated){first=false;showInvite();return}
-    first=false; render();
-  },onErr));
-}
-function onErr(e){console.warn(e);if(String(e.code).includes('permission'))toast('אין הרשאה לבית הזה');}
-
-function render(){
-  if(!me||!hid||onInvite)return;
-  const scrollY=window.scrollY;
-  markSeen(tab);
-  const unread=t=>items.filter(i=>i.type===t&&i.by!==me.uid&&i.createdAt>(seen[t]||0)).length;
-  screen.innerHTML=`<header><h1>${TABS[tab].ic} ${TABS[tab].label}</h1><button id="invite">👥 הבית</button></header>
-  <main id="main"></main>
-  <nav>${Object.entries(TABS).map(([k,v])=>{const n=k===tab?0:unread(k);return`<button data-tab="${k}" class="${k===tab?'on':''}"><span class="ic">${v.ic}</span>${v.label}${n?`<span class="dot">${n}</span>`:''}</button>`}).join('')}</nav>`;
-  $('#invite').onclick=showInvite;
-  screen.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();window.scrollTo(0,0)});
-  ({shop:renderShop,task:renderTasks,event:renderEvents,note:renderNotes})[tab]($('#main'));
-  window.scrollTo(0,scrollY);
-}
-
-const byLine=i=>`<span class="${whoCls(i.by)}">${esc(nameOf(i.by))}</span> · ${ago(i.createdAt)}`;
-const delBtn=i=>`<button class="del" data-del="${i.id}" aria-label="מחיקה">×</button>`;
-function wire(root){
-  root.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const it=items.find(i=>i.id===b.dataset.toggle);
-    backend.update(hid,it.id,{done:!it.done,doneBy:me.uid})});
-  root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const it=items.find(i=>i.id===b.dataset.del);
-    if(confirm(`למחוק "${it.text}"?`))backend.remove(hid,it.id)});
-}
-function addItem(type,text,extra={}){text=text.trim();if(!text)return false;backend.add(hid,{type,text,done:false,by:me.uid,...extra});return true}
-function quickAdd(root,type,placeholder){
-  const f=root.querySelector('form');
-  f.onsubmit=e=>{e.preventDefault();const inp=f.querySelector('input');if(addItem(type,inp.value)){inp.value='';inp.focus()}};
-}
-
-function renderShop(root){
-  const list=items.filter(i=>i.type==='shop').sort((a,b)=>(a.done-b.done)||(b.createdAt-a.createdAt));
-  const doneCount=list.filter(i=>i.done).length;
-  root.innerHTML=`<div class="card"><form class="add"><input placeholder="מה צריך לקנות?" enterkeyhint="send"><button class="primary">הוסף</button></form></div>
-  <div class="card">${list.length?`<ul class="list">${list.map(i=>`<li class="${i.done?'done':''}"><button class="check" data-toggle="${i.id}">${i.done?'✓':''}</button>
-  <div class="body"><div class="text">${esc(i.text)}</div><div class="meta">${byLine(i)}</div></div>${delBtn(i)}</li>`).join('')}</ul>`:'<div class="empty">הרשימה ריקה 🎉</div>'}
-  ${doneCount?`<button class="link" id="clear">ניקוי ${doneCount} פריטים שנקנו</button>`:''}</div>`;
-  quickAdd(root,'shop'); wire(root);
-  const c=$('#clear'); if(c)c.onclick=()=>list.filter(i=>i.done).forEach(i=>backend.remove(hid,i.id));
-}
-
-function renderTasks(root){
-  const others=(home.members||[]).filter(u=>u!==me.uid);
-  const opts=[['','לשנינו'],[me.uid,'לי'],...others.map(u=>[u,'ל'+nameOf(u)])];
-  let list=items.filter(i=>i.type==='task');
-  if(taskFilter==='mine')list=list.filter(i=>!i.assignee||i.assignee===me.uid);
-  if(taskFilter==='open')list=list.filter(i=>!i.done);
-  list.sort((a,b)=>(a.done-b.done)||(b.createdAt-a.createdAt));
-  root.innerHTML=`<div class="card"><form class="add"><input placeholder="משימה חדשה" enterkeyhint="send">
-  <select id="assignee">${opts.map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join('')}</select><button class="primary">הוסף</button></form>
-  <div class="chips">${[['all','הכול'],['open','פתוחות'],['mine','שלי']].map(([k,l])=>`<button class="chip ${taskFilter===k?'on':''}" data-f="${k}">${l}</button>`).join('')}</div></div>
-  <div class="card">${list.length?`<ul class="list">${list.map(i=>`<li class="${i.done?'done':''}"><button class="check" data-toggle="${i.id}">${i.done?'✓':''}</button>
-  <div class="body"><div class="text">${esc(i.text)}</div><div class="meta">${i.assignee?`👤 ${esc(nameOf(i.assignee))} · `:''}${byLine(i)}${i.done&&i.doneBy?` · בוצע ע״י ${esc(nameOf(i.doneBy))}`:''}</div></div>${delBtn(i)}</li>`).join('')}</ul>`:'<div class="empty">אין משימות</div>'}</div>`;
-  const f=root.querySelector('form');
-  f.onsubmit=e=>{e.preventDefault();const inp=f.querySelector('input');if(addItem('task',inp.value,{assignee:$('#assignee').value||null})){inp.value=''}};
-  root.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{taskFilter=b.dataset.f;render()});
-  wire(root);
-}
-
-function renderEvents(root){
-  const today=new Date().toISOString().slice(0,10);
-  let list=items.filter(i=>i.type==='event');
-  const past=list.filter(i=>i.date<today).length;
-  if(!showPast)list=list.filter(i=>i.date>=today);
-  list.sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
-  const day=d=>{const x=new Date(d+'T12:00');return{n:x.getDate(),m:x.toLocaleDateString('he-IL',{month:'short'}),w:x.toLocaleDateString('he-IL',{weekday:'long'})}};
-  root.innerHTML=`<div class="card"><form class="add"><input id="etext" placeholder="מה האירוע?" style="flex-basis:100%">
-  <input type="date" id="edate" value="${today}"><input type="time" id="etime"><button class="primary">הוסף</button></form></div>
-  <div class="card">${list.length?`<ul class="list">${list.map(i=>{const d=day(i.date);return`<li><div class="date-badge">${d.n}<small>${d.m}</small></div>
-  <div class="body"><div class="text">${esc(i.text)}</div><div class="meta">${d.w}${i.time?' · '+i.time:''}${i.date===today?' · <b>היום</b>':''}<br>${byLine(i)}</div></div>${delBtn(i)}</li>`}).join('')}</ul>`:'<div class="empty">אין אירועים קרובים</div>'}
-  ${past?`<button class="link" id="past">${showPast?'הסתרת':'הצגת'} ${past} אירועים שעברו</button>`:''}</div>`;
-  root.querySelector('form').onsubmit=e=>{e.preventDefault();const d=$('#edate').value;if(!d)return toast('צריך תאריך');
-    if(addItem('event',$('#etext').value,{date:d,time:$('#etime').value||''})){$('#etext').value='';$('#etime').value=''}};
-  const p=$('#past');if(p)p.onclick=()=>{showPast=!showPast;render()};
-  wire(root);
-}
-
-function renderNotes(root){
-  const list=items.filter(i=>i.type==='note').sort((a,b)=>b.createdAt-a.createdAt);
-  root.innerHTML=`<div class="card"><form class="add"><input placeholder="פתק / הודעה" enterkeyhint="send"><button class="primary">הוסף</button></form></div>
-  ${list.length?list.map(i=>`<div class="card"><div class="row"><div class="text" style="flex:1">${esc(i.text)}</div>${delBtn(i)}</div><div class="meta">${byLine(i)}</div></div>`).join(''):'<div class="card empty">אין פתקים</div>'}`;
-  quickAdd(root,'note'); wire(root);
-}
-
-// ===== הפעלה =====
-(async()=>{
-  if(DEMO){const b=$('#banner');b.textContent=FIREBASE_CONFIG?'מצב הדגמה: הנתונים נשמרים רק במכשיר הזה':'מצב הדגמה: עדיין לא חובר לשרת, הנתונים לא משותפים';b.classList.remove('hidden')}
-  try{backend=DEMO?demoBackend():await firebaseBackend()}
-  catch(e){screen.innerHTML=`<div class="center"><h2>אין חיבור</h2><p>בדקו אינטרנט ונסו שוב.</p></div>`;console.warn(e);return}
-  backend.onUser(async u=>{
-    me=u; if(!u)return showSignIn();
-    const h=await backend.getHome(u.uid).catch(()=>null);
-    if(h&&!params.get('join'))start(h);else showHomeSetup();
+/* ---------- גיליון למשימה יומית משובצת ---------- */
+function dailySheet(id){
+  const d = S.defs.find(x=>x.id===id), s = slotOf(S.daily, id), v = s.v||0, a = s.assignee, o = other(a);
+  sheet(`<h2>${esc(d.name)}</h2><p class="muted" style="margin-top:-6px">משובצת ל${a===S.person?'י':pname(a)}</p>
+    <button class="btn primary" id="done">✓ סימון כבוצעה</button>
+    <button class="btn" id="move">${o===S.person?'לקחת אליי':`העברה ל${pname(o)}`}</button>
+    <button class="btn" id="un">ביטול שיבוץ</button>`, sh => {
+    $('#done',sh).onclick = () => { closeSheet(); toggleDaily(id); };
+    $('#move',sh).onclick = () => { closeSheet(); assignDaily(id, v, o); };
+    $('#un',sh).onclick = () => { closeSheet(); assignDaily(id, v, null); };
   });
-  setInterval(()=>{if(hid&&document.visibilityState==='visible'&&!document.activeElement?.matches('input,select'))render()},60000);
+}
+
+/* ---------- גיליון שיבוץ משימה שבועית: מי → איזה יום → אישור ---------- */
+function weeklySheet(id){
+  const d = S.defs.find(x=>x.id===id), s = slotOf(S.weekly, id), v = s.v||0;
+  const scheduled = s.assignee && s.day!=null;
+  const nowP = il(now());
+  const weekStartedToday = S.weekId === dayIdOf(now());
+  let who = s.assignee || S.person;
+  let day = scheduled ? s.day : (weekStartedToday ? 0 : nowP.wd);
+  sheet(`<h2>${esc(d.name)}</h2>
+    <label class="l">מי מבצע?</label>
+    <div class="pick">${['shimon','aviya'].map(p=>`<button data-p="${p}" class="${p}">${p===S.person?`אני (${pname(p)})`:pname(p)}</button>`).join('')}</div>
+    <label class="l">באיזה יום?</label>
+    <div class="days">${DAY_SHORT.map((n,i)=>`<button data-d="${i}">${n}<small>${dm(weekDate(S.weekId,i))}</small></button>`).join('')}</div>
+    <button class="btn primary" id="ok">${scheduled?'שמירת שינויים':'שיבוץ'}</button>
+    ${scheduled ? `<button class="btn" id="done">${s.done?'ביטול סימון ביצוע':'✓ סימון כבוצעה'}</button><button class="btn" id="un">ביטול שיבוץ</button>` : ''}`, sh => {
+    const draw = () => {
+      sh.querySelectorAll('[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p===who));
+      sh.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('on', +b.dataset.d===day));
+    };
+    sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { who=b.dataset.p; draw(); });
+    sh.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { day=+b.dataset.d; draw(); });
+    draw();
+    $('#ok',sh).onclick = () => { closeSheet(); slotOp('w', id, v, () => ({assignee:who, day}), scheduled ? 'השיבוץ עודכן' : `שובץ ליום ${DAY_NAMES[day]}`); };
+    const dn = $('#done',sh); if(dn) dn.onclick = () => { closeSheet(); toggleWeekly(id); };
+    const un = $('#un',sh); if(un) un.onclick = () => { closeSheet(); slotOp('w', id, v, () => ({assignee:null, day:null, done:false, doneBy:null, doneAt:null}), 'השיבוץ בוטל'); };
+  });
+}
+
+/* ---------- ניהול רשימות המשימות הקבועות ---------- */
+function manageDefs(){
+  const kind = S.taskTab;
+  const title = kind==='daily' ? 'משימות יומיות קבועות' : 'משימות שבועיות קבועות';
+  const draw = sh => {
+    const defs = S.defs.filter(d=>d.kind===kind && !d.deleted).sort((a,b)=>a.order-b.order);
+    $('#mlist',sh).innerHTML = defs.map((d,i) => `<div class="mrow ${d.active?'':'off'}">
+      <button class="nm" data-m="rename" data-id="${d.id}">${esc(d.name)}</button>
+      <button class="edit-ic" data-m="up" data-id="${d.id}" ${i===0?'disabled':''} aria-label="למעלה">↑</button>
+      <button class="edit-ic" data-m="down" data-id="${d.id}" ${i===defs.length-1?'disabled':''} aria-label="למטה">↓</button>
+      <button class="switch ${d.active?'on':''}" data-m="active" data-id="${d.id}" aria-label="${d.active?'השבתה':'הפעלה'}"></button>
+      <button class="edit-ic" data-m="del" data-id="${d.id}" aria-label="מחיקה">🗑</button></div>`).join('');
+  };
+  sheet(`<h2>${title}</h2><p class="small muted" style="margin-top:-8px">לחיצה על שם לעריכה · המתג מפעיל או משבית · מחיקה לא מוחקת היסטוריה</p>
+    <div id="mlist"></div><button class="btn primary" id="add">＋ הוספת משימה</button><button class="btn" id="close">סגירה</button>`, sh => {
+    draw(sh);
+    const redraw = () => { if(document.body.contains(sh)) draw(sh); };
+    sh._redraw = redraw;
+    $('#close',sh).onclick = () => closeSheet();
+    $('#add',sh).onclick = async () => {
+      const name = prompt('שם המשימה החדשה'); if(!name || !name.trim()) return;
+      const all = S.defs.filter(d=>d.kind===kind);
+      if(all.some(d=>!d.deleted && nkey(d.name)===nkey(name))) return toast('כבר יש משימה בשם הזה', true);
+      try{ await B.set(`taskDefs/${B.newId()}`, {name:name.trim(), kind, order:Math.max(0,...all.map(d=>d.order))+1, active:true, createdAt:now()}); toast('המשימה נוספה'); redraw(); }
+      catch(e){ toast(errMsg(e), true); }
+    };
+    $('#mlist',sh).onclick = async e => {
+      const b = e.target.closest('[data-m]'); if(!b) return;
+      const d = S.defs.find(x=>x.id===b.dataset.id); if(!d) return;
+      const list = S.defs.filter(x=>x.kind===kind && !x.deleted).sort((a,b)=>a.order-b.order);
+      try{
+        if(b.dataset.m==='rename'){ const n = prompt('שם המשימה', d.name); if(n && n.trim() && n.trim()!==d.name) await B.set(`taskDefs/${d.id}`, {name:n.trim()}, true); }
+        if(b.dataset.m==='active'){ await B.set(`taskDefs/${d.id}`, {active:!d.active}, true); }
+        if(b.dataset.m==='del'){ if(confirm(`למחוק את "${d.name}" מהרשימה? ההיסטוריה שלה תישמר.`)) await B.set(`taskDefs/${d.id}`, {deleted:true, active:false, deletedAt:now()}, true); }
+        if(b.dataset.m==='up' || b.dataset.m==='down'){
+          const i = list.indexOf(d), j = b.dataset.m==='up' ? i-1 : i+1; if(j<0 || j>=list.length) return;
+          await swapOrder('taskDefs', list, i, j);
+        }
+        redraw();
+      }catch(err){ toast(errMsg(err), true); }
+    };
+  });
+}
+async function swapOrder(colName, list, i, j){
+  // מספור מחדש של כל הרשימה אחרי ההחלפה, כדי שלא יהיו שני פריטים עם אותו סדר
+  const arr = list.slice(); [arr[i], arr[j]] = [arr[j], arr[i]];
+  await B.batch(arr.map((x,k) => ({path:`${colName}/${x.id}`, data:{order:k+1}, merge:true})));
+}
+
+/* ---------- ניהול מוצרים וקטגוריות ---------- */
+function dupProduct(name, exceptId){ const k = nkey(name); return S.prods.find(p => p.key===k && p.id!==exceptId); }
+async function addProduct(name, catId, markMissing){
+  name = name.trim(); if(!name) return;
+  const dup = dupProduct(name);
+  if(dup){ toast(`"${dup.name}" כבר קיים בקטגוריה ${S.cats.find(c=>c.id===dup.categoryId)?.name||''}`, true); return; }
+  const id = B.newId();
+  const order = Math.max(0, ...S.prods.filter(p=>p.categoryId===catId).map(p=>p.order)) + 1;
+  const ops = [{path:`products/${id}`, data:{name, key:nkey(name), categoryId:catId, order}}];
+  if(markMissing) ops.push({path:`missing/${id}`, data:{by:S.person, at:now()}});
+  try{ await B.batch(ops); toast(markMissing ? `"${name}" נוסף לרשימת הקניות` : `"${name}" נוסף לקטלוג`); }
+  catch(e){ toast(errMsg(e), true); }
+}
+function productSheet(p, newName, newCat){
+  const isNew = !p;
+  const cats = catsSorted();
+  sheet(`<h2>${isNew?'מוצר חדש':'עריכת מוצר'}</h2>
+    <label class="l">שם</label><input class="field" id="nm" value="${esc(isNew?newName:p.name)}" autocomplete="off">
+    <label class="l">קטגוריה</label><select class="field" id="ct">${cats.map(c=>`<option value="${c.id}" ${(isNew?newCat:p.categoryId)===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    ${isNew?`<label style="display:flex;gap:10px;align-items:center;margin-top:14px;font-weight:600"><input type="checkbox" id="mm" checked style="width:22px;height:22px"> להוסיף גם לרשימת הקניות</label>`:''}
+    <button class="btn primary" id="ok">${isNew?'הוספה':'שמירה'}</button>
+    ${isNew?'':'<button class="btn danger" id="del">מחיקת המוצר מהקטלוג</button>'}
+    <button class="btn" id="cn">ביטול</button>`, sh => {
+    $('#cn',sh).onclick = () => closeSheet();
+    $('#ok',sh).onclick = async () => {
+      const name = $('#nm',sh).value.trim(), cat = $('#ct',sh).value;
+      if(!name) return toast('צריך שם למוצר', true);
+      if(isNew){ closeSheet(); S.search=''; const si=$('#search'); if(si) si.value=''; await addProduct(name, cat, $('#mm',sh).checked); return; }
+      const dup = dupProduct(name, p.id); if(dup) return toast(`"${dup.name}" כבר קיים בקטלוג`, true);
+      closeSheet();
+      const patch = {name, key:nkey(name)};
+      if(cat !== p.categoryId){ patch.categoryId = cat; patch.order = Math.max(0, ...S.prods.filter(x=>x.categoryId===cat).map(x=>x.order)) + 1; }
+      try{ await B.set(`products/${p.id}`, patch, true); toast('נשמר'); }catch(e){ toast(errMsg(e), true); }
+    };
+    const del = $('#del',sh);
+    if(del) del.onclick = async () => {
+      closeSheet();
+      if(!await confirmSheet('מחיקת מוצר', `למחוק את "${esc(p.name)}" מהקטלוג?`)) return;
+      try{ await B.batch([{path:`products/${p.id}`, del:true}, {path:`missing/${p.id}`, del:true}]); toast('המוצר נמחק'); }catch(e){ toast(errMsg(e), true); }
+    };
+    if(isNew) setTimeout(()=>$('#nm',sh).focus(), 280);
+  });
+}
+function categorySheet(c){
+  const n = S.prods.filter(p=>p.categoryId===c.id).length;
+  sheet(`<h2>קטגוריה</h2><label class="l">שם</label><input class="field" id="nm" value="${esc(c.name)}">
+    <button class="btn primary" id="ok">שמירה</button><button class="btn danger" id="del">מחיקת הקטגוריה</button><button class="btn" id="cn">ביטול</button>`, sh => {
+    $('#cn',sh).onclick = () => closeSheet();
+    $('#ok',sh).onclick = async () => { const name = $('#nm',sh).value.trim(); if(!name) return;
+      if(S.cats.some(x=>x.id!==c.id && nkey(x.name)===nkey(name))) return toast('כבר יש קטגוריה בשם הזה', true);
+      closeSheet(); try{ await B.set(`categories/${c.id}`, {name}, true); toast('נשמר'); }catch(e){ toast(errMsg(e), true); } };
+    $('#del',sh).onclick = async () => {
+      closeSheet();
+      if(!await confirmSheet('מחיקת קטגוריה', n ? `למחוק את "${esc(c.name)}"? יימחקו גם <b>${n} המוצרים</b> שבה. אפשר קודם להעביר מוצרים לקטגוריה אחרת.` : `למחוק את "${esc(c.name)}"?`)) return;
+      const ops = [{path:`categories/${c.id}`, del:true}];
+      S.prods.filter(p=>p.categoryId===c.id).forEach(p => ops.push({path:`products/${p.id}`, del:true}, {path:`missing/${p.id}`, del:true}));
+      try{ await B.batch(ops); toast('הקטגוריה נמחקה'); }catch(e){ toast(errMsg(e), true); }
+    };
+  });
+}
+
+/* ---------- סימון חסר / נקנה ---------- */
+async function toggleMissing(id){
+  const p = S.prods.find(x=>x.id===id); if(!p) return;
+  try{
+    if(S.missing[id]) await B.del(`missing/${id}`);
+    else await B.set(`missing/${id}`, {by:S.person, at:now()});   // מזהה = מזהה המוצר, לכן אין כפילויות ברשימה
+  }catch(e){ toast(errMsg(e), true); }
+}
+async function bought(id){
+  const p = S.prods.find(x=>x.id===id); if(!p || leaving.has(id)) return;
+  leaving.add(id); paint();
+  try{
+    await B.batch([{path:`missing/${id}`, del:true}, {path:`purchases/${B.newId()}`, data:{productId:id, name:p.name, categoryId:p.categoryId, by:S.person, at:now()}}]);
+  }catch(e){ toast(errMsg(e), true); }
+  finally{ setTimeout(()=>{ leaving.delete(id); paint(); }, 260); }
+}
+
+/* =====================================================================
+   לחיצות
+   ===================================================================== */
+app.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  const id = b.dataset.id, v = b.dataset.v;
+  switch(b.dataset.act){
+    case 'main': S.main=v; store.set('main',v); paint(); scrollTo(0,0); break;
+    case 'taskTab': S.taskTab=v; store.set('taskTab',v); paint(); break;
+    case 'shopTab': S.shopTab=v; store.set('shopTab',v); paint(); break;
+    case 'filter': S.filter=v; paint(); break;
+    case 'd-assign': assignDaily(id, slotOf(S.daily,id).v||0, b.dataset.p); break;
+    case 'd-done': toggleDaily(id); break;
+    case 'd-sheet': dailySheet(id); break;
+    case 'w-done': toggleWeekly(id); break;
+    case 'w-sheet': weeklySheet(id); break;
+    case 'manageDefs': manageDefs(); break;
+    case 'toggleCat': S.closed[id] = !S.closed[id]; store.set('closed', S.closed); paintCatalog(); break;
+    case 'toggleMiss': toggleMissing(id); break;
+    case 'bought': bought(id); break;
+    case 'editShop': S.editShop=!S.editShop; b.textContent = S.editShop?'סיום עריכה':'✎ עריכה'; paintCatalog(); break;
+    case 'prodEdit': productSheet(S.prods.find(p=>p.id===id)); break;
+    case 'prodAdd': productSheet(null, '', id); break;
+    case 'addFromSearch': productSheet(null, S.search.trim(), catsSorted().at(-1)?.id); break;
+    case 'catEdit': categorySheet(S.cats.find(c=>c.id===id)); break;
+    case 'catUp': case 'catDown': {
+      const list = catsSorted(), i = list.findIndex(c=>c.id===id), j = b.dataset.act==='catUp' ? i-1 : i+1;
+      if(j>=0 && j<list.length) swapOrder('categories', list, i, j).catch(err=>toast(errMsg(err), true)); break; }
+    case 'catAdd': { const name = await askText('קטגוריה חדשה', '', 'הוספה'); if(!name) break;
+      if(S.cats.some(c=>nkey(c.name)===nkey(name))) { toast('כבר יש קטגוריה בשם הזה', true); break; }
+      try{ await B.set(`categories/${B.newId()}`, {name, order:Math.max(0,...S.cats.map(c=>c.order))+1}); toast('הקטגוריה נוספה'); }catch(err){ toast(errMsg(err), true); } break; }
+    case 'menu': menuSheet(); break;
+  }
+});
+
+function menuSheet(){
+  sheet(`<h2>הגדרות</h2>
+    <p class="muted" style="margin-top:-6px">מחובר/ת בתור <b>${pname(S.person)}</b>${S.user?.email && !LOCAL_MODE ? ` · <span dir="ltr">${esc(S.user.email)}</span>` : ''}</p>
+    <div class="card" style="box-shadow:none;background:var(--soft)"><b>הוספה למסך הבית</b>
+    <div class="small muted" style="margin-top:6px">אייפון: בספארי לוחצים על כפתור השיתוף ⬆︎ ואז "הוספה למסך הבית".<br>אנדרואיד: בכרום לוחצים על ⋮ ואז "התקנת אפליקציה".</div></div>
+    <button class="btn danger" id="out">התנתקות</button><button class="btn" id="cn">סגירה</button>`, sh => {
+    $('#cn',sh).onclick = () => closeSheet();
+    $('#out',sh).onclick = () => { closeSheet(); B.signOut(); };
+  });
+}
+
+/* =====================================================================
+   כניסה וזיהוי
+   ===================================================================== */
+function authShell(inner){ shellKey=''; app.innerHTML = `${LOCAL_MODE ? `<div class="test-bar">מצב בדיקה מקומי: עדיין לא מחובר לשרת, הנתונים לא משותפים בין מכשירים</div>` : ''}<div class="auth"><img class="logo" src="icon-192.png" alt=""><h1>הבית שלנו</h1>${inner}</div>`; }
+
+function showLogin(){
+  if(LOCAL_MODE){
+    authShell(`<p class="muted">מצב בדיקה: בוחרים מי נכנס. כל לשונית בדפדפן מתנהגת כמו מכשיר נפרד.</p>
+      <div class="who"><button class="shimon" data-p="shimon">שמעון</button><button class="aviya" data-p="aviya">אביה</button></div>`);
+    app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => B.signIn(b.dataset.p));
+    return;
+  }
+  let mode = 'in';
+  const draw = () => {
+    authShell(`<p class="muted">משימות הבית ורשימת הקניות, משותפות לשמעון ולאביה</p>
+      <div class="card">
+        <label class="l" style="margin-top:0">אימייל</label><input class="field" id="em" type="email" autocomplete="email" dir="ltr" inputmode="email">
+        <label class="l">סיסמה</label><input class="field" id="pw" type="password" autocomplete="${mode==='in'?'current-password':'new-password'}" dir="ltr">
+        <div class="err-txt" id="er"></div>
+        <button class="btn primary" id="go">${mode==='in'?'כניסה':'יצירת חשבון'}</button>
+        <button class="link-btn" id="sw" style="width:100%">${mode==='in'?'פעם ראשונה? יצירת חשבון':'כבר יש לי חשבון, כניסה'}</button>
+        ${mode==='in'?'<button class="link-btn" id="fg" style="width:100%;color:var(--muted)">שכחתי סיסמה</button>':''}
+      </div>`);
+    const er = $('#er');
+    $('#sw').onclick = () => { mode = mode==='in'?'up':'in'; draw(); };
+    const fg = $('#fg'); if(fg) fg.onclick = async () => { const em=$('#em').value.trim(); if(!em) return er.textContent='כתבו קודם את האימייל';
+      try{ await B.resetPassword(em); er.style.color='var(--accent)'; er.textContent='נשלח מייל לאיפוס סיסמה'; }catch(e){ er.textContent=authErr(e); } };
+    const go = $('#go');
+    const submit = async () => {
+      const em = $('#em').value.trim(), pw = $('#pw').value;
+      if(!em || !pw) return er.textContent = 'צריך אימייל וסיסמה';
+      go.disabled = true; go.textContent = 'רגע…'; er.textContent = '';
+      try{ mode==='in' ? await B.signIn(em, pw) : await B.signUp(em, pw); }
+      catch(e){ er.textContent = authErr(e); go.disabled = false; go.textContent = mode==='in'?'כניסה':'יצירת חשבון'; }
+    };
+    go.onclick = submit; $('#pw').onkeydown = e => { if(e.key==='Enter') submit(); };
+  };
+  draw();
+}
+function authErr(e){
+  const c = e?.code || '';
+  if(/invalid-credential|wrong-password|user-not-found/.test(c)) return 'אימייל או סיסמה שגויים';
+  if(/email-already-in-use/.test(c)) return 'כבר קיים חשבון עם האימייל הזה. היכנסו במקום.';
+  if(/weak-password/.test(c)) return 'הסיסמה צריכה להיות לפחות 6 תווים';
+  if(/invalid-email/.test(c)) return 'כתובת האימייל לא תקינה';
+  if(/network/.test(c)) return 'אין חיבור לאינטרנט';
+  if(/too-many/.test(c)) return 'יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.';
+  return 'הכניסה נכשלה. נסו שוב.';
+}
+
+function showUnauthorized(){
+  unsubs.forEach(f=>f()); periodUnsubs.forEach(f=>f()); unsubs=[]; periodUnsubs=[];
+  authShell(`<div class="card"><b>החשבון הזה לא מורשה</b><p class="muted">האפליקציה פתוחה רק לשמעון ולאביה. אם זו טעות, צריך להוסיף את האימייל לרשימת המורשים.</p><button class="btn" id="out">התנתקות</button></div>`);
+  $('#out').onclick = () => B.signOut();
+}
+
+async function choosePerson(){
+  const users = await new Promise(res => { const u = B.watchCol('users', d => { res(d); setTimeout(()=>u&&u()); }, e => { onErr(e); res(null); }); });
+  if(users === null) return;
+  const taken = Object.fromEntries(users.filter(u=>u.person && u.id!==S.user.uid).map(u=>[u.person,true]));
+  authShell(`<p class="muted">פעם אחת בלבד: מי את/ה?</p>
+    <div class="who">${['shimon','aviya'].map(p=>`<button class="${p}" data-p="${p}" ${taken[p]?'disabled':''}>${pname(p)}${taken[p]?'<div class="small">כבר נבחר</div>':''}</button>`).join('')}</div>
+    <button class="link-btn" id="out" style="margin-top:24px">התנתקות</button>`);
+  $('#out').onclick = () => B.signOut();
+  app.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try{ await B.set(`users/${S.user.uid}`, {person:b.dataset.p, email:S.user.email||null, at:now()}, true); start(b.dataset.p); }
+    catch(e){ toast(errMsg(e), true); b.disabled = false; }
+  });
+}
+
+async function start(person){
+  S.person = person; S.ready = false; loaded = {}; shellKey = '';
+  paint();
+  await B.syncClock(S.user.uid);
+  try{ await seedIfNeeded(); }catch(e){ console.warn(e); if(e?.code==='permission-denied') return showUnauthorized(); }
+  subscribe();
+}
+
+/* ---------- הפעלה ---------- */
+(async () => {
+  try{ B = LOCAL_MODE ? localBackend() : await firebaseBackend(FIREBASE_CONFIG); }
+  catch(e){ console.warn(e); authShell(`<div class="card"><b>לא הצלחנו להתחבר</b><p class="muted">בדקו שיש אינטרנט ונסו לרענן.</p></div>`); return; }
+  B.onUser(async u => {
+    unsubs.forEach(f=>f()); periodUnsubs.forEach(f=>f()); unsubs=[]; periodUnsubs=[];
+    S.user = u; S.person = null; S.ready = false; S.dayId = S.weekId = null;
+    if(!u) return showLogin();
+    if(LOCAL_MODE) return start(u.uid.replace('local-',''));
+    let me;
+    try{ me = await B.get(`users/${u.uid}`); }
+    catch(e){ if(e?.code==='permission-denied') return showUnauthorized(); me = null; }
+    if(me?.person) start(me.person); else choosePerson();
+  });
+  setInterval(() => { if(S.ready) checkPeriod(); }, 20000);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible' && S.ready){ checkPeriod(); paint(); } });
+  addEventListener('online', () => S.ready && paint());
+  addEventListener('offline', () => S.ready && paint());
+  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(LOCAL_MODE) window.__test = { shiftTo(iso){ testShift = new Date(iso).getTime() - Date.now(); checkPeriod(); }, il, dayIdOf, weekIdOf, B: () => B };
 })();
 </script>
 </body>
