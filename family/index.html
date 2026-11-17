@@ -307,7 +307,7 @@ function conflictMsg(cur){
 /* =====================================================================
    נתוני התחלה (נוצרים פעם אחת, עם מזהים קבועים כדי שלא ייווצרו כפילויות)
    ===================================================================== */
-const SEED_DAILY = ['שטיפת כלים','הפעלת מכונת כביסה','תליית כביסה / העברה למייבש','קיפול כביסה והכנסה לארונות','איפוס הבית – סידור הסלון והמרחב המרכזי','זריקת זבל','סידור המטבח בסוף היום','ניקוי השיש ושולחן האוכל'];
+const SEED_DAILY = ['שטיפת כלים','הפעלת מכונת כביסה','תליית כביסה / העברה למייבש','קיפול כביסה והכנסה לארונות','איפוס הבית – סידור הסלון והמרחב המרכזי','זריקת זבל','סידור המטבח בסוף היום','ניקוי השיש ושולחן האוכל','השקיית עציצים'];
 const SEED_WEEKLY = ['שטיפת רצפות בכל הבית','סידור וניקיון חדר הילדים','סידור וניקיון חדר העבודה','סידור וניקיון חדר ההורים','ניקיון מקלחת ההורים','ניקיון השירותים','ניקיון המקרר','ניקיון אזור מכונת הכביסה והמייבש','סידור המחסן','ניקיון יסודי של המטבח','סידור וניקיון החצר','ניקיון הרכבים','החלפת מצעים','שאיבת אבק יסודית','ניקוי אבק ממשטחים ורהיטים'];
 const SEED_SHOP = [
   ['ירקות ופירות',['עגבניות','מלפפונים','בצל','שום','תפוחי אדמה','בטטות','גזר','פלפלים','חסה','לימונים','בננות','תפוחים','אבוקדו']],
@@ -356,6 +356,8 @@ const app = $('#app');
 
 const activeDefs = kind => S.defs.filter(d => d.kind===kind && d.active && !d.deleted).sort((a,b) => a.order-b.order);
 const slotOf = (map, id) => map[id] || {v:0, assignee:null, done:false};
+const weeklyToday = () => activeDefs('weekly').map(d => [d, slotOf(S.weekly, d.id)])
+  .filter(([,s]) => s.assignee && s.day!=null && weekDate(S.weekId, s.day) === S.dayId);
 const catsSorted = () => S.cats.slice().sort((a,b) => a.order-b.order);
 
 /* ---------- מנויים בזמן אמת ---------- */
@@ -485,15 +487,17 @@ function paintTop(){
 
 /* ---------- סיכום יומי ---------- */
 function paintSummary(){
+  const wt = weeklyToday();
   const defs = activeDefs('daily');
-  const sl = defs.map(d => slotOf(S.daily, d.id));
+  const sl = defs.map(d => slotOf(S.daily, d.id)).concat(wt.map(([,s]) => s));
+  const total = sl.length;
   const done = sl.filter(s=>s.done).length;
   const c = p => sl.filter(s=>s.assignee===p).length;
   const free = sl.filter(s=>!s.assignee && !s.done).length;
   const p = il(now());
-  const pct = defs.length ? Math.round(done/defs.length*100) : 0;
+  const pct = total ? Math.round(done/total*100) : 0;
   $('#summary').innerHTML = `
-    <div class="sum-top"><div class="sum-big">${done} <small>מתוך ${defs.length} בוצעו היום</small></div>
+    <div class="sum-top"><div class="sum-big">${done} <small>מתוך ${total} בוצעו היום</small></div>
     <div class="small muted">יום ${DAY_NAMES[p.wd]}, ${p.d} ב${MONTHS[p.m-1]}</div></div>
     <div class="bar"><i style="width:${pct}%"></i></div>
     <div class="people"><span class="ptag shimon">שמעון · ${c('shimon')}</span><span class="ptag aviya">אביה · ${c('aviya')}</span><span class="ptag free">לא שובצו · ${free}</span></div>`;
@@ -504,11 +508,13 @@ function paintDaily(){
   const me = S.person, partner = other(me);
   const F = [['all','הכול'],['mine','שלי'],['partner',`של ${pname(partner)}`],['free','לא שובצו']];
   $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('');
-  let defs = activeDefs('daily');
-  defs = defs.filter(d => { const s = slotOf(S.daily, d.id);
-    return S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done); });
-  if(!defs.length){ $('#body').innerHTML = `<div class="list"><div class="empty">${S.filter==='free'?'כל המשימות שובצו 👏':'אין משימות להצגה'}</div></div>`; return; }
-  $('#body').innerHTML = `<div class="list">${defs.map(d => taskRow('d', d, slotOf(S.daily, d.id))).join('')}</div>`;
+  const pass = s => S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done);
+  const defs = activeDefs('daily').filter(d => pass(slotOf(S.daily, d.id)));
+  const wt = weeklyToday().filter(([,s]) => pass(s));
+  let html = defs.length ? `<div class="list">${defs.map(d => taskRow('d', d, slotOf(S.daily, d.id))).join('')}</div>`
+    : `<div class="list"><div class="empty">${S.filter==='free'?'כל המשימות שובצו 👏':'אין משימות להצגה'}</div></div>`;
+  if(wt.length) html += `<h3 class="sec">📅 משימות שבועיות שתוכננו להיום</h3><div class="list">${wt.map(([d,s]) => taskRow('w', d, s)).join('')}</div>`;
+  $('#body').innerHTML = html;
 }
 
 function taskRow(kind, d, s){
