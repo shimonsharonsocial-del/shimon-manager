@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="הבית שלנו">
+<title>הבית שלנו</title>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--ink:#1c2321;--muted:#6b7672;--line:#e3e8e6;--accent:#0f766e;--accent-soft:#e0f2ef;--danger:#c2410c;--me:#0f766e;--other:#7c3aed}
+@media (prefers-color-scheme:dark){:root{--bg:#111615;--card:#1b2220;--ink:#e8eeec;--muted:#93a19c;--line:#2a3431;--accent:#2dd4bf;--accent-soft:#16312d;--danger:#fb923c;--me:#2dd4bf;--other:#c4b5fd}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Arial,sans-serif;font-size:16px}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--accent);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between}
+@media (prefers-color-scheme:dark){header{color:#06201d}}
+header h1{margin:0;font-size:20px}
+header button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:8px;padding:4px 10px;font-size:13px}
+main{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.add{display:flex;gap:8px;flex-wrap:wrap}
+.add input,.add select{flex:1 1 140px;min-width:0;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.add input[type=date],.add input[type=time]{flex:1 1 120px}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-size:16px;font-weight:600}
+@media (prefers-color-scheme:dark){button.primary{color:#06201d}}
+button.link{background:none;border:0;color:var(--accent);font-size:14px;padding:6px 0}
+ul.list{list-style:none;margin:0;padding:0}
+ul.list li{display:flex;align-items:center;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line)}
+ul.list li:last-child{border-bottom:0}
+.check{width:26px;height:26px;flex:0 0 26px;border-radius:50%;border:2px solid var(--line);background:none;display:grid;place-items:center;color:#fff;font-size:15px;padding:0}
+li.done .check{background:var(--accent);border-color:var(--accent)}
+li.done .text{text-decoration:line-through;color:var(--muted)}
+.body{flex:1;min-width:0}
+.text{word-wrap:break-word;white-space:pre-wrap}
+.meta{font-size:12px;color:var(--muted);margin-top:2px}
+.who-me{color:var(--me)}.who-other{color:var(--other)}
+.del{background:none;border:0;color:var(--muted);font-size:20px;padding:4px 6px}
+.empty{color:var(--muted);text-align:center;padding:18px 0}
+.date-badge{flex:0 0 52px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:6px 0;font-weight:700;line-height:1.1}
+.date-badge small{display:block;font-weight:500;font-size:11px}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;border:0;color:var(--muted);padding:10px 0 12px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav button .ic{font-size:22px}
+nav button.on{color:var(--accent);font-weight:700}
+nav .dot{position:absolute;top:6px;right:calc(50% - 18px);background:var(--danger);color:#fff;border-radius:9px;font-size:10px;min-width:16px;padding:1px 4px}
+.center{max-width:440px;margin:40px auto;padding:0 16px;text-align:center}
+.center .card{text-align:right}
+.center h2{margin-top:0}
+.code{font-family:monospace;background:var(--bg);padding:8px;border-radius:8px;word-break:break-all;direction:ltr;text-align:left;font-size:13px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hidden{display:none!important}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{border:1px solid var(--line);background:none;color:var(--ink);border-radius:20px;padding:5px 12px;font-size:14px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.banner{background:#fef3c7;color:#78350f;font-size:13px;padding:8px 16px;text-align:center}
+</style>
+</head>
+<body>
+<div id="banner" class="banner hidden"></div>
+<div id="screen"></div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+// ===== הגדרות Firebase =====
+// מדביקים כאן את ה־firebaseConfig מהמסוף של Firebase (זה לא סוד, מותר שיהיה בקוד).
+const FIREBASE_CONFIG = null;
+const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const screen = $('#screen');
+const params = new URLSearchParams(location.search);
+const DEMO = params.has('demo') || !FIREBASE_CONFIG;
+
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+
+// ===== שכבת נתונים: Firebase אמיתי או מצב הדגמה מקומי =====
+let backend;
+
+async function firebaseBackend(){
+  const [{initializeApp},{getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,signOut},fs] = await Promise.all([
+    import(FB+'firebase-app.js'), import(FB+'firebase-auth.js'), import(FB+'firebase-firestore.js')]);
+  const app = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const db = fs.initializeFirestore(app,{localCache:fs.persistentLocalCache({tabManager:fs.persistentMultipleTabManager()})});
+  return {
+    onUser: cb => onAuthStateChanged(auth, u => cb(u && {uid:u.uid, name:(u.displayName||u.email||'').split(' ')[0]})),
+    async signIn(){const p=new GoogleAuthProvider();try{await signInWithPopup(auth,p)}catch(e){if(/popup/.test(e.code||''))await signInWithRedirect(auth,p);else throw e}},
+    signOut: () => signOut(auth),
+    async getHome(uid){const s=await fs.getDoc(fs.doc(db,'users',uid));return s.exists()?s.data().household:null},
+    async createHome(user){
+      const ref=fs.doc(fs.collection(db,'households'));
+      await fs.setDoc(ref,{members:[user.uid],names:{[user.uid]:user.name},created:fs.serverTimestamp()});
+      await fs.setDoc(fs.doc(db,'users',user.uid),{household:ref.id});return ref.id},
+    async joinHome(user,hid){
+      await fs.updateDoc(fs.doc(db,'households',hid),{members:fs.arrayUnion(user.uid),['names.'+user.uid]:user.name});
+      await fs.setDoc(fs.doc(db,'users',user.uid),{household:hid})},
+    async leaveHome(user){await fs.deleteDoc(fs.doc(db,'users',user.uid))},
+    watchHome:(hid,cb,err)=>fs.onSnapshot(fs.doc(db,'households',hid),s=>cb(s.data()),err),
+    watchItems:(hid,cb,err)=>fs.onSnapshot(fs.collection(db,'households',hid,'items'),s=>{
+      cb(s.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toMillis?.()??Date.now()})),
+         s.docChanges().filter(c=>c.type==='added'&&!s.metadata.hasPendingWrites).map(c=>c.doc.data()))},err),
+    add:(hid,item)=>fs.addDoc(fs.collection(db,'households',hid,'items'),{...item,createdAt:fs.serverTimestamp()}),
+    update:(hid,id,patch)=>fs.updateDoc(fs.doc(db,'households',hid,'items',id),patch),
+    remove:(hid,id)=>fs.deleteDoc(fs.doc(db,'households',hid,'items',id)),
+  };
+}
+
+function demoBackend(){
+  const K='family-demo-v1';
+  const load=()=>{try{return JSON.parse(localStorage.getItem(K))||{}}catch{return{}}};
+  let st=load(); const subs=new Set();
+  const save=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch{} subs.forEach(f=>f())};
+  window.addEventListener('storage',e=>{if(e.key===K){st=load();subs.forEach(f=>f())}});
+  const user={uid:'demo-me',name:'שמעון'};
+  return {
+    onUser: cb => cb(st.signed?user:null) || subs.add(()=>{}),
+    async signIn(){st.signed=true;save();location.reload()},
+    async signOut(){st.signed=false;save();location.reload()},
+    async getHome(){return st.home||null},
+    async createHome(){st.home='demo-home';st.members=[user.uid,'demo-wife'];st.names={[user.uid]:'שמעון','demo-wife':'אשתי'};st.items=[];save();return st.home},
+    async joinHome(u,hid){st.home=hid;st.members=[user.uid,'demo-wife'];st.names={[user.uid]:'שמעון','demo-wife':'אשתי'};st.items=st.items||[];save()},
+    async leaveHome(){delete st.home;save()},
+    watchHome(hid,cb){const f=()=>cb({members:st.members,names:st.names});subs.add(f);f();return()=>subs.delete(f)},
+    watchItems(hid,cb){const f=()=>cb((st.items||[]).slice(),[]);subs.add(f);f();return()=>subs.delete(f)},
+    async add(hid,item){st.items.push({...item,id:Math.random().toString(36).slice(2),createdAt:Date.now()});save()},
+    async update(hid,id,patch){const it=st.items.find(i=>i.id===id);Object.assign(it,patch);save()},
+    async remove(hid,id){st.items=st.items.filter(i=>i.id!==id);save()},
+  };
+}
+
+// ===== מצב האפליקציה =====
+let me=null, hid=null, home={members:[],names:{}}, items=[], tab='shop', unsub=[];
+const TABS={shop:{ic:'🛒',label:'קניות'},task:{ic:'✅',label:'משימות'},event:{ic:'📅',label:'אירועים'},note:{ic:'📝',label:'פתקים'}};
+let seen={}; try{seen=JSON.parse(localStorage.getItem('family-seen')||'{}')}catch{}
+const markSeen=t=>{seen[t]=Date.now();try{localStorage.setItem('family-seen',JSON.stringify(seen))}catch{}};
+let taskFilter='all', showPast=false, onInvite=false;
+
+const nameOf = uid => uid===me?.uid ? 'אני' : (home.names?.[uid] || 'מישהו');
+const whoCls = uid => uid===me?.uid ? 'who-me' : 'who-other';
+const ago = ms => {const m=Math.round((Date.now()-ms)/60000);if(m<1)return'עכשיו';if(m<60)return`לפני ${m} דק׳`;const h=Math.round(m/60);if(h<24)return`לפני ${h} שע׳`;return new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})};
+
+// ===== מסכי כניסה והגדרה =====
+function showSignIn(){
+  screen.innerHTML=`<div class="center"><div style="font-size:56px">🏠</div><h2>הבית שלנו</h2>
+  <p style="color:var(--muted)">רשימת קניות, משימות, אירועים ופתקים, משותפים לשניכם ומתעדכנים מיד.</p>
+  <button class="primary" id="signin">כניסה עם חשבון Google</button></div>`;
+  $('#signin').onclick=()=>backend.signIn().catch(e=>toast('הכניסה נכשלה: '+(e.code||e.message)));
+}
+
+function showHomeSetup(){
+  const joinId=params.get('join');
+  if(joinId){
+    screen.innerHTML=`<div class="center"><h2>מצטרפים לבית…</h2></div>`;
+    backend.joinHome(me,joinId).then(()=>{history.replaceState(null,'',location.pathname+(DEMO?'?demo':''));start(joinId)})
+      .catch(e=>{toast('הקישור לא תקין');console.warn(e);params.delete('join');showHomeSetup()});
+    return;
+  }
+  screen.innerHTML=`<div class="center"><h2>שלום ${esc(me.name)} 👋</h2>
+  <div class="card"><b>יוצרים בית חדש</b><p class="meta">אחרי זה תקבל קישור לשלוח לבן/בת הזוג.</p>
+  <button class="primary" id="create">צור בית</button></div>
+  <div class="card"><b>יש לך קישור הזמנה?</b><p class="meta">פשוט פותחים אותו מהוואטסאפ, וההצטרפות תהיה אוטומטית. או מדביקים כאן את הקוד:</p>
+  <div class="add"><input id="code" placeholder="קוד הבית" dir="ltr"><button class="primary" id="join">הצטרף</button></div></div>
+  <button class="link" id="out">התנתקות</button></div>`;
+  $('#create').onclick=async()=>{const id=await backend.createHome(me);start(id,true)};
+  $('#join').onclick=async()=>{const c=$('#code').value.trim().split('join=').pop();if(!c)return;
+    try{await backend.joinHome(me,c);start(c)}catch(e){toast('קוד לא תקין')}};
+  $('#out').onclick=()=>backend.signOut();
+}
+
+function inviteLink(){return location.origin+location.pathname+'?join='+hid}
+
+function showInvite(){
+  onInvite=true;
+  const link=inviteLink();
+  const wa='https://wa.me/?text='+encodeURIComponent('הצטרפי לאפליקציה המשותפת שלנו 🏠\n'+link);
+  screen.innerHTML=`<div class="center"><h2>הזמנה לבית</h2>
+  <div class="card"><p>שלח את הקישור הזה. מי שפותח אותו ונכנס עם Google מצטרף לבית ורואה הכול.</p>
+  <div class="code">${esc(link)}</div>
+  <div class="add" style="margin-top:12px"><a class="primary" style="text-decoration:none;text-align:center;flex:1" href="${wa}" target="_blank">שליחה בוואטסאפ</a>
+  <button class="primary" id="copy" style="flex:1">העתקה</button></div></div>
+  <div class="card"><b>מי בבית:</b><div class="meta" style="font-size:15px">${(home.members||[]).map(u=>esc(nameOf(u))).join(' · ')}</div></div>
+  <button class="link" id="back">חזרה</button> · <button class="link" id="out">התנתקות</button></div>`;
+  $('#copy').onclick=()=>navigator.clipboard?.writeText(link).then(()=>toast('הקישור הועתק'));
+  $('#back').onclick=()=>{onInvite=false;render()}; $('#out').onclick=()=>backend.signOut();
+}
+
+// ===== המסך הראשי =====
+function start(id,justCreated){
+  hid=id; unsub.forEach(f=>f()); unsub=[];
+  let first=true;
+  unsub.push(backend.watchHome(hid,d=>{if(!d){toast('הבית לא נמצא');backend.leaveHome(me).then(showHomeSetup);return}home=d;if(!first)render()},onErr));
+  unsub.push(backend.watchItems(hid,(list,added)=>{
+    items=list;
+    if(!first) added.filter(a=>a.by!==me.uid).forEach(a=>toast(`${nameOf(a.by)} הוסיפ/ה: ${a.text}`));
+    if(first&&justCreated){first=false;showInvite();return}
+    first=false; render();
+  },onErr));
+}
+function onErr(e){console.warn(e);if(String(e.code).includes('permission'))toast('אין הרשאה לבית הזה');}
+
+function render(){
+  if(!me||!hid||onInvite)return;
+  const scrollY=window.scrollY;
+  markSeen(tab);
+  const unread=t=>items.filter(i=>i.type===t&&i.by!==me.uid&&i.createdAt>(seen[t]||0)).length;
+  screen.innerHTML=`<header><h1>${TABS[tab].ic} ${TABS[tab].label}</h1><button id="invite">👥 הבית</button></header>
+  <main id="main"></main>
+  <nav>${Object.entries(TABS).map(([k,v])=>{const n=k===tab?0:unread(k);return`<button data-tab="${k}" class="${k===tab?'on':''}"><span class="ic">${v.ic}</span>${v.label}${n?`<span class="dot">${n}</span>`:''}</button>`}).join('')}</nav>`;
+  $('#invite').onclick=showInvite;
+  screen.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();window.scrollTo(0,0)});
+  ({shop:renderShop,task:renderTasks,event:renderEvents,note:renderNotes})[tab]($('#main'));
+  window.scrollTo(0,scrollY);
+}
+
+const byLine=i=>`<span class="${whoCls(i.by)}">${esc(nameOf(i.by))}</span> · ${ago(i.createdAt)}`;
+const delBtn=i=>`<button class="del" data-del="${i.id}" aria-label="מחיקה">×</button>`;
+function wire(root){
+  root.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const it=items.find(i=>i.id===b.dataset.toggle);
+    backend.update(hid,it.id,{done:!it.done,doneBy:me.uid})});
+  root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const it=items.find(i=>i.id===b.dataset.del);
+    if(confirm(`למחוק "${it.text}"?`))backend.remove(hid,it.id)});
+}
+function addItem(type,text,extra={}){text=text.trim();if(!text)return false;backend.add(hid,{type,text,done:false,by:me.uid,...extra});return true}
+function quickAdd(root,type,placeholder){
+  const f=root.querySelector('form');
+  f.onsubmit=e=>{e.preventDefault();const inp=f.querySelector('input');if(addItem(type,inp.value)){inp.value='';inp.focus()}};
+}
+
+function renderShop(root){
+  const list=items.filter(i=>i.type==='shop').sort((a,b)=>(a.done-b.done)||(b.createdAt-a.createdAt));
+  const doneCount=list.filter(i=>i.done).length;
+  root.innerHTML=`<div class="card"><form class="add"><input placeholder="מה צריך לקנות?" enterkeyhint="send"><button class="primary">הוסף</button></form></div>
+  <div class="card">${list.length?`<ul class="list">${list.map(i=>`<li class="${i.done?'done':''}"><button class="check" data-toggle="${i.id}">${i.done?'✓':''}</button>
+  <div class="body"><div class="text">${esc(i.text)}</div><div class="meta">${byLine(i)}</div></div>${delBtn(i)}</li>`).join('')}</ul>`:'<div class="empty">הרשימה ריקה 🎉</div>'}
+  ${doneCount?`<button class="link" id="clear">ניקוי ${doneCount} פריטים שנקנו</button>`:''}</div>`;
+  quickAdd(root,'shop'); wire(root);
+  const c=$('#clear'); if(c)c.onclick=()=>list.filter(i=>i.done).forEach(i=>backend.remove(hid,i.id));
+}
+
+function renderTasks(root){
+  const others=(home.members||[]).filter(u=>u!==me.uid);
+  const opts=[['','לשנינו'],[me.uid,'לי'],...others.map(u=>[u,'ל'+nameOf(u)])];
+  let list=items.filter(i=>i.type==='task');
+  if(taskFilter==='mine')list=list.filter(i=>!i.assignee||i.assignee===me.uid);
+  if(taskFilter==='open')list=list.filter(i=>!i.done);
+  list.sort((a,b)=>(a.done-b.done)||(b.createdAt-a.createdAt));
+  root.innerHTML=`<div class="card"><form class="add"><input placeholder="משימה חדשה" enterkeyhint="send">
+  <select id="assignee">${opts.map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join('')}</select><button class="primary">הוסף</button></form>
+  <div class="chips">${[['all','הכול'],['open','פתוחות'],['mine','שלי']].map(([k,l])=>`<button class="chip ${taskFilter===k?'on':''}" data-f="${k}">${l}</button>`).join('')}</div></div>
+  <div class="card">${list.length?`<ul class="list">${list.map(i=>`<li class="${i.done?'done':''}"><button class="check" data-toggle="${i.id}">${i.done?'✓':''}</button>
+  <div class="body"><div class="text">${esc(i.text)}</div><div class="meta">${i.assignee?`👤 ${esc(nameOf(i.assignee))} · `:''}${byLine(i)}${i.done&&i.doneBy?` · בוצע ע״י ${esc(nameOf(i.doneBy))}`:''}</div></div>${delBtn(i)}</li>`).join('')}</ul>`:'<div class="empty">אין משימות</div>'}</div>`;
+  const f=root.querySelector('form');
+  f.onsubmit=e=>{e.preventDefault();const inp=f.querySelector('input');if(addItem('task',inp.value,{assignee:$('#assignee').value||null})){inp.value=''}};
+  root.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{taskFilter=b.dataset.f;render()});
+  wire(root);
+}
+
+function renderEvents(root){
+  const today=new Date().toISOString().slice(0,10);
+  let list=items.filter(i=>i.type==='event');
+  const past=list.filter(i=>i.date<today).length;
+  if(!showPast)list=list.filter(i=>i.date>=today);
+  list.sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+  const day=d=>{const x=new Date(d+'T12:00');return{n:x.getDate(),m:x.toLocaleDateString('he-IL',{month:'short'}),w:x.toLocaleDateString('he-IL',{weekday:'long'})}};
+  root.innerHTML=`<div class="card"><form class="add"><input id="etext" placeholder="מה האירוע?" style="flex-basis:100%">
+  <input type="date" id="edate" value="${today}"><input type="time" id="etime"><button class="primary">הוסף</button></form></div>
+  <div class="card">${list.length?`<ul class="list">${list.map(i=>{const d=day(i.date);return`<li><div class="date-badge">${d.n}<small>${d.m}</small></div>
+  <div class="body"><div class="text">${esc(i.text)}</div><div class="meta">${d.w}${i.time?' · '+i.time:''}${i.date===today?' · <b>היום</b>':''}<br>${byLine(i)}</div></div>${delBtn(i)}</li>`}).join('')}</ul>`:'<div class="empty">אין אירועים קרובים</div>'}
+  ${past?`<button class="link" id="past">${showPast?'הסתרת':'הצגת'} ${past} אירועים שעברו</button>`:''}</div>`;
+  root.querySelector('form').onsubmit=e=>{e.preventDefault();const d=$('#edate').value;if(!d)return toast('צריך תאריך');
+    if(addItem('event',$('#etext').value,{date:d,time:$('#etime').value||''})){$('#etext').value='';$('#etime').value=''}};
+  const p=$('#past');if(p)p.onclick=()=>{showPast=!showPast;render()};
+  wire(root);
+}
+
+function renderNotes(root){
+  const list=items.filter(i=>i.type==='note').sort((a,b)=>b.createdAt-a.createdAt);
+  root.innerHTML=`<div class="card"><form class="add"><input placeholder="פתק / הודעה" enterkeyhint="send"><button class="primary">הוסף</button></form></div>
+  ${list.length?list.map(i=>`<div class="card"><div class="row"><div class="text" style="flex:1">${esc(i.text)}</div>${delBtn(i)}</div><div class="meta">${byLine(i)}</div></div>`).join(''):'<div class="card empty">אין פתקים</div>'}`;
+  quickAdd(root,'note'); wire(root);
+}
+
+// ===== הפעלה =====
+(async()=>{
+  if(DEMO){const b=$('#banner');b.textContent=FIREBASE_CONFIG?'מצב הדגמה: הנתונים נשמרים רק במכשיר הזה':'מצב הדגמה: עדיין לא חובר לשרת, הנתונים לא משותפים';b.classList.remove('hidden')}
+  try{backend=DEMO?demoBackend():await firebaseBackend()}
+  catch(e){screen.innerHTML=`<div class="center"><h2>אין חיבור</h2><p>בדקו אינטרנט ונסו שוב.</p></div>`;console.warn(e);return}
+  backend.onUser(async u=>{
+    me=u; if(!u)return showSignIn();
+    const h=await backend.getHome(u.uid).catch(()=>null);
+    if(h&&!params.get('join'))start(h);else showHomeSetup();
+  });
+  setInterval(()=>{if(hid&&document.visibilityState==='visible'&&!document.activeElement?.matches('input,select'))render()},60000);
+})();
+</script>
+</body>
+</html>
