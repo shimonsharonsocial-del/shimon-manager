@@ -401,7 +401,9 @@
     width:100%;padding:11px 13px;margin-bottom:14px;border-radius:12px;border:1.5px solid var(--border);
     background:var(--surface);color:var(--text);font-size:16px;
   }
-  .dlv-title{font-size:17px;font-weight:800;margin:0 0 12px;}
+  .dlv-title{font-size:17px;font-weight:800;margin:0 0 6px;}
+  .dlv-summary{font-size:14px;color:var(--text-muted);margin:0 0 12px;}
+  .dlv-summary b{color:var(--text);}
   .dlv-item-note{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4;overflow-wrap:anywhere;}
   .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
   .dlv-row{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:8px;box-shadow:var(--shadow);}
@@ -416,7 +418,8 @@
   }
   .dlv-row.status-delivered .dlv-row-inner{background:var(--success-tint);border-color:var(--success);}
   .dlv-row.status-failed .dlv-row-inner{background:var(--danger-tint);border-color:var(--danger);}
-  .dlv-row.status-unavailable .dlv-row-inner{background:color-mix(in srgb, var(--warning) 16%, var(--surface));border-color:var(--warning);}
+  .dlv-row.status-unavailable .dlv-row-inner{background:var(--danger-tint);border-color:var(--danger);}
+  .dlv-row.status-extra .dlv-row-inner{background:color-mix(in srgb, var(--warning) 18%, var(--surface));border-color:var(--warning);}
   .dlv-row.dragging,.dlv-street-row.dragging{box-shadow:var(--shadow-md);opacity:.92;}
   .dlv-row.dragging .dlv-row-inner,.dlv-street-row.dragging{border-color:var(--primary);}
   .dlv-handle{
@@ -430,14 +433,16 @@
   .dlv-state{font-size:11.5px;font-weight:700;color:var(--text-muted);}
   .dlv-row.status-delivered .dlv-state{color:var(--success);}
   .dlv-row.status-failed .dlv-state{color:var(--danger);}
-  .dlv-row.status-unavailable .dlv-state{color:var(--warning);}
+  .dlv-row.status-unavailable .dlv-state{color:var(--danger);}
+  .dlv-row.status-extra .dlv-state{color:var(--warning);}
   .dlv-btn{
     flex-shrink:0;width:44px;min-height:46px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);
     color:var(--text);font-size:18px;font-weight:800;padding:0;
   }
   .dlv-btn.edit{width:32px;border:none;background:none;font-size:13px;opacity:.65;}
   .dlv-btn.fail.on{background:var(--danger);border-color:var(--danger);color:#fff;}
-  .dlv-btn.unavail.on{background:var(--warning);border-color:var(--warning);}
+  .dlv-btn.unavail.on{background:var(--danger);border-color:var(--danger);}
+  .dlv-btn.mail.on{background:var(--warning);border-color:var(--warning);}
   .dlv-town-tabs{margin-bottom:2px;}
   .dlv-town-tabs .tab{flex:1;padding:11px 6px;text-align:center;font-size:14.5px;}
   .dlv-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
@@ -3876,10 +3881,15 @@ function deleteDlvUpdate(id){
 
 /* ---------- Deliveries: lists ---------- */
 // There is one running list; the reset button clears it. Lists from older versions stay until the first reset.
+// The newest list is the running one. The reset button starts a new list; older ones stay as history.
+function dlvListTime(l){ return l.createdAt || Date.parse(l.date) || 0; }
 function dlvCurrentList(){
   const lists = state.deliveryLists;
   if(!lists.length) lists.push({ id:uid(), date:todayStr(), createdAt:Date.now() });
-  return [...lists].sort((a,b)=> a.date<b.date?1:-1)[0];
+  return [...lists].sort((a,b)=>dlvListTime(b)-dlvListTime(a))[0];
+}
+function dlvViewedList(){
+  return state.deliveryLists.find(l=>l.id===ui.deliveryListId) || dlvCurrentList();
 }
 function dlvListItems(listId){
   return state.deliveryItems.filter(i=>i.listId===listId).sort((a,b)=>a.position-b.position);
@@ -3890,9 +3900,6 @@ const DLV_SHIR_STREET = 'שיר השירים';
 function dlvLandmarkIndex(town, street){
   if(town!=='אלקנה') return -1;
   return DELIVERY_ELKANA_MAP.findIndex(l=>l.name===street || (l.aliases||[]).includes(street));
-}
-function dlvIsInCar(i){
-  return !!i.large || (i.town==='אלקנה' && i.street===DLV_SHIR_STREET) || dlvLandmarkIndex(i.town, i.street)!==-1;
 }
 // Where a package sits on the Elkana route: part 0 is the side street itself, part 1 the Shir HaShirim stretch after it.
 // Returns null for an address the map doesn't cover. A number listed in two stretches goes in the first, marked approximate.
@@ -3908,10 +3915,20 @@ function dlvElkanaSlot(i){
   DELIVERY_ELKANA_MAP.forEach((l,idx)=>{ if(l[key] && n>=l[key][0] && n<=l[key][1]) hits.push(idx); });
   return hits.length ? { landmark:hits[0], part:1, approx:hits.length>1 } : null;
 }
-// Elkana addresses the map doesn't cover follow the mapped ones, in the street order; other towns come after.
-function dlvRouteGroup(i, slot){ return i.town==='אלקנה' ? (slot ? 0 : 1) : 2; }
+// Route position of a street; "ספיר" with house 14 also matches a route entry named "ספיר 14".
+function dlvStreetOrder(orderMap, i){
+  const k1 = `${i.town}|${i.street}`, k2 = `${i.town}|${i.street} ${i.houseNumber||''}`.trim();
+  return orderMap.has(k1) ? orderMap.get(k1) : (orderMap.has(k2) ? orderMap.get(k2) : Infinity);
+}
+// Elkana: streets placed before the Shir HaShirim route in "סדר רחובות" (בנות ירושלים, כרמל, אילות השדה, ספיר 14)
+// come first, then the mapped Shir HaShirim route, then other Elkana addresses; other towns come after.
+function dlvRouteGroup(i, slot, orderMap, shirStart){
+  if(i.town!=='אלקנה') return 3;
+  if(slot) return 1;
+  return dlvStreetOrder(orderMap, i) < shirStart ? 0 : 2;
+}
 function dlvRowHtml(i){
-  const stateText = { delivered:'✓ נמסר', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
+  const stateText = { delivered:'✓ נמסר', extra:'✉️ נמסר ונשלח בוואטסאפ', failed:'✕ כשל', unavailable:'👎🏼 לא זמין' }[i.status];
   const slot = dlvElkanaSlot(i);
   const meta = [stateText, slot && slot.approx ? 'מיקום משוער' : ''].filter(Boolean).join(' · ');
   return `<div class="dlv-row status-${i.status}" data-id="${i.id}">
@@ -3928,29 +3945,51 @@ function dlvRowHtml(i){
       ${meta ? `<div class="dlv-state">${meta}</div>` : ''}
     </div>
     <button type="button" class="dlv-btn edit" onclick="openDlvItemForm('${i.id}')" title="עריכה">✏️</button>
+    <button type="button" class="dlv-btn mail ${i.status==='extra'?'on':''}" onclick="dlvToggleStatus('${i.id}','extra')" title="נמסר ונשלח בוואטסאפ (נוספים)">✉️</button>
     <button type="button" class="dlv-btn unavail ${i.status==='unavailable'?'on':''}" onclick="dlvToggleStatus('${i.id}','unavailable')" title="לא זמין">👎🏼</button>
     </div>
   </div>`;
 }
+// Done counts both regular deliveries and the ones sent to the business on WhatsApp.
+function dlvSummaryHtml(listId){
+  const items = state.deliveryItems.filter(i=>i.listId===listId);
+  const done = items.filter(i=>i.status==='delivered' || i.status==='extra').length;
+  return `סה"כ ברשימה: <b>${items.length}</b> · בוצעו: <b>${done}</b>`;
+}
 function renderDeliveryList(){
-  const list = dlvCurrentList();
-  const items = dlvListItems(list.id).filter(dlvIsInCar);
+  const current = dlvCurrentList();
+  const list = dlvViewedList();
+  const isPast = list.id!==current.id;
+  const items = dlvListItems(list.id);
+  const lists = [...state.deliveryLists].sort((a,b)=>dlvListTime(b)-dlvListTime(a));
+  const options = lists.map(l=>`<option value="${l.id}" ${l.id===list.id?'selected':''}>${l.id===current.id ? 'הרשימה הנוכחית' : dlvDateFull(l.date)} (${state.deliveryItems.filter(i=>i.listId===l.id).length})</option>`).join('');
   return `
     <div class="dlv-toolbar">
-      <button class="icon-btn" onclick="dlvResetList()" title="איפוס רשימה" aria-label="איפוס רשימה">🔄</button>
+      <button class="icon-btn" onclick="dlvResetList()" title="רשימה חדשה" aria-label="רשימה חדשה">🔄</button>
       <button class="btn secondary" onclick="openDlvRouteModal()">🛣️ סדר רחובות</button>
     </div>
-    <h2 class="dlv-title">מאחורה ברכב</h2>
+    ${lists.length>1 ? `<select class="dlv-list-select" onchange="setDeliveryList(this.value)" aria-label="היסטוריית רשימות">${options}</select>` : ''}
+    ${isPast ? `<div class="dlv-warning" style="margin:0 0 12px;">אתה צופה ברשימה מ-${dlvDateFull(list.date)}. <button type="button" class="text-btn small" onclick="setDeliveryList('')">חזרה לרשימה הנוכחית</button></div>` : ''}
+    <h2 class="dlv-title">מאחורה ברכב${isPast ? ' – '+dlvDateFull(list.date) : ''}</h2>
+    <div class="dlv-summary" id="dlvSummary">${dlvSummaryHtml(list.id)}</div>
     <button class="btn primary dlv-big-btn" onclick="openDlvItemForm()">+ הוסף לרכב</button>
     <div id="dlvRows">${items.map(dlvRowHtml).join('')}</div>
     ${items.length ? '' : '<div class="empty">הרשימה ריקה.</div>'}
     ${items.length>1 ? `<div style="text-align:center;margin-top:14px;"><button class="text-btn small" onclick="dlvResetOrder('${list.id}')">סידור מחדש לפי סדר הרחובות</button></div>` : ''}
   `;
 }
+function setDeliveryList(id){ ui.deliveryListId = id || null; render(); }
 function dlvResetList(){
-  showConfirm('לאפס את הרשימה ולהתחיל מחדש? כל החבילות יימחקו.', () => {
-    state.deliveryItems = [];
-    state.deliveryLists = [];
+  const current = dlvCurrentList();
+  if(!state.deliveryItems.some(i=>i.listId===current.id)){
+    ui.deliveryListId = null;
+    render();
+    dlvToast('הרשימה הנוכחית כבר ריקה');
+    return;
+  }
+  showConfirm('להתחיל רשימה חדשה? הרשימה הנוכחית תישמר בהיסטוריה.', () => {
+    state.deliveryLists.push({ id:uid(), date:todayStr(), createdAt:Date.now() });
+    ui.deliveryListId = null;
     dlvSave();
     render();
   });
@@ -3962,17 +4001,17 @@ function dlvStreets(town){
 }
 function dlvRouteComparator(){
   const order = new Map(state.deliveryRouteStreets.map(s=>[`${s.town}|${s.name}`, s.order]));
+  const shirStart = Math.min(...dlvStreets('אלקנה').filter(s=>s.name===DLV_SHIR_STREET || dlvLandmarkIndex('אלקנה', s.name)!==-1).map(s=>s.order), Infinity);
   const houseNum = h => { const n = parseInt(h,10); return isNaN(n) ? -1 : n; };
   return (a,b) => {
     const sa = dlvElkanaSlot(a), sb = dlvElkanaSlot(b);
-    const ga = dlvRouteGroup(a,sa), gb = dlvRouteGroup(b,sb);
+    const ga = dlvRouteGroup(a,sa,order,shirStart), gb = dlvRouteGroup(b,sb,order,shirStart);
     if(ga!==gb) return ga-gb;
-    if(ga===0){
+    if(ga===1){
       if(sa.landmark!==sb.landmark) return sa.landmark-sb.landmark;
       if(sa.part!==sb.part) return sa.part-sb.part;
     }else{
-      const oa = order.has(`${a.town}|${a.street}`) ? order.get(`${a.town}|${a.street}`) : Infinity;
-      const ob = order.has(`${b.town}|${b.street}`) ? order.get(`${b.town}|${b.street}`) : Infinity;
+      const oa = dlvStreetOrder(order, a), ob = dlvStreetOrder(order, b);
       if(oa!==ob) return oa<ob ? -1 : 1;
     }
     const hd = houseNum(a.houseNumber) - houseNum(b.houseNumber);
@@ -4013,6 +4052,8 @@ function dlvSetStatus(id, status){
   dlvSave();
   const row = document.querySelector(`.dlv-row[data-id="${id}"]`);
   if(row) row.outerHTML = dlvRowHtml(item);
+  const summary = document.getElementById('dlvSummary');
+  if(summary) summary.innerHTML = dlvSummaryHtml(item.listId);
 }
 function dlvTapBody(id){
   if(dlvSuppressTap){ dlvSuppressTap = false; return; }
@@ -4116,11 +4157,7 @@ function dlvSubmitItem(){
     document.getElementById('dlvStreetInput').focus();
     return;
   }
-  if(!dlvIsInCar(draft)){
-    dlvToast('הכתובת לא באזור שיר השירים. סמן 📦 כדי להוסיף');
-    return;
-  }
-  if(!dlvKnownStreet(draft.town, draft.street) && dlvLandmarkIndex(draft.town, draft.street)===-1){
+  if(!dlvKnownStreet(draft.town, draft.street) && !dlvKnownStreet(draft.town, `${draft.street} ${draft.house}`) && dlvLandmarkIndex(draft.town, draft.street)===-1){
     openDlvStreetPlacement({ ...draft, autoAdd:true, from:'form' });
     return;
   }
@@ -4144,7 +4181,7 @@ function dlvCommitItem(draft){
   }
   // Guards against a double tap creating the same package twice. Same-address packages are otherwise allowed.
   if(now-dlvLastAddAt < 500) return;
-  const list = dlvCurrentList();
+  const list = dlvViewedList();
   dlvLastAddAt = now;
   const item = { id:uid(), listId:list.id, town:draft.town, street:draft.street, houseNumber:draft.house, large:draft.large, note:draft.note||'', status:'pending', position:0, manualOrder:false, createdAt:now, updatedAt:now };
   state.deliveryItems.push(item);
