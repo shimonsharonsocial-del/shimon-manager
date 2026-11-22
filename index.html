@@ -404,6 +404,8 @@
   .dlv-title{font-size:17px;font-weight:800;margin:0 0 6px;}
   .dlv-summary{font-size:14px;color:var(--text-muted);margin:0 0 12px;}
   .dlv-summary b{color:var(--text);}
+  .dlv-history-row{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;padding:13px 14px;margin-bottom:8px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);font-size:15px;font-weight:700;text-align:start;}
+  .dlv-history-row span:last-child{font-size:13px;color:var(--text-muted);font-weight:600;}
   .dlv-item-note{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4;overflow-wrap:anywhere;}
   .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
   .dlv-row{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:8px;box-shadow:var(--shadow);}
@@ -3961,14 +3963,12 @@ function renderDeliveryList(){
   const list = dlvViewedList();
   const isPast = list.id!==current.id;
   const items = dlvListItems(list.id);
-  const lists = [...state.deliveryLists].sort((a,b)=>dlvListTime(b)-dlvListTime(a));
-  const options = lists.map(l=>`<option value="${l.id}" ${l.id===list.id?'selected':''}>${l.id===current.id ? 'הרשימה הנוכחית' : dlvDateFull(l.date)} (${state.deliveryItems.filter(i=>i.listId===l.id).length})</option>`).join('');
   return `
     <div class="dlv-toolbar">
       <button class="icon-btn" onclick="dlvResetList()" title="רשימה חדשה" aria-label="רשימה חדשה">🔄</button>
+      <button class="btn secondary" onclick="openDlvHistory()">🕘 היסטוריה</button>
       <button class="btn secondary" onclick="openDlvRouteModal()">🛣️ סדר רחובות</button>
     </div>
-    ${lists.length>1 ? `<select class="dlv-list-select" onchange="setDeliveryList(this.value)" aria-label="היסטוריית רשימות">${options}</select>` : ''}
     ${isPast ? `<div class="dlv-warning" style="margin:0 0 12px;">אתה צופה ברשימה מ-${dlvDateFull(list.date)}. <button type="button" class="text-btn small" onclick="setDeliveryList('')">חזרה לרשימה הנוכחית</button></div>` : ''}
     <h2 class="dlv-title">מאחורה ברכב${isPast ? ' – '+dlvDateFull(list.date) : ''}</h2>
     <div class="dlv-summary" id="dlvSummary">${dlvSummaryHtml(list.id)}</div>
@@ -3978,7 +3978,24 @@ function renderDeliveryList(){
     ${items.length>1 ? `<div style="text-align:center;margin-top:14px;"><button class="text-btn small" onclick="dlvResetOrder('${list.id}')">סידור מחדש לפי סדר הרחובות</button></div>` : ''}
   `;
 }
-function setDeliveryList(id){ ui.deliveryListId = id || null; render(); }
+function setDeliveryList(id){ ui.deliveryListId = id || null; closeModal(); render(); }
+function openDlvHistory(){
+  const current = dlvCurrentList();
+  const past = state.deliveryLists.filter(l=>l.id!==current.id).sort((a,b)=>dlvListTime(b)-dlvListTime(a));
+  const row = l => {
+    const items = state.deliveryItems.filter(i=>i.listId===l.id);
+    const done = items.filter(i=>i.status==='delivered' || i.status==='extra').length;
+    return `<button type="button" class="dlv-history-row" onclick="setDeliveryList('${l.id}')">
+      <span>${dlvDateFull(l.date)}</span><span>${items.length} חבילות · ${done} בוצעו</span>
+    </button>`;
+  };
+  showModal(`
+    <h2>היסטוריית רשימות</h2>
+    ${past.length ? past.map(row).join('') : '<p class="dlv-note">אין עדיין רשימות קודמות. כשתלחץ על 🔄 כדי להתחיל רשימה חדשה, הרשימה הנוכחית תישמר כאן.</p>'}
+    ${ui.deliveryListId && ui.deliveryListId!==current.id ? `<button type="button" class="btn primary dlv-submit" onclick="setDeliveryList('')">חזרה לרשימה הנוכחית</button>` : ''}
+    <button type="button" class="btn secondary dlv-close" onclick="closeModal()">סגירה</button>
+  `);
+}
 function dlvResetList(){
   const current = dlvCurrentList();
   if(!state.deliveryItems.some(i=>i.listId===current.id)){
