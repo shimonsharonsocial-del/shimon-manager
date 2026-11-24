@@ -64,6 +64,8 @@ h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;let
 .ptag.aviya{background:var(--aviya-soft);color:var(--aviya)}
 .ptag.free{background:var(--soft);color:var(--muted)}
 
+.chip.wave{margin-inline-start:auto;font-size:18px;padding:4px 12px;background:#fff7e6;border-color:#f3d9a4}
+.chip.wave:active{transform:rotate(-15deg) scale(1.1)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:7px 14px;font-size:14px;color:var(--muted)}
@@ -361,7 +363,9 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
+/* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
+const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -438,6 +442,10 @@ async function firebaseBackend(cfg){
     batch: async ops => { const b = fs.writeBatch(db); for(const o of ops){ if(o.del) b.delete(ref(o.path)); else b.set(ref(o.path), o.data, {merge:!!o.merge}); } await b.commit(); },
     tx: (p, fn, side) => fs.runTransaction(db, async t => { const s = await t.get(ref(p)); const prev = s.exists() ? s.data() : null; const nd = fn(prev); t.set(ref(p), nd);
       for(const o of (side ? side(prev, nd) : [])){ if(o.del) t.delete(ref(o.path)); else t.set(ref(o.path), o.data); } return nd; }),
+    async pushToken(reg){ const m = await import(FB_SDK+'firebase-messaging.js'); if(!(await m.isSupported())) return null;
+      return m.getToken(m.getMessaging(app), {vapidKey: PUSH.vapidKey, serviceWorkerRegistration: reg}); },
+    saveToken: (uid, t) => fs.setDoc(ref('users/'+uid), {pushTokens: fs.arrayUnion(t)}, {merge:true}),
+    idToken: () => auth.currentUser.getIdToken(),
     async syncClock(uid){ try{ await fs.setDoc(ref('users/'+uid), {ping: fs.serverTimestamp()}, {merge:true}); const s = await fs.getDocFromServer(ref('users/'+uid)); const t = s.data()?.ping?.toMillis?.(); if(t) clockOffset = t - Date.now(); }catch{} },
   };
 }
@@ -470,6 +478,9 @@ function localBackend(){
     async tx(p, fn, side){ await wait(); net(); db = read(); const prev = db[p] ? {...db[p]} : null; const nd = fn(prev); db[p] = nd;
       for(const o of (side ? side(prev, nd) : [])){ if(o.del) delete db[o.path]; else db[o.path] = {...o.data}; } commit(); return nd; },
     async syncClock(){},
+    async pushToken(){ return 'local-token'; },
+    async saveToken(uid, t){ db = read(); const k='users/'+uid; db[k] = {...db[k], pushTokens:[...new Set([...(db[k]?.pushTokens||[]), t])]}; commit(); },
+    async idToken(){ return 'local'; },
   };
 }
 
@@ -777,6 +788,50 @@ function confetti(){
   document.body.append(box); setTimeout(() => box.remove(), 2600);
 }
 
+/* ---------- התראות ונפנוף ---------- */
+const pushReady = () => LOCAL_MODE || !!(PUSH.url && PUSH.vapidKey);
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushSupported = () => 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+async function enableNotifications(silent=false){
+  if(!pushReady()) return;
+  if(isIOS && !standalone()){
+    if(!silent) sheet(`<h2>🔔 התראות באייפון</h2><p>באייפון אפשר לקבל התראות רק מהאפליקציה שעל מסך הבית:</p>
+      <ol style="line-height:1.9;padding-inline-start:20px"><li>בספארי לוחצים על כפתור השיתוף ⬆︎</li><li>"הוספה למסך הבית"</li><li>פותחים את האפליקציה מהאייקון, ושם מפעילים התראות</li></ol><button class="btn primary" id="cn">הבנתי</button>`, sh => $('#cn',sh).onclick = () => closeSheet());
+    return;
+  }
+  if(!pushSupported()){ if(!silent) toast('הדפדפן הזה לא תומך בהתראות', true); return; }
+  try{
+    const perm = silent ? Notification.permission : await Notification.requestPermission();
+    if(perm !== 'granted'){ if(!silent) toast('ההתראות לא אושרו. אפשר לאשר בהגדרות הטלפון.', true); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const t = await B.pushToken(reg);
+    if(!t){ if(!silent) toast('לא הצלחנו להפעיל התראות במכשיר הזה', true); return; }
+    await B.saveToken(S.user.uid, t);
+    store.set('notifOn', true);
+    if(!silent){ toast('🔔 ההתראות הופעלו'); paint(); }
+  }catch(e){ console.warn('push', e); if(!silent) toast('הפעלת ההתראות נכשלה. נסו שוב.', true); }
+}
+let lastWave = 0;
+async function wave(){
+  const partner = other(S.person);
+  if(Date.now() - lastWave < 60000) return toast('כבר נופפת לפני רגע 🙂');
+  if(LOCAL_MODE){ lastWave = Date.now(); return toast(`👋 נשלח ל${pname(partner)} (מצב בדיקה)`); }
+  if(!navigator.onLine) return toast('אין חיבור לאינטרנט', true);
+  try{
+    const tokens = (await B.list('users')).filter(u => u.person === partner).flatMap(u => u.pushTokens || []);
+    if(!tokens.length) return toast(`${pname(partner)} ${gv(partner,'עוד לא הפעיל','עוד לא הפעילה')} התראות בטלפון`, true);
+    const r = await fetch(PUSH.url, {method:'POST', headers:{'Authorization':'Bearer ' + await B.idToken(), 'Content-Type':'application/json'}, body:JSON.stringify({kind:'wave', tokens})});
+    const j = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(j.error || r.status);
+    lastWave = Date.now();
+    if(j.sent > 0) toast(`👋 נשלח ל${pname(partner)}`);
+    else if(j.reason === 'no-tokens') toast(`${pname(partner)} ${gv(partner,'עוד לא הפעיל','עוד לא הפעילה')} התראות בטלפון`, true);
+    else if(j.reason === 'too-soon') toast('כבר נופפת לפני רגע 🙂');
+    else toast('ההתראה לא נמסרה. נסו שוב.', true);
+  }catch(e){ console.warn('wave', e); toast('השליחה נכשלה. נסו שוב.', true); }
+}
+
 /* ---------- פס ימי השבוע (היום מסומן בעיגול צבוע) ---------- */
 const todayIdx = () => il(now()).wd;
 function paintStrip(){
@@ -815,7 +870,8 @@ function paintDaily(){
   if(S.selDay != null && S.selDay !== todayIdx()) return paintOtherDay(S.selDay);
   $('#filters').classList.remove('hidden');
   const F = [['all','הכול'],['mine','שלי']];
-  $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('');
+  $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('')
+    + (pushReady() ? `<button class="chip wave" data-act="wave" aria-label="נפנוף ל${pname(partner)}">👋</button>` : '');
   const pass = s => S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done);
   const defs = activeDefs('daily').filter(d => pass(slotOf(S.daily, d.id)));
   const wt = plannedOn(S.dayId).filter(([,,s]) => pass(s));
@@ -1436,6 +1492,7 @@ app.addEventListener('click', async e => {
       if(S.cats.some(c=>nkey(c.name)===nkey(name))) { toast('כבר יש קטגוריה בשם הזה', true); break; }
       try{ await B.set(`categories/${B.newId()}`, {name, order:Math.max(0,...S.cats.map(c=>c.order))+1}); toast('הקטגוריה נוספה'); }catch(err){ toast(errMsg(err), true); } break; }
     case 'menu': menuSheet(); break;
+    case 'wave': wave(); break;
     case 'stats': S.main = S.main==='stats' ? store.get('main','tasks') : 'stats'; paint(); scrollTo(0,0); break;
     case 'month': { const [y,m] = S.statMonth.split('-').map(Number); const t = new Date(Date.UTC(y, m-1+(+v), 1)); S.statMonth = `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}`; paintStats(); break; }
   }
@@ -1446,10 +1503,12 @@ function menuSheet(){
     <p class="muted" style="margin-top:-6px">מחובר/ת בתור <b>${pname(S.person)}</b>${S.user?.email && !LOCAL_MODE ? ` · <span dir="ltr">${esc(S.user.email)}</span>` : ''}</p>
     <div class="card" style="box-shadow:none;background:var(--soft)"><b>הוספה למסך הבית</b>
     <div class="small muted" style="margin-top:6px">אייפון: בספארי לוחצים על כפתור השיתוף ⬆︎ ואז "הוספה למסך הבית".<br>אנדרואיד: בכרום לוחצים על ⋮ ואז "התקנת אפליקציה".</div></div>
+    ${pushReady() ? `<button class="btn ${store.get('notifOn',false) && pushSupported() && Notification.permission==='granted' ? '' : 'primary'}" id="notif">${store.get('notifOn',false) && pushSupported() && Notification.permission==='granted' ? '🔔 ההתראות פעילות' : '🔔 הפעלת התראות'}</button>` : ''}
     <button class="btn danger" id="out">התנתקות</button><button class="btn" id="cn">סגירה</button>
     <p class="small muted" style="text-align:center;margin-top:12px">גרסה ${APP_VERSION}</p>`, sh => {
     $('#cn',sh).onclick = () => closeSheet();
     $('#out',sh).onclick = () => { closeSheet(); B.signOut(); };
+    const nt = $('#notif',sh); if(nt) nt.onclick = () => { closeSheet(); enableNotifications(); };
   });
 }
 
@@ -1528,6 +1587,7 @@ async function start(person){
   S.person = person; S.ready = false; loaded = {}; shellKey = '';
   paint();
   await B.syncClock(S.user.uid);
+  if(pushReady() && pushSupported() && Notification.permission === 'granted') enableNotifications(true);
   try{ await seedIfNeeded(); }catch(e){ console.warn(e); if(e?.code==='permission-denied') return showUnauthorized(); }
   try{ await migrateCatalog2(); }catch(e){ console.warn('catalog2', e); }
   try{ await migrateCatalog3(); }catch(e){ console.warn('catalog3', e); }
