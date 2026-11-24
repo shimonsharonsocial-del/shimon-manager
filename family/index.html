@@ -536,7 +536,7 @@ function paintDaily(){
   const me = S.person, partner = other(me);
   if(S.selDay != null && S.selDay !== todayIdx()) return paintOtherDay(S.selDay);
   $('#filters').classList.remove('hidden');
-  const F = [['all','הכול'],['mine','שלי'],['partner',`של ${pname(partner)}`],['free','לא שובצו']];
+  const F = [['all','הכול'],['mine','שלי'],['partner',`של ${pname(partner)}`]];
   $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('');
   const pass = s => S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done);
   const defs = activeDefs('daily').filter(d => pass(slotOf(S.daily, d.id)));
