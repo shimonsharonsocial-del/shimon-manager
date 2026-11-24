@@ -334,7 +334,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -522,6 +522,30 @@ async function migrateCatalog2(){
     const op = ops.find(o => o.path === `products/${p.id}`);
     if(op) op.data.order = i+1; else ops.push({path:`products/${p.id}`, data:{order:i+1}, merge:true}); } });
   ops.push({path:'meta/catalog2', data:{at:now(), by:S.person}});
+  await B.batch(ops);
+}
+
+/* עדכון קטלוג 3: טופו עובר למוצרי חלב ותחליפים, העדשים עוברים למוצרים יבשים,
+   ושאר הקטגוריה "קטניות ומוצרי חלבון מהצומח" נמחקת יחד עם הקטגוריה עצמה. רץ פעם אחת (meta/catalog3). */
+async function migrateCatalog3(){
+  if(await B.get('meta/catalog3')) return;
+  const cats = await B.list('categories');
+  const legumes = cats.find(c => c.id === 'c05') || cats.find(c => nkey(c.name).startsWith('קטניות'));
+  const ops = [];
+  if(legumes){
+    const prods = await B.list('products');
+    const nextOrder = cid => { const o = Math.max(0, ...prods.filter(p => p.categoryId === cid).map(p => p.order || 0)) + 1; prods.push({categoryId:cid, order:o}); return o; };
+    const dairy = cats.find(c => c.id === 'c02') || cats.find(c => nkey(c.name).startsWith('מוצרי חלב'));
+    const dry = cats.find(c => c.id === 'c04') || cats.find(c => nkey(c.name).startsWith('מוצרים יבשים'));
+    for(const p of prods.filter(x => x.id && x.categoryId === legumes.id)){
+      const k = p.key || nkey(p.name);
+      if(k === nkey('טופו') && dairy) ops.push({path:`products/${p.id}`, data:{categoryId:dairy.id, order:nextOrder(dairy.id)}, merge:true});
+      else if(k.startsWith('עדשים') && dry) ops.push({path:`products/${p.id}`, data:{categoryId:dry.id, order:nextOrder(dry.id)}, merge:true});
+      else ops.push({path:`products/${p.id}`, del:true}, {path:`missing/${p.id}`, del:true});
+    }
+    ops.push({path:`categories/${legumes.id}`, del:true});
+  }
+  ops.push({path:'meta/catalog3', data:{at:now(), by:S.person}});
   await B.batch(ops);
 }
 
@@ -1327,6 +1351,7 @@ async function start(person){
   await B.syncClock(S.user.uid);
   try{ await seedIfNeeded(); }catch(e){ console.warn(e); if(e?.code==='permission-denied') return showUnauthorized(); }
   try{ await migrateCatalog2(); }catch(e){ console.warn('catalog2', e); }
+  try{ await migrateCatalog3(); }catch(e){ console.warn('catalog3', e); }
   subscribe();
 }
 
