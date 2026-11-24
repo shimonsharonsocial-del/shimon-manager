@@ -334,7 +334,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -503,6 +503,26 @@ async function seedIfNeeded(){
   });
   ops.push({path:'meta/seed', data:{at:t, by:S.person}});
   await B.batch(ops);   // מזהים קבועים: גם אם שני המכשירים יריצו בו־זמנית, לא ייווצרו כפילויות
+}
+
+/* עדכון קטלוג 2: מוצרים חדשים בירקות ופירות, וסידור הקטגוריה: ירקות, אחר כך פירות, אחר כך עשבי תיבול.
+   רץ פעם אחת בלבד (meta/catalog2), לא יוצר כפילויות ולא נוגע במוצרים שהועברו לקטגוריה אחרת. */
+const CAT2_NEW = ['קישואים','חצילים','פטריות','כרוב','כרובית','ברוקולי','בצל ירוק','פטרוזיליה','כוסברה','שמיר','נענע','סלרי','עגבניות שרי','קלמנטינות','תפוזים','אגסים','ענבים','תותים','אבטיח','מלון'];
+const CAT2_ORDER = [
+  'עגבניות','עגבניות שרי','מלפפונים','פלפלים','בצל','בצל ירוק','שום','תפוחי אדמה','בטטות','גזר','קישואים','חצילים','פטריות','כרוב','כרובית','ברוקולי','חסה','סלרי',
+  'בננות','תפוחים','אגסים','תפוזים','קלמנטינות','לימונים','אבוקדו','ענבים','תותים','אבטיח','מלון',
+  'פטרוזיליה','כוסברה','שמיר','נענע'];
+async function migrateCatalog2(){
+  if(await B.get('meta/catalog2')) return;
+  const prods = await B.list('products');
+  const byKey = new Map(prods.map(p => [p.key || nkey(p.name), p]));
+  const ops = [];
+  CAT2_NEW.forEach((n, i) => { if(!byKey.has(nkey(n))){ const id = `c01p${pad(14+i)}`; const p = {id, name:n, key:nkey(n), categoryId:'c01'}; byKey.set(p.key, p); ops.push({path:`products/${id}`, data:{name:n, key:p.key, categoryId:'c01', order:0}}); } });
+  CAT2_ORDER.forEach((n, i) => { const p = byKey.get(nkey(n)); if(p && p.categoryId === 'c01'){
+    const op = ops.find(o => o.path === `products/${p.id}`);
+    if(op) op.data.order = i+1; else ops.push({path:`products/${p.id}`, data:{order:i+1}, merge:true}); } });
+  ops.push({path:'meta/catalog2', data:{at:now(), by:S.person}});
+  await B.batch(ops);
 }
 
 /* =====================================================================
@@ -1306,6 +1326,7 @@ async function start(person){
   paint();
   await B.syncClock(S.user.uid);
   try{ await seedIfNeeded(); }catch(e){ console.warn(e); if(e?.code==='permission-denied') return showUnauthorized(); }
+  try{ await migrateCatalog2(); }catch(e){ console.warn('catalog2', e); }
   subscribe();
 }
 
