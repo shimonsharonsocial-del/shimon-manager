@@ -119,6 +119,12 @@ h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;let
 .cat.closed .arrow{transform:rotate(90deg)}
 .cat.closed .prods{display:none}
 .cat{scroll-margin-top:150px}
+.cat-pen{margin-left:12px}
+.cat-pen.on{background:var(--accent);color:#fff}
+.cat.editing{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+.cat-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);background:var(--accent-soft)}
+.cat-bar .chip{background:var(--card)}
+.cat-bar .chip:disabled{opacity:.4}
 .prod{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line);min-height:52px;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:right;font-size:15.5px}
 .prod .box{flex:0 0 26px;height:26px;border-radius:8px;border:2px solid #d8d2c7;display:grid;place-items:center;transition:all .2s}
 .prod .box svg{width:14px;height:14px;stroke:#fff;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .2s}
@@ -334,7 +340,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -571,7 +577,7 @@ const S = {
   defs:[], daily:{}, weekly:{}, comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
   dayId:null, weekId:null,
   main: store.get('main','tasks'), taskTab: store.get('taskTab','daily'), shopTab: store.get('shopTab','catalog'),
-  filter:'all', selDay:null, search:'', editShop:false, openCat: store.get('openCat', null),
+  filter:'all', selDay:null, search:'', editCat:null, openCat: store.get('openCat', null),
 };
 const busy = new Set(); const justDone = new Set(); const leaving = new Set();
 let unsubs = [], periodUnsubs = [], loaded = {};
@@ -713,7 +719,7 @@ function buildShell(){
       </div>
       ${S.shopTab==='catalog' ? `
         <div class="search"><span class="ic">🔍</span><input id="search" type="search" placeholder="חיפוש או הוספת מוצר" value="${esc(S.search)}" autocomplete="off" enterkeyhint="search"></div>
-        <div class="tools"><span class="small muted" id="catInfo"></span><button class="link-btn" data-act="editShop">${S.editShop?'סיום עריכה':'✎ עריכה'}</button></div>` : ''}
+        <div class="tools"><span class="small muted" id="catInfo"></span></div>` : ''}
       <div id="body"></div>
     `}
   </main>`;
@@ -980,21 +986,24 @@ function paintCatalog(){
     if(q && !prods.length) continue;
     const closed = !q && S.openCat !== c.id;   // רק קטגוריה אחת פתוחה בכל פעם (בחיפוש: הכול פתוח)
     const nm = prods.filter(p=>S.missing[p.id]).length;
-    html += `<div class="cat ${closed?'closed':''}">
+    const ed = !closed && !q && S.editCat === c.id;   // עריכה של הקטגוריה הפתוחה בלבד
+    html += `<div class="cat ${closed?'closed':''} ${ed?'editing':''}">
       <div style="display:flex;align-items:center"><button class="cat-h" data-act="toggleCat" data-id="${c.id}"><span class="cemoji" aria-hidden="true">${catIc(c)}</span><span class="name">${esc(c.name)}</span><span class="arrow">▼</span>${nm?`<span class="cnt">${nm} חסרים</span>`:''}</button>
-      ${S.editShop ? `<div class="cat-tools" style="padding-left:10px">
-        <button class="edit-ic" data-act="catUp" data-id="${c.id}" ${ci===0?'disabled':''} aria-label="למעלה">↑</button>
-        <button class="edit-ic" data-act="catDown" data-id="${c.id}" ${ci===cats.length-1?'disabled':''} aria-label="למטה">↓</button>
-        <button class="edit-ic" data-act="catEdit" data-id="${c.id}" aria-label="עריכה">✎</button></div>` : ''}</div>
-      <div class="prods">${prods.map(p => {
+      ${!closed && !q ? `<button class="edit-ic cat-pen ${ed?'on':''}" data-act="editCat" data-id="${c.id}" aria-label="${ed?'סיום עריכה':'עריכת הקטגוריה'}">${ed?'✓':'✎'}</button>` : ''}</div>
+      <div class="prods">
+      ${ed ? `<div class="cat-bar">
+        <button class="chip" data-act="catEdit" data-id="${c.id}">✎ שם / מחיקה</button>
+        <button class="chip" data-act="catUp" data-id="${c.id}" ${ci===0?'disabled':''}>↑ למעלה</button>
+        <button class="chip" data-act="catDown" data-id="${c.id}" ${ci===cats.length-1?'disabled':''}>↓ למטה</button></div>` : ''}
+      ${prods.map(p => {
         const m = S.missing[p.id];
         return `<div style="display:flex;align-items:center"><button class="prod ${m?'miss':''}" data-act="toggleMiss" data-id="${p.id}"><span class="box">${CHECK}</span><span class="pname">${esc(p.name)}</span>
           ${m?(m._pending?'<span class="pend">ממתין לסנכרון…</span>':'<span class="tag">חסר</span>'):''}</button>
-          ${S.editShop?`<button class="edit-ic" style="margin-left:10px" data-act="prodEdit" data-id="${p.id}" aria-label="עריכת מוצר">✎</button>`:''}</div>`;
+          ${ed?`<button class="edit-ic" style="margin-left:10px" data-act="prodEdit" data-id="${p.id}" aria-label="עריכת מוצר">✎</button>`:''}</div>`;
       }).join('')}
-      ${S.editShop ? `<button class="prod add-row" data-act="prodAdd" data-id="${c.id}" style="color:var(--accent);font-weight:600">＋ הוספת מוצר ל${esc(c.name)}</button>` : ''}</div></div>`;
+      ${ed ? `<button class="prod add-row" data-act="prodAdd" data-id="${c.id}" style="color:var(--accent);font-weight:600">＋ הוספת מוצר ל${esc(c.name)}</button>` : ''}</div></div>`;
   }
-  if(S.editShop) html += `<button class="btn" data-act="catAdd">＋ קטגוריה חדשה</button>`;
+  if(!q) html += `<button class="link-btn" style="width:100%" data-act="catAdd">＋ קטגוריה חדשה</button>`;
   if(!html) html = `<div class="list"><div class="empty">לא נמצאו מוצרים</div></div>`;
   $('#body').innerHTML = html;
 }
@@ -1255,11 +1264,11 @@ app.addEventListener('click', async e => {
     case 'w-done': toggleWeekly(id); break;
     case 'w-sheet': weeklySheet(id); break;
     case 'manageDefs': manageDefs(); break;
-    case 'toggleCat': S.openCat = S.openCat===id ? null : id; store.set('openCat', S.openCat); paintCatalog();
+    case 'toggleCat': S.openCat = S.openCat===id ? null : id; S.editCat = null; store.set('openCat', S.openCat); paintCatalog();
       if(S.openCat){ const h = document.querySelector(`[data-act=toggleCat][data-id="${id}"]`); h && h.closest('.cat').scrollIntoView({behavior:'smooth', block:'start'}); } break;
     case 'toggleMiss': toggleMissing(id); break;
     case 'bought': bought(id); break;
-    case 'editShop': S.editShop=!S.editShop; b.textContent = S.editShop?'סיום עריכה':'✎ עריכה'; paintCatalog(); break;
+    case 'editCat': S.editCat = S.editCat===id ? null : id; paintCatalog(); break;
     case 'prodEdit': productSheet(S.prods.find(p=>p.id===id)); break;
     case 'prodAdd': productSheet(null, '', id); break;
     case 'addFromSearch': productSheet(null, S.search.trim(), catsSorted().at(-1)?.id); break;
