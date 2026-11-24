@@ -92,6 +92,15 @@ h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;let
 .empty{text-align:center;color:var(--muted);padding:28px 16px}
 .empty .big{font-size:40px;margin-bottom:6px}
 .link-btn{border:0;background:none;color:var(--accent);font-weight:600;padding:10px 4px;font-size:15px}
+.weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:10px 6px;margin-bottom:14px}
+.weekstrip button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0}
+.weekstrip .c{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:16px;border:2px solid transparent;transition:all .2s}
+.weekstrip small{font-size:11px;color:var(--muted)}
+.weekstrip .dot{width:5px;height:5px;border-radius:50%;background:transparent}
+.weekstrip .dot.on{background:var(--accent)}
+.weekstrip button.today .c{background:var(--accent);color:#fff}
+.weekstrip button.sel .c{border-color:var(--accent)}
+.weekstrip button.sel:not(.today) .c{color:var(--accent)}
 .week-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 
 /* shopping */
@@ -355,7 +364,7 @@ const S = {
   defs:[], daily:{}, weekly:{}, cats:[], prods:[], missing:{},
   dayId:null, weekId:null,
   main: store.get('main','tasks'), taskTab: store.get('taskTab','daily'), shopTab: store.get('shopTab','catalog'),
-  filter:'all', search:'', editShop:false, closed: store.get('closed',{}),
+  filter:'all', selDay:null, search:'', editShop:false, closed: store.get('closed',{}),
 };
 const busy = new Set(); const justDone = new Set(); const leaving = new Set();
 let unsubs = [], periodUnsubs = [], loaded = {};
@@ -382,6 +391,7 @@ function checkPeriod(force=false){
   const d = dayIdOf(now()), w = weekIdOf(now());
   if(!force && d===S.dayId && w===S.weekId) return;
   const changed = S.dayId && (d!==S.dayId || w!==S.weekId);
+  if(changed) S.selDay = null;
   S.dayId = d; S.weekId = w;
   periodUnsubs.forEach(f=>f()); periodUnsubs = [];
   S.daily = {}; S.weekly = {};
@@ -437,7 +447,7 @@ function paint(){
   const key = S.main + '|' + (S.main==='tasks' ? S.taskTab : S.shopTab);
   if(key !== shellKey){ shellKey = key; buildShell(); }
   paintTop();
-  if(S.main==='tasks'){ paintSummary(); S.taskTab==='daily' ? paintDaily() : paintWeekly(); }
+  if(S.main==='tasks'){ paintStrip(); paintSummary(); S.taskTab==='daily' ? paintDaily() : paintWeekly(); }
   else { S.shopTab==='catalog' ? paintCatalog() : paintList(); }
 }
 
@@ -458,6 +468,7 @@ function buildShell(){
   </div>
   <main>
     ${S.main==='tasks' ? `
+      <div class="weekstrip" id="weekstrip"></div>
       <div class="card" id="summary"></div>
       <div class="seg small" style="margin-bottom:14px">
         <button data-act="taskTab" data-v="daily" class="${S.taskTab==='daily'?'on':''}">יומיות</button>
@@ -492,6 +503,16 @@ function paintTop(){
   const lb = $('#listBadge'); if(lb) lb.innerHTML = n ? `<span class="badge">${n}</span>` : '';
 }
 
+/* ---------- פס ימי השבוע (היום מסומן בעיגול צבוע) ---------- */
+const todayIdx = () => il(now()).wd;
+function paintStrip(){
+  const t = todayIdx();
+  const sel = S.selDay ?? t;
+  const has = i => activeDefs('weekly').some(d => { const s = slotOf(S.weekly, d.id); return s.assignee && s.day === i; });
+  $('#weekstrip').innerHTML = DAY_SHORT.map((n,i) => `<button data-act="day" data-v="${i}" class="${i===t?'today':''} ${i===sel?'sel':''}" aria-label="יום ${DAY_NAMES[i]}">
+    <span class="c">${n.replace('׳','')}</span><small>${dm(weekDate(S.weekId,i))}</small><span class="dot ${has(i)?'on':''}"></span></button>`).join('');
+}
+
 /* ---------- סיכום יומי ---------- */
 function paintSummary(){
   const wt = weeklyToday();
@@ -513,6 +534,8 @@ function paintSummary(){
 /* ---------- משימות יומיות ---------- */
 function paintDaily(){
   const me = S.person, partner = other(me);
+  if(S.selDay != null && S.selDay !== todayIdx()) return paintOtherDay(S.selDay);
+  $('#filters').classList.remove('hidden');
   const F = [['all','הכול'],['mine','שלי'],['partner',`של ${pname(partner)}`],['free','לא שובצו']];
   $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('');
   const pass = s => S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done);
@@ -543,6 +566,25 @@ function taskRow(kind, d, s){
     <button class="chk" data-act="${kind}-done" data-id="${d.id}" aria-label="${s.done?'ביטול סימון ביצוע':'סימון כבוצע'}">${CHECK}</button>
     <div class="rbody"><div class="rname">${esc(d.name)}</div>${meta?`<div class="rmeta">${meta}</div>`:''}</div>
     <div class="ract">${act}</div></div>`;
+}
+
+function paintOtherDay(day){
+  $('#filters').classList.add('hidden');
+  const items = activeDefs('weekly').map(d => [d, slotOf(S.weekly, d.id)]).filter(([,s]) => s.assignee && s.day === day);
+  let html = `<h3 class="sec" style="margin-top:0">יום ${DAY_NAMES[day]} · ${dm(weekDate(S.weekId, day))}</h3>`;
+  html += items.length ? `<div class="list">${items.map(([d,s]) => taskRow('w', d, s)).join('')}</div>`
+    : `<div class="list"><div class="empty">עוד לא שובצו משימות שבועיות ליום הזה</div></div>`;
+  html += `<button class="btn" data-act="pickWeekly" data-v="${day}">＋ שיבוץ משימה שבועית ליום ${DAY_NAMES[day]}</button>
+    <p class="small muted" style="text-align:center;margin-top:10px">המשימות היומיות מופיעות בכל יום מחדש, ביום עצמו.</p>`;
+  $('#body').innerHTML = html;
+}
+function pickWeeklySheet(day){
+  const free = activeDefs('weekly').filter(d => { const s = slotOf(S.weekly, d.id); return !(s.assignee && s.day != null); });
+  if(!free.length) return toast('כל המשימות השבועיות כבר שובצו');
+  sheet(`<h2>איזו משימה ליום ${DAY_NAMES[day]}?</h2><div class="list" style="box-shadow:none;border:1px solid var(--line)">${free.map(d => `<button class="prod" data-id="${d.id}"><span class="pname">${esc(d.name)}</span><span class="muted">‹</span></button>`).join('')}</div><button class="btn" id="cn">ביטול</button>`, sh => {
+    $('#cn',sh).onclick = () => closeSheet();
+    sh.querySelectorAll('[data-id]').forEach(b => b.onclick = () => weeklySheet(b.dataset.id, day));
+  });
 }
 
 /* ---------- משימות שבועיות ---------- */
@@ -673,13 +715,13 @@ function dailySheet(id){
 }
 
 /* ---------- גיליון שיבוץ משימה שבועית: מי → איזה יום → אישור ---------- */
-function weeklySheet(id){
+function weeklySheet(id, presetDay){
   const d = S.defs.find(x=>x.id===id), s = slotOf(S.weekly, id), v = s.v||0;
   const scheduled = s.assignee && s.day!=null;
   const nowP = il(now());
   const weekStartedToday = S.weekId === dayIdOf(now());
   let who = s.assignee || S.person;
-  let day = scheduled ? s.day : (weekStartedToday ? 0 : nowP.wd);
+  let day = scheduled ? s.day : presetDay != null ? presetDay : (weekStartedToday ? 0 : nowP.wd);
   sheet(`<h2>${esc(d.name)}</h2>
     <label class="l">מי מבצע?</label>
     <div class="pick">${['shimon','aviya'].map(p=>`<button data-p="${p}" class="${p}">${p===S.person?`אני (${pname(p)})`:pname(p)}</button>`).join('')}</div>
@@ -838,6 +880,8 @@ app.addEventListener('click', async e => {
     case 'taskTab': S.taskTab=v; store.set('taskTab',v); paint(); break;
     case 'shopTab': S.shopTab=v; store.set('shopTab',v); paint(); break;
     case 'filter': S.filter=v; paint(); break;
+    case 'day': { const d=+v; S.selDay = d===todayIdx() ? null : d; if(S.taskTab!=='daily'){ S.taskTab='daily'; store.set('taskTab','daily'); } paint(); break; }
+    case 'pickWeekly': pickWeeklySheet(+v); break;
     case 'd-assign': assignDaily(id, slotOf(S.daily,id).v||0, b.dataset.p); break;
     case 'd-done': toggleDaily(id); break;
     case 'd-sheet': dailySheet(id); break;
