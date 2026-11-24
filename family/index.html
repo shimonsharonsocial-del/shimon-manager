@@ -118,6 +118,7 @@ h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;let
 .cat-h .arrow{color:var(--faint);transition:transform .2s;font-size:13px}
 .cat.closed .arrow{transform:rotate(90deg)}
 .cat.closed .prods{display:none}
+.cat{scroll-margin-top:150px}
 .prod{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line);min-height:52px;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:right;font-size:15.5px}
 .prod .box{flex:0 0 26px;height:26px;border-radius:8px;border:2px solid #d8d2c7;display:grid;place-items:center;transition:all .2s}
 .prod .box svg{width:14px;height:14px;stroke:#fff;stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .2s}
@@ -511,7 +512,7 @@ const S = {
   defs:[], daily:{}, weekly:{}, comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
   dayId:null, weekId:null,
   main: store.get('main','tasks'), taskTab: store.get('taskTab','daily'), shopTab: store.get('shopTab','catalog'),
-  filter:'all', selDay:null, search:'', editShop:false, closed: store.get('closed',{}),
+  filter:'all', selDay:null, search:'', editShop:false, openCat: store.get('openCat', null),
 };
 const busy = new Set(); const justDone = new Set(); const leaving = new Set();
 let unsubs = [], periodUnsubs = [], loaded = {};
@@ -918,7 +919,7 @@ function paintCatalog(){
     let prods = S.prods.filter(p => p.categoryId===c.id).sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,'he'));
     if(q) prods = prods.filter(p => p.key.includes(q));
     if(q && !prods.length) continue;
-    const closed = !q && S.closed[c.id];
+    const closed = !q && S.openCat !== c.id;   // רק קטגוריה אחת פתוחה בכל פעם (בחיפוש: הכול פתוח)
     const nm = prods.filter(p=>S.missing[p.id]).length;
     html += `<div class="cat ${closed?'closed':''}">
       <div style="display:flex;align-items:center"><button class="cat-h" data-act="toggleCat" data-id="${c.id}"><span class="cemoji" aria-hidden="true">${catIc(c)}</span><span class="name">${esc(c.name)}</span><span class="arrow">▼</span>${nm?`<span class="cnt">${nm} חסרים</span>`:''}</button>
@@ -1195,7 +1196,8 @@ app.addEventListener('click', async e => {
     case 'w-done': toggleWeekly(id); break;
     case 'w-sheet': weeklySheet(id); break;
     case 'manageDefs': manageDefs(); break;
-    case 'toggleCat': S.closed[id] = !S.closed[id]; store.set('closed', S.closed); paintCatalog(); break;
+    case 'toggleCat': S.openCat = S.openCat===id ? null : id; store.set('openCat', S.openCat); paintCatalog();
+      if(S.openCat){ const h = document.querySelector(`[data-act=toggleCat][data-id="${id}"]`); h && h.closest('.cat').scrollIntoView({behavior:'smooth', block:'start'}); } break;
     case 'toggleMiss': toggleMissing(id); break;
     case 'bought': bought(id); break;
     case 'editShop': S.editShop=!S.editShop; b.textContent = S.editShop?'סיום עריכה':'✎ עריכה'; paintCatalog(); break;
