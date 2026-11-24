@@ -361,7 +361,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.2';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -597,7 +597,8 @@ const S = {
   user:null, person:null, users:[], ready:false,
   defs:[], daily:{}, weekly:{}, monthly:{}, monthId:null, openDesc:new Set(), comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
   dayId:null, weekId:null,
-  main: store.get('main','tasks'), taskTab: store.get('taskTab','daily'), shopTab: store.get('shopTab','catalog'),
+  main: 'tasks', taskTab: 'daily',   // בכל פתיחה: משימות יומיות
+  shopTab: store.get('shopTab','catalog'),
   filter:'all', selDay:null, search:'', editCat:null, openCat: store.get('openCat', null),
 };
 const busy = new Set(); const justDone = new Set(); const leaving = new Set();
