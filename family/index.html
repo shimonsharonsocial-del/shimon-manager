@@ -363,7 +363,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -821,7 +821,7 @@ async function wave(){
   try{
     const tokens = (await B.list('users')).filter(u => u.person === partner).flatMap(u => u.pushTokens || []);
     if(!tokens.length) return toast(`${pname(partner)} ${gv(partner,'עוד לא הפעיל','עוד לא הפעילה')} התראות בטלפון`, true);
-    const r = await fetch(PUSH.url, {method:'POST', headers:{'Authorization':'Bearer ' + await B.idToken(), 'Content-Type':'application/json'}, body:JSON.stringify({kind:'wave', tokens})});
+    const r = await fetch(PUSH.url, {method:'POST', headers:{'Authorization':'Bearer ' + await B.idToken(), 'Content-Type':'application/json'}, body:JSON.stringify({kind:'wave', tag:'wave', tokens, title:`👋 ${pname(S.person)}`, body:'היי, אני כבר השתבצתי היום, מה איתך?'})});
     const j = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(j.error || r.status);
     lastWave = Date.now();
