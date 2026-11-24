@@ -346,7 +346,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '1.9';
+const APP_VERSION = '2.0';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -1030,7 +1030,7 @@ function paintList(){
       const m = S.missing[p.id];
       return `<div class="buy-row ${leaving.has(p.id)?'gone':''}">${isProduce(p) ? '' : `<span class="qbadge">${qtyOf(m)}</span>`}<div style="flex:1"><div class="pname">${esc(p.name)}</div>
         <div class="rmeta">${m._pending?'ממתין לסנכרון…':`נוסף ע״י ${pname(m.by)}`}</div></div>
-        <button class="buy-btn" data-act="bought" data-id="${p.id}">✓ נקנה</button></div>`;
+        <button class="buy-btn" data-act="bought" data-id="${p.id}">${!isProduce(p) && qtyOf(m) > 1 ? '✓ נקנה 1' : '✓ נקנה'}</button></div>`;
     }).join('')}</div>`;
   }
   $('#body').innerHTML = html;
@@ -1255,6 +1255,18 @@ async function toggleMissing(id){
 }
 async function bought(id){
   const p = S.prods.find(x=>x.id===id); if(!p || leaving.has(id)) return;
+  const log = {path:`purchases/${B.newId()}`, data:{productId:id, name:p.name, categoryId:p.categoryId, by:S.person, at:now()}};
+  // כמות גדולה מ־1: כל לחיצה על "נקנה" מורידה אחד, והמוצר יורד מהרשימה רק אחרי האחרון
+  if(!isProduce(p) && qtyOf(S.missing[id]) > 1){
+    try{
+      await B.tx(`missing/${id}`, cur => {
+        if(!cur || qtyOf(cur) <= 1){ const e = new Error('last'); e.code = 'last'; throw e; }
+        return {...cur, qty: qtyOf(cur) - 1, qtyBy:S.person};
+      });
+      B.set(log.path, log.data).catch(e => console.warn(e));
+      return;
+    }catch(e){ if(e?.code !== 'last'){ toast(errMsg(e), true); return; } }
+  }
   leaving.add(id); paint();
   try{
     await B.batch([{path:`missing/${id}`, del:true}, {path:`purchases/${B.newId()}`, data:{productId:id, name:p.name, categoryId:p.categoryId, by:S.person, at:now()}}]);
