@@ -202,6 +202,72 @@ h3.sec{text-transform:none;font-size:13.5px;color:var(--muted)}
 .sbar{display:block;height:7px;border-radius:4px}
 .sbar.shimon{background:var(--shimon)}.sbar.aviya{background:var(--aviya)}
 
+/* stats v2 */
+.mnav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 14px}
+.mbtn{width:42px;height:42px;border-radius:50%;border:0;background:var(--card);box-shadow:var(--shadow);font-size:24px;line-height:1;color:var(--ink);display:grid;place-items:center;padding-bottom:3px}
+.mbtn:disabled{opacity:.3}
+.mlabel{font-size:18px;display:flex;align-items:center;gap:8px}
+.mlabel b{font-weight:800;font-size:21px}
+.mlabel .now{font-size:11.5px;font-weight:700;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:2px 8px}
+.st-hero{position:relative;overflow:hidden;background:linear-gradient(140deg,#24564b 0%,var(--accent) 55%,var(--accent-2) 100%);color:#fff;border-radius:26px;padding:18px 16px 16px;margin-bottom:14px;box-shadow:0 14px 30px -14px rgba(36,86,75,.7)}
+.st-hero::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.06);top:-90px;left:-70px}
+.st-top{display:flex;justify-content:space-between;font-size:13px;opacity:.9;position:relative}
+.vs{display:flex;align-items:center;justify-content:space-around;margin:14px 0 12px;position:relative}
+.vsp{text-align:center;flex:1}
+.vav{position:relative;width:58px;height:58px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;font-size:24px;font-weight:800;border:3px solid rgba(255,255,255,.85)}
+.vav.shimon{background:var(--shimon)}.vav.aviya{background:var(--aviya)}
+.vsp.lead .vav{box-shadow:0 0 0 5px rgba(255,255,255,.18)}
+.crown{position:absolute;top:-18px;font-size:20px}
+.vname{font-weight:700;font-size:15px}
+.vpts{font-size:40px;font-weight:800;line-height:1.05}
+.vsub{font-size:12.5px;opacity:.85}
+.vsmid{font-weight:800;font-size:13px;opacity:.6;letter-spacing:1px}
+.vbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.2);position:relative}
+.vbar i{display:block;height:100%;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.vbar .shimon{background:#b9cbf3}.vbar .aviya{background:#f5bfd0}
+.vfoot{display:flex;justify-content:space-between;font-size:12.5px;margin-top:7px;opacity:.95;position:relative}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:12px 10px;text-align:center;border:1px solid rgba(31,42,39,.04);min-width:0}
+.ti{font-size:20px}
+.tv{font-size:24px;font-weight:800;margin-top:2px}
+.tv.sm{font-size:13.5px;font-weight:700;line-height:1.25;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tl{font-size:11.5px;color:var(--muted);margin-top:3px}
+.ctitle{font-weight:800;font-size:15.5px;margin-bottom:12px}
+.dw{margin-bottom:12px}
+.dwh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.dwh .who{display:inline-flex;align-items:center;gap:7px;font-weight:700}
+.dwbar{display:flex;height:12px;border-radius:7px;overflow:hidden;background:var(--soft)}
+.dwbar i{display:block;height:100%}
+.dwbar.shimon .d{background:var(--shimon)}.dwbar.shimon .w{background:#9fb4e2}
+.dwbar.aviya .d{background:var(--aviya)}.dwbar.aviya .w{background:#eaa6bb}
+.legend{display:flex;gap:14px;justify-content:center;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;background:#7c8a86}
+.legend i.w{background:#c3ccc9}
+.tk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.ctitle + .tk{border-top:0;padding-top:0}
+.tkb{flex:1;min-width:0}
+.tkh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.tkn{font-weight:600;font-size:15px}
+.tkc{font-weight:800;font-size:14px;white-space:nowrap}
+.tkc .wk{font-size:10.5px;font-weight:700;background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:1px 6px;margin-inline-start:4px}
+.tkbar{display:flex;height:8px;border-radius:5px;overflow:hidden;margin:7px 0 5px;background:var(--soft)}
+.tkbar i{display:block;height:100%}
+.tkbar .shimon{background:var(--shimon)}.tkbar .aviya{background:var(--aviya)}
+.tkf{display:flex;gap:12px;font-size:12px;font-weight:600}
+.wchart{display:flex;align-items:flex-end;gap:10px;height:170px;padding:0 4px 4px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.wcol{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.wbars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:4px}
+.wb{width:min(18px,40%);border-radius:7px 7px 3px 3px;min-height:4px;position:relative;transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.wb span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--muted)}
+.wb.shimon{background:var(--shimon)}.wb.aviya{background:var(--aviya)}
+.wl{font-size:11px;color:var(--muted);margin-top:6px}
+.evr{display:flex;justify-content:space-around}
+.evr>div{display:flex;align-items:center;gap:8px}
+.evr b{font-size:22px;font-weight:800}
+.st-empty{text-align:center;padding:30px 20px}
+.st-empty .em{font-size:44px;margin-bottom:8px}
+
 /* sheet */
 .scrim{position:fixed;inset:0;background:rgba(30,25,15,.35);z-index:40;opacity:0;transition:opacity .2s}
 .scrim.show{opacity:1}
@@ -759,59 +825,81 @@ function paintStats(){
   if(!S.statMonth) S.statMonth = `${p.y}-${pad(p.m)}`;
   const [yy, mm] = S.statMonth.split('-').map(Number);
   const isCurrent = yy===p.y && mm===p.m;
-  const list = S.comps.filter(c => c.month === S.statMonth && PEOPLE[c.by]);
   const ppl = ['shimon','aviya'];
+  const pts = c => c.points || 1;
   const sum = (arr, f) => arr.reduce((a,c) => a + f(c), 0);
+  const list = S.comps.filter(c => c.month === S.statMonth && PEOPLE[c.by]);
   const tot = Object.fromEntries(ppl.map(q => { const mine = list.filter(c => c.by===q);
-    return [q, {pts:sum(mine, c=>c.points||1), n:mine.length, dPts:sum(mine.filter(c=>c.kind==='d'), c=>c.points||1), wPts:sum(mine.filter(c=>c.kind==='w'), c=>c.points||1)}]; }));
+    return [q, {pts:sum(mine, pts), n:mine.length, d:sum(mine.filter(c=>c.kind==='d'), pts), w:sum(mine.filter(c=>c.kind==='w'), pts)}]; }));
   const all = tot.shimon.pts + tot.aviya.pts;
   const lead = tot.shimon.pts===tot.aviya.pts ? null : tot.shimon.pts > tot.aviya.pts ? 'shimon' : 'aviya';
   const share = all ? Math.round(tot.shimon.pts/all*100) : 50;
 
-  // לפי משימה
+  // המשימות
   const byTask = {};
-  for(const c of list){ const k = c.taskId; const def = S.defs.find(x=>x.id===k);
-    byTask[k] = byTask[k] || {name:def?.name || c.name, kind:c.kind, shimon:0, aviya:0, pts:0};
-    byTask[k][c.by]++; byTask[k].pts += c.points||1; }
+  for(const c of list){ const def = S.defs.find(x=>x.id===c.taskId);
+    const t = byTask[c.taskId] = byTask[c.taskId] || {id:c.taskId, name:def?.name || c.name, kind:c.kind, shimon:0, aviya:0, pts:0};
+    t[c.by]++; t.pts += pts(c); }
   const tasks = Object.values(byTask).sort((a,b) => (b.shimon+b.aviya)-(a.shimon+a.aviya) || b.pts-a.pts);
   const maxT = Math.max(1, ...tasks.map(t => t.shimon+t.aviya));
 
-  // לפי שבוע (שבוע מתחיל במוצאי שבת)
+  // הימים והשבועות
+  const byDay = {};
+  for(const c of list){ const d = dayIdOf(c.at); byDay[d] = (byDay[d]||0) + pts(c); }
+  const bestDay = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
   const byWeek = {};
-  for(const c of list){ const w = weekIdOf(c.at); byWeek[w] = byWeek[w] || {shimon:0, aviya:0}; byWeek[w][c.by] += c.points||1; }
+  for(const c of list){ const w = weekIdOf(c.at); byWeek[w] = byWeek[w] || {shimon:0, aviya:0}; byWeek[w][c.by] += pts(c); }
   const weeks = Object.keys(byWeek).sort();
-  const maxW = Math.max(1, ...weeks.map(w => byWeek[w].shimon + byWeek[w].aviya));
+  const maxW = Math.max(1, ...weeks.flatMap(w => [byWeek[w].shimon, byWeek[w].aviya]));
+  const ever = Object.fromEntries(ppl.map(q => [q, sum(S.comps.filter(c=>c.by===q), pts)]));
+  const dayLabel = id => { const x = il(new Date(id+'T12:00:00Z').getTime()); return `${DAY_NAMES[x.wd]} ${dm(id)}`; };
 
-  // כל הזמנים
-  const ever = Object.fromEntries(ppl.map(q => [q, sum(S.comps.filter(c=>c.by===q), c=>c.points||1)]));
-  const bar = (n, max, cls) => `<i class="sbar ${cls}" style="width:${Math.max(n?4:0, Math.round(n/max*100))}%"></i>`;
+  const nav = `<div class="mnav">
+    <button class="mbtn" data-act="month" data-v="-1" aria-label="חודש קודם">›</button>
+    <div class="mlabel"><b>${MONTHS[mm-1]}</b> ${yy}${isCurrent?'<span class="now">החודש</span>':''}</div>
+    <button class="mbtn" data-act="month" data-v="1" ${isCurrent?'disabled':''} aria-label="חודש הבא">‹</button></div>`;
 
-  body.innerHTML = `
-  <div class="card month-nav"><button class="icon-btn" data-act="month" data-v="-1" aria-label="חודש קודם">→</button>
-    <div style="text-align:center"><div style="font-weight:800;font-size:19px">${MONTHS[mm-1]} ${yy}</div><div class="small muted">${isCurrent?'החודש הנוכחי':''}</div></div>
-    <button class="icon-btn" data-act="month" data-v="1" ${isCurrent?'disabled style="opacity:.3"':''} aria-label="חודש הבא">←</button></div>
+  if(!all){
+    body.innerHTML = nav + `<div class="card st-empty"><div class="em">📊</div><b>עוד אין משימות שבוצעו ב${MONTHS[mm-1]}</b>
+      <div class="small muted">כל משימה שמסמנים כבוצעה נספרת כאן. משימה יומית שווה נקודה, ושבועית לפי ה־⭐ שלה.</div></div>`;
+    return;
+  }
 
-  <div class="score">${ppl.map(q => `<div class="card sc ${q}"><div class="nm">${pname(q)} ${lead===q?'👑':''}</div>
-    <div class="big">${tot[q].pts}</div><div class="small muted">נקודות · ${tot[q].n} משימות בוצעו</div>
-    <div class="small" style="margin-top:8px">יומיות ${tot[q].dPts} · שבועיות ${tot[q].wPts}</div></div>`).join('')}</div>
+  const hero = `<div class="st-hero">
+    <div class="st-top"><span>סיכום ${MONTHS[mm-1]}</span><span>${all} נקודות · ${list.length} משימות</span></div>
+    <div class="vs">${ppl.map((q,i) => `${i===1?'<div class="vsmid">VS</div>':''}<div class="vsp ${lead===q?'lead':''}">
+      <div class="vav ${q}">${pname(q).charAt(0)}${lead===q?'<span class="crown">👑</span>':''}</div>
+      <div class="vname">${pname(q)}</div><div class="vpts">${tot[q].pts}</div><div class="vsub">${tot[q].n} משימות</div></div>`).join('')}</div>
+    <div class="vbar"><i class="shimon" style="width:${share}%"></i><i class="aviya" style="width:${100-share}%"></i></div>
+    <div class="vfoot"><span>${share}%</span><span>${lead ? `${pname(lead)} ${gv(lead,'מוביל','מובילה')} ב־${Math.abs(tot.shimon.pts-tot.aviya.pts)}` : 'תיקו 🤝'}</span><span>${100-share}%</span></div></div>`;
 
-  ${all ? `<div class="card"><div class="row-sb small muted"><span>${pname('shimon')} ${share}%</span><span>${pname('aviya')} ${100-share}%</span></div>
-    <div class="split"><i class="shimon" style="width:${share}%"></i><i class="aviya" style="width:${100-share}%"></i></div>
-    <div class="small muted" style="text-align:center;margin-top:8px">${lead ? `${pname(lead)} ${gv(lead,'מוביל','מובילה')} ב־${Math.abs(tot.shimon.pts-tot.aviya.pts)} נקודות החודש` : 'תיקו מושלם 🤝'}</div></div>`
-  : `<div class="card"><div class="empty"><div class="big">📊</div>עוד אין משימות שבוצעו ב${MONTHS[mm-1]}.<br>כל משימה שמסמנים כבוצעה נספרת כאן.</div></div>`}
+  const top = tasks[0];
+  const tiles = `<div class="tiles">
+    <div class="tile"><div class="ti">✅</div><div class="tv">${list.length}</div><div class="tl">משימות בוצעו</div></div>
+    <div class="tile"><div class="ti">🔥</div><div class="tv">${bestDay ? bestDay[1] : 0}</div><div class="tl">${bestDay ? 'שיא: '+dayLabel(bestDay[0]) : 'יום שיא'}</div></div>
+    <div class="tile"><div class="ti">${top ? taskIc(top) : '⭐'}</div><div class="tv sm">${top ? esc(top.name) : '-'}</div><div class="tl">הכי הרבה פעמים</div></div></div>`;
 
-  ${tasks.length ? `<h3 class="sec">לפי משימה</h3><div class="list">${tasks.map(t => `<div class="srow">
-    <div class="row-sb"><span class="rname" style="font-size:15px">${esc(t.name)}</span><span class="small muted">${t.kind==='w'?'שבועית':'יומית'} · ${t.shimon+t.aviya} פעמים</span></div>
-    <div class="sbars">${bar(t.shimon, maxT, 'shimon')}${bar(t.aviya, maxT, 'aviya')}</div>
-    <div class="small"><span style="color:var(--shimon)">${pname('shimon')} ${t.shimon}</span> · <span style="color:var(--aviya)">${pname('aviya')} ${t.aviya}</span></div></div>`).join('')}</div>` : ''}
+  const split = `<div class="card"><div class="ctitle">יומיות מול שבועיות</div>${ppl.map(q => {
+    const t = tot[q], mx = Math.max(1, t.d + t.w);
+    return `<div class="dw"><div class="dwh"><span class="who">${av(q)}${pname(q)}</span><span class="muted small">יומיות ${t.d} · שבועיות ${t.w}</span></div>
+      <div class="dwbar ${q}"><i class="d" style="width:${t.d/mx*100}%"></i><i class="w" style="width:${t.w/mx*100}%"></i></div></div>`; }).join('')}
+    <div class="legend"><span><i class="d"></i>יומיות</span><span><i class="w"></i>שבועיות</span></div></div>`;
 
-  ${weeks.length ? `<h3 class="sec">לפי שבוע (נקודות)</h3><div class="list">${weeks.map(w => `<div class="srow">
-    <div class="row-sb"><span style="font-weight:600">${dm(addDays(w,1))}–${dm(addDays(w,7))}</span><span class="small"><span style="color:var(--shimon)">${byWeek[w].shimon}</span> · <span style="color:var(--aviya)">${byWeek[w].aviya}</span></span></div>
-    <div class="sbars">${bar(byWeek[w].shimon, maxW, 'shimon')}${bar(byWeek[w].aviya, maxW, 'aviya')}</div></div>`).join('')}</div>` : ''}
+  const taskList = `<div class="card"><div class="ctitle">לפי משימה</div>${tasks.map(t => { const n = t.shimon+t.aviya;
+    return `<div class="tk"><div class="tic">${taskIc(t)}</div><div class="tkb">
+      <div class="tkh"><span class="tkn">${esc(t.name)}</span><span class="tkc">${t.kind==='w'?'<span class="wk">שבועית</span> ':''}${n} <span style="font-weight:500;font-size:12px;color:var(--muted)">פעמים</span></span></div>
+      <div class="tkbar" style="width:${Math.max(12, n/maxT*100)}%"><i class="shimon" style="flex:${t.shimon}"></i><i class="aviya" style="flex:${t.aviya}"></i></div>
+      <div class="tkf"><span style="color:var(--shimon)">${pname('shimon')} ${t.shimon}</span><span style="color:var(--aviya)">${pname('aviya')} ${t.aviya}</span></div></div></div>`; }).join('')}</div>`;
 
-  <div class="card"><div class="small muted" style="margin-bottom:6px">מאז שהתחלנו</div>
-    <div class="row-sb"><span style="color:var(--shimon);font-weight:700">${pname('shimon')} ${ever.shimon}</span><span style="color:var(--aviya);font-weight:700">${pname('aviya')} ${ever.aviya}</span></div></div>
-  <p class="small muted" style="text-align:center">משימה יומית = נקודה אחת. משימה שבועית = לפי ה־⭐ שלה.</p>`;
+  const chart = weeks.length ? `<div class="card"><div class="ctitle">נקודות לפי שבוע</div><div class="wchart">${weeks.map(w => `<div class="wcol">
+      <div class="wbars"><div class="wb shimon" style="height:${byWeek[w].shimon/maxW*100}%"><span>${byWeek[w].shimon||''}</span></div><div class="wb aviya" style="height:${byWeek[w].aviya/maxW*100}%"><span>${byWeek[w].aviya||''}</span></div></div>
+      <div class="wl">${dm(addDays(w,1))}</div></div>`).join('')}</div>
+    <div class="legend"><span><i style="background:var(--shimon)"></i>${pname('shimon')}</span><span><i style="background:var(--aviya)"></i>${pname('aviya')}</span></div></div>` : '';
+
+  const everCard = `<div class="card ever"><div class="ctitle">מאז שהתחלנו</div><div class="evr">${ppl.map(q => `<div>${av(q)}<b>${ever[q]}</b><span class="muted small">נקודות</span></div>`).join('')}</div></div>`;
+
+  body.innerHTML = nav + hero + tiles + split + taskList + chart + everCard +
+    `<p class="small muted" style="text-align:center;margin:4px 0 20px">משימה יומית = נקודה. משימה שבועית = לפי ה־⭐ שלה.</p>`;
 }
 
 /* ---------- קניות: קטלוג ---------- */
