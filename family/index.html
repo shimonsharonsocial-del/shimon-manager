@@ -556,7 +556,9 @@ function taskRow(kind, d, s){
     act = s.assignee ? `<span class="ptag ${s.assignee}">${pname(s.assignee)}</span>` : '';
   } else if(s.assignee){
     if(s.updatedBy && s.updatedBy !== s.assignee) meta = `שובץ ע״י ${pname(s.updatedBy)}`;
-    act = `<button class="pill ${s.assignee}" data-act="${kind}-sheet" data-id="${d.id}">${s.assignee===me?'אני':pname(s.assignee)} ▾</button>`;
+    act = kind==='d'
+      ? `<button class="pill ${s.assignee}" data-act="d-unassign" data-id="${d.id}" aria-label="ביטול השיבוץ">${s.assignee===me?'אני':pname(s.assignee)} <span style="opacity:.6">✕</span></button>`
+      : `<button class="pill ${s.assignee}" data-act="${kind}-sheet" data-id="${d.id}">${s.assignee===me?'אני':pname(s.assignee)} ▾</button>`;
   } else if(kind==='d'){
     act = `<button class="pill me" data-act="d-assign" data-id="${d.id}" data-p="${me}">אני</button><button class="pill ghost" data-act="d-assign" data-id="${d.id}" data-p="${partner}">${pname(partner)}</button>`;
   }
@@ -885,6 +887,7 @@ app.addEventListener('click', async e => {
     case 'd-assign': assignDaily(id, slotOf(S.daily,id).v||0, b.dataset.p); break;
     case 'd-done': toggleDaily(id); break;
     case 'd-sheet': dailySheet(id); break;
+    case 'd-unassign': assignDaily(id, slotOf(S.daily,id).v||0, null); break;
     case 'w-done': toggleWeekly(id); break;
     case 'w-sheet': weeklySheet(id); break;
     case 'manageDefs': manageDefs(); break;
