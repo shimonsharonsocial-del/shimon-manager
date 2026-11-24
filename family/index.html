@@ -334,6 +334,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
+const APP_VERSION = '1.4';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -1222,7 +1223,8 @@ function menuSheet(){
     <p class="muted" style="margin-top:-6px">מחובר/ת בתור <b>${pname(S.person)}</b>${S.user?.email && !LOCAL_MODE ? ` · <span dir="ltr">${esc(S.user.email)}</span>` : ''}</p>
     <div class="card" style="box-shadow:none;background:var(--soft)"><b>הוספה למסך הבית</b>
     <div class="small muted" style="margin-top:6px">אייפון: בספארי לוחצים על כפתור השיתוף ⬆︎ ואז "הוספה למסך הבית".<br>אנדרואיד: בכרום לוחצים על ⋮ ואז "התקנת אפליקציה".</div></div>
-    <button class="btn danger" id="out">התנתקות</button><button class="btn" id="cn">סגירה</button>`, sh => {
+    <button class="btn danger" id="out">התנתקות</button><button class="btn" id="cn">סגירה</button>
+    <p class="small muted" style="text-align:center;margin-top:12px">גרסה ${APP_VERSION}</p>`, sh => {
     $('#cn',sh).onclick = () => closeSheet();
     $('#out',sh).onclick = () => { closeSheet(); B.signOut(); };
   });
@@ -1325,7 +1327,16 @@ async function start(person){
   document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible' && S.ready){ checkPeriod(); paint(); } });
   addEventListener('online', () => S.ready && paint());
   addEventListener('offline', () => S.ready && paint());
-  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator && location.protocol==='https:'){
+    // כשעולה גרסה חדשה: היא נטענת ברקע והאפליקציה מתרעננת לבד פעם אחת
+    const hadController = !!navigator.serviceWorker.controller; let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if(hadController && !reloaded && !document.querySelector('.sheet')){ reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(reg => {
+      const check = () => reg.update().catch(()=>{});
+      document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') check(); });
+      setInterval(check, 30*60*1000);
+    }).catch(()=>{});
+  }
   if(LOCAL_MODE) window.__test = { shiftTo(iso){ testShift = new Date(iso).getTime() - Date.now(); checkPeriod(); }, il, dayIdOf, weekIdOf, B: () => B };
 })();
 </script>
