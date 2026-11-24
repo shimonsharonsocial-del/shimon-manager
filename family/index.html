@@ -119,6 +119,21 @@ h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;let
 .cat.closed .arrow{transform:rotate(90deg)}
 .cat.closed .prods{display:none}
 .cat{scroll-margin-top:150px}
+.dbtn{border:0;background:var(--soft);color:var(--accent);width:24px;height:24px;border-radius:50%;font-size:14px;font-weight:700;padding:0;vertical-align:middle;margin-inline-start:4px}
+.dbtn.on{background:var(--accent);color:#fff}
+.desc{margin-top:8px;background:var(--accent-soft);color:#24564b;border-radius:12px;padding:10px 12px;font-size:14px;white-space:pre-wrap;line-height:1.5;animation:fadein .2s}
+@keyframes fadein{from{opacity:0;transform:translateY(-4px)}}
+textarea.field{resize:vertical;font-family:inherit;line-height:1.5}
+.big-qty{display:inline-flex;margin-left:0}
+.big-qty b{min-width:34px;font-size:18px}
+.mdays{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.mdays .h{text-align:center;font-size:11.5px;color:var(--muted);font-weight:700}
+.mdays button{border:1.5px solid var(--line);background:var(--card);border-radius:10px;height:38px;font-weight:700;font-size:14.5px;padding:0}
+.mdays button.past{color:var(--faint)}
+.mdays button.today{border-color:var(--accent-2)}
+.mdays button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.dwbar.shimon .m{background:#cfdaf3}.dwbar.aviya .m{background:#f6d3de}
+.legend i.m{background:#e1e5e3}
 .qty{display:flex;align-items:center;gap:2px;margin-left:10px;background:#fdf1df;border-radius:20px;padding:3px}
 .qty button{width:30px;height:30px;border-radius:50%;border:0;background:#fff;color:var(--warn);font-size:18px;font-weight:700;display:grid;place-items:center;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .qty button:disabled{opacity:.35}
@@ -346,7 +361,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -494,7 +509,7 @@ const SEED_SHOP = [
 ];
 /* כמה "משימות" שווה כל משימה: יומית = 1, שבועית = לפי ההגדרה (ברירת מחדל לפי הטבלה) */
 const DEFAULT_W = {w01:3,w02:2,w03:2,w04:2,w05:2,w06:2,w07:2,w08:1,w09:2,w10:3,w11:3,w12:3,w13:2,w14:3,w15:2};
-const ptsOf = d => !d ? 1 : d.kind==='daily' ? 1 : (Number.isFinite(d.points) ? d.points : (DEFAULT_W[d.id] ?? 2));
+const ptsOf = d => !d ? 1 : d.kind==='daily' ? 1 : (Number.isFinite(d.points) ? d.points : (DEFAULT_W[d.id] ?? (d.kind==='monthly' ? 3 : 2)));
 const TASK_IC = {d01:'🍽️',d02:'🧺',d03:'👕',d04:'🗄️',d05:'🛋️',d06:'🗑️',d07:'🍳',d08:'✨',d09:'🪴',
   w01:'🧽',w02:'🧸',w03:'💻',w04:'🛏️',w05:'🚿',w06:'🚽',w07:'🧊',w08:'🫧',w09:'📦',w10:'🍲',w11:'🌿',w12:'🚗',w13:'🛌',w14:'🌀',w15:'🪶'};
 const CAT_IC = {c01:'🥬',c02:'🥛',c03:'🥖',c04:'🫙',c05:'🫘',c06:'❄️',c07:'🍫',c08:'🥤',c09:'🧴',c10:'🧼',c11:'🍼',c12:'🏠',c13:'🛍️',c14:'🥫'};
@@ -580,7 +595,7 @@ async function migrateCatalog4(){
    ===================================================================== */
 const S = {
   user:null, person:null, users:[], ready:false,
-  defs:[], daily:{}, weekly:{}, comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
+  defs:[], daily:{}, weekly:{}, monthly:{}, monthId:null, openDesc:new Set(), comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
   dayId:null, weekId:null,
   main: store.get('main','tasks'), taskTab: store.get('taskTab','daily'), shopTab: store.get('shopTab','catalog'),
   filter:'all', selDay:null, search:'', editCat:null, openCat: store.get('openCat', null),
@@ -591,8 +606,13 @@ const app = $('#app');
 
 const activeDefs = kind => S.defs.filter(d => d.kind===kind && d.active && !d.deleted).sort((a,b) => a.order-b.order);
 const slotOf = (map, id) => map[id] || {v:0, assignee:null, done:false};
-const weeklyToday = () => activeDefs('weekly').map(d => [d, slotOf(S.weekly, d.id)])
-  .filter(([,s]) => s.assignee && s.day!=null && weekDate(S.weekId, s.day) === S.dayId);
+/* משימות שבועיות וחודשיות ששובצו לתאריך מסוים: [kind, def, slot] */
+const plannedOn = dateId => [
+  ...activeDefs('weekly').map(d => ['w', d, slotOf(S.weekly, d.id)]).filter(([,,s]) => s.assignee && s.day!=null && weekDate(S.weekId, s.day) === dateId),
+  ...activeDefs('monthly').map(d => ['m', d, slotOf(S.monthly, d.id)]).filter(([,,s]) => s.assignee && s.date === dateId)];
+const monthIdOf = ms => { const p = il(ms); return `${p.y}-${pad(p.m)}`; };
+/* המשימות החודשיות נשמרות תחת weekly/month-YYYY-MM, נתיב שההרשאות הקיימות כבר מאפשרות */
+const MONTH_PERIOD = m => `month-${m}`;
 const catsSorted = () => S.cats.slice().sort((a,b) => a.order-b.order);
 
 /* ---------- מנויים בזמן אמת ---------- */
@@ -609,13 +629,14 @@ function subscribe(){
   checkPeriod(true);
 }
 function checkPeriod(force=false){
-  const d = dayIdOf(now()), w = weekIdOf(now());
-  if(!force && d===S.dayId && w===S.weekId) return;
-  const changed = S.dayId && (d!==S.dayId || w!==S.weekId);
+  const d = dayIdOf(now()), w = weekIdOf(now()), m = monthIdOf(now());
+  if(!force && d===S.dayId && w===S.weekId && m===S.monthId) return;
+  const changed = S.dayId && (d!==S.dayId || w!==S.weekId || m!==S.monthId);
   if(changed) S.selDay = null;
-  S.dayId = d; S.weekId = w;
+  S.dayId = d; S.weekId = w; S.monthId = m;
   periodUnsubs.forEach(f=>f()); periodUnsubs = [];
-  S.daily = {}; S.weekly = {};
+  S.daily = {}; S.weekly = {}; S.monthly = {};
+  periodUnsubs.push(B.watchCol(`weekly/${MONTH_PERIOD(m)}/slots`, docs => { S.monthly = Object.fromEntries(docs.map(x=>[x.id,x])); paint(); }, onErr));
   periodUnsubs.push(B.watchCol(`daily/${d}/slots`, docs => { S.daily = Object.fromEntries(docs.map(x=>[x.id,x])); paint(); }, onErr));
   periodUnsubs.push(B.watchCol(`weekly/${w}/slots`, docs => { S.weekly = Object.fromEntries(docs.map(x=>[x.id,x])); paint(); }, onErr));
   if(changed) toast('התחילה תקופה חדשה, הרשימה התאפסה');
@@ -629,7 +650,7 @@ function checkPeriod(force=false){
 async function slotOp(kind, taskId, expectedV, change, okMsg){
   const key = kind+':'+taskId;
   if(busy.has(key)) return false;
-  const period = kind==='d' ? S.dayId : S.weekId;
+  const period = kind==='d' ? S.dayId : kind==='w' ? S.weekId : MONTH_PERIOD(S.monthId);
   const path = (kind==='d' ? `daily/${period}` : `weekly/${period}`) + '/slots/' + taskId;
   const def = S.defs.find(x => x.id === taskId);
   busy.add(key); paint();
@@ -670,12 +691,13 @@ async function toggleDaily(id){
       : {done:false, doneBy:null, doneAt:null});
   if(ok && done){ justDone.add('d:'+id); setTimeout(()=>justDone.delete('d:'+id), 700); paint(); }
 }
-async function toggleWeekly(id){
-  const s = slotOf(S.weekly, id);
+async function toggleLong(kind, id){
+  const s = slotOf(kind==='w' ? S.weekly : S.monthly, id);
   const done = !s.done;
-  const ok = await slotOp('w', id, s.v||0, () => done ? {done:true, doneBy:S.person, doneAt:now()} : {done:false, doneBy:null, doneAt:null});
-  if(ok && done){ justDone.add('w:'+id); setTimeout(()=>justDone.delete('w:'+id), 700); paint(); }
+  const ok = await slotOp(kind, id, s.v||0, () => done ? {done:true, doneBy:S.person, doneAt:now()} : {done:false, doneBy:null, doneAt:null});
+  if(ok && done){ justDone.add(kind+':'+id); setTimeout(()=>justDone.delete(kind+':'+id), 700); paint(); }
 }
+const toggleWeekly = id => toggleLong('w', id);
 
 /* =====================================================================
    ציור המסכים
@@ -687,7 +709,7 @@ function paint(){
   const key = S.main + '|' + (S.main==='tasks' ? S.taskTab : S.main==='shop' ? S.shopTab : '');
   if(key !== shellKey){ shellKey = key; buildShell(); }
   paintTop();
-  if(S.main==='tasks'){ paintStrip(); paintSummary(); S.taskTab==='daily' ? paintDaily() : paintWeekly(); }
+  if(S.main==='tasks'){ paintStrip(); paintSummary(); S.taskTab==='daily' ? paintDaily() : S.taskTab==='weekly' ? paintWeekly() : paintMonthly(); }
   else if(S.main==='stats') paintStats();
   else { S.shopTab==='catalog' ? paintCatalog() : paintList(); }
 }
@@ -714,10 +736,11 @@ function buildShell(){
       <div class="seg small" style="margin-bottom:14px">
         <button data-act="taskTab" data-v="daily" class="${S.taskTab==='daily'?'on':''}">יומיות</button>
         <button data-act="taskTab" data-v="weekly" class="${S.taskTab==='weekly'?'on':''}">שבועיות</button>
+        <button data-act="taskTab" data-v="monthly" class="${S.taskTab==='monthly'?'on':''}">חודשיות</button>
       </div>
       ${S.taskTab==='daily' ? `<div class="chips" id="filters"></div>` : ''}
       <div id="body"></div>
-      <button class="link-btn" data-act="manageDefs">✎ עריכת רשימת המשימות ה${S.taskTab==='daily'?'יומיות':'שבועיות'}</button>
+      <button class="link-btn" data-act="manageDefs">✎ עריכת רשימת המשימות ה${({daily:'יומיות',weekly:'שבועיות',monthly:'חודשיות'})[S.taskTab]}</button>
     ` : `
       <div class="seg small" style="margin-bottom:14px">
         <button data-act="shopTab" data-v="catalog" class="${S.shopTab==='catalog'?'on':''}">כל המוצרים</button>
@@ -758,16 +781,16 @@ const todayIdx = () => il(now()).wd;
 function paintStrip(){
   const t = todayIdx();
   const sel = S.selDay ?? t;
-  const has = i => activeDefs('weekly').some(d => { const s = slotOf(S.weekly, d.id); return s.assignee && s.day === i; });
+  const has = i => plannedOn(weekDate(S.weekId, i)).length > 0;
   $('#weekstrip').innerHTML = DAY_SHORT.map((n,i) => `<button data-act="day" data-v="${i}" class="${i===t?'today':''} ${i===sel?'sel':''}" aria-label="יום ${DAY_NAMES[i]}">
     <span class="c">${n.replace('׳','')}</span><small>${dm(weekDate(S.weekId,i))}</small><span class="dot ${has(i)?'on':''}"></span></button>`).join('');
 }
 
 /* ---------- סיכום יומי ---------- */
 function paintSummary(){
-  const wt = weeklyToday();
+  const wt = plannedOn(S.dayId);
   const defs = activeDefs('daily');
-  const sl = defs.map(d => slotOf(S.daily, d.id)).concat(wt.map(([,s]) => s));
+  const sl = defs.map(d => slotOf(S.daily, d.id)).concat(wt.map(([,,s]) => s));
   const total = sl.length;
   const done = sl.filter(s=>s.done).length;
   const c = p => sl.filter(s=>s.assignee===p).length;
@@ -794,13 +817,21 @@ function paintDaily(){
   $('#filters').innerHTML = F.map(([k,l]) => `<button class="chip ${S.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</button>`).join('');
   const pass = s => S.filter==='all' || (S.filter==='mine' && s.assignee===me) || (S.filter==='partner' && s.assignee===partner) || (S.filter==='free' && !s.assignee && !s.done);
   const defs = activeDefs('daily').filter(d => pass(slotOf(S.daily, d.id)));
-  const wt = weeklyToday().filter(([,s]) => pass(s));
+  const wt = plannedOn(S.dayId).filter(([,,s]) => pass(s));
   let html = defs.length ? `<div class="list">${defs.map(d => taskRow('d', d, slotOf(S.daily, d.id))).join('')}</div>`
     : `<div class="list"><div class="empty">${S.filter==='free'?'כל המשימות שובצו 👏':'אין משימות להצגה'}</div></div>`;
-  if(wt.length) html += `<h3 class="sec">📅 משימות שבועיות שתוכננו להיום</h3><div class="list">${wt.map(([d,s]) => taskRow('w', d, s)).join('')}</div>`;
+  if(wt.length) html += `<h3 class="sec">📅 משימות שבועיות וחודשיות שתוכננו להיום</h3><div class="list">${wt.map(([k,d,s]) => taskRow(k, d, s)).join('')}</div>`;
   $('#body').innerHTML = html;
 }
 
+/* תיאור נסתר: מופיע רק אחרי לחיצה על ⓘ */
+const descBtn = d => d.kind!=='daily' && d.desc ? ` <button class="dbtn ${S.openDesc.has(d.id)?'on':''}" data-act="desc" data-id="${d.id}" aria-label="${S.openDesc.has(d.id)?'הסתרת התיאור':'הצגת התיאור'}">ⓘ</button>` : '';
+const descBox = d => d.kind!=='daily' && d.desc && S.openDesc.has(d.id) ? `<div class="desc">${esc(d.desc)}</div>` : '';
+function freeRow(kind, d){
+  const k = kind+':'+d.id;
+  return `<div class="row ${busy.has(k)?'busy':''}"><div class="tic" aria-hidden="true">${taskIc(d)}</div><div class="rbody"><div class="rname">${esc(d.name)}${descBtn(d)}</div><div class="rmeta">⭐ ${ptsOf(d)}</div>${descBox(d)}</div>
+    <div class="ract">${busy.has(k)?'<div class="spin"></div>':`<button class="pill me" data-act="${kind}-sheet" data-id="${d.id}">שיבוץ</button>`}</div></div>`;
+}
 function taskRow(kind, d, s){
   const me = S.person, partner = other(me), k = kind+':'+d.id;
   const isBusy = busy.has(k);
@@ -817,23 +848,33 @@ function taskRow(kind, d, s){
     act = `<button class="pill me" data-act="d-assign" data-id="${d.id}" data-p="${me}">אני</button><button class="pill ghost round" data-act="d-assign" data-id="${d.id}" data-p="${partner}" aria-label="שיבוץ ל${pname(partner)}">${av(partner)}</button>`;
   }
   if(isBusy) act = `<div class="spin"></div>`;
-  if(kind==='w' && s.done) act = `<button class="pill ${s.assignee}" data-act="w-sheet" data-id="${d.id}">${av(s.assignee)}${s.assignee===me?'אני':pname(s.assignee)} ▾</button>`;
+  if(kind!=='d' && s.done) act = `<button class="pill ${s.assignee}" data-act="${kind}-sheet" data-id="${d.id}">${av(s.assignee)}${s.assignee===me?'אני':pname(s.assignee)} ▾</button>`;
   return `<div class="row ${s.done?'done':''} ${isBusy?'busy':''} ${justDone.has(k)?'pop':''}">
     <button class="chk" data-act="${kind}-done" data-id="${d.id}" aria-label="${s.done?'ביטול סימון ביצוע':'סימון כבוצע'}">${CHECK}</button>
     <div class="tic" aria-hidden="true">${taskIc(d)}</div>
-    <div class="rbody"><div class="rname">${esc(d.name)}</div>${kind==='w' ? `<div class="rmeta">⭐ ${ptsOf(d)}${meta?' · '+meta:''}</div>` : meta?`<div class="rmeta">${meta}</div>`:''}</div>
+    <div class="rbody"><div class="rname">${esc(d.name)}${descBtn(d)}</div>${kind!=='d' ? `<div class="rmeta">⭐ ${ptsOf(d)}${meta?' · '+meta:''}</div>` : meta?`<div class="rmeta">${meta}</div>`:''}${descBox(d)}</div>
     <div class="ract">${act}</div></div>`;
 }
 
 function paintOtherDay(day){
   $('#filters').classList.add('hidden');
-  const items = activeDefs('weekly').map(d => [d, slotOf(S.weekly, d.id)]).filter(([,s]) => s.assignee && s.day === day);
-  let html = `<h3 class="sec" style="margin-top:0">יום ${DAY_NAMES[day]} · ${dm(weekDate(S.weekId, day))}</h3>`;
-  html += items.length ? `<div class="list">${items.map(([d,s]) => taskRow('w', d, s)).join('')}</div>`
-    : `<div class="list"><div class="empty">עוד לא שובצו משימות שבועיות ליום הזה</div></div>`;
+  const date = weekDate(S.weekId, day);
+  const items = plannedOn(date);
+  let html = `<h3 class="sec" style="margin-top:0">יום ${DAY_NAMES[day]} · ${dm(date)}</h3>`;
+  html += items.length ? `<div class="list">${items.map(([k,d,s]) => taskRow(k, d, s)).join('')}</div>`
+    : `<div class="list"><div class="empty">עוד לא שובצו משימות ליום הזה</div></div>`;
   html += `<button class="btn" data-act="pickWeekly" data-v="${day}">＋ שיבוץ משימה שבועית ליום ${DAY_NAMES[day]}</button>
+    ${date.slice(0,7)===S.monthId && activeDefs('monthly').length ? `<button class="btn" data-act="pickMonthly" data-v="${date}">＋ שיבוץ משימה חודשית ליום ${DAY_NAMES[day]}</button>` : ''}
     <p class="small muted" style="text-align:center;margin-top:10px">המשימות היומיות מופיעות בכל יום מחדש, ביום עצמו.</p>`;
   $('#body').innerHTML = html;
+}
+function pickMonthlySheet(date){
+  const free = activeDefs('monthly').filter(d => { const s = slotOf(S.monthly, d.id); return !(s.assignee && s.date); });
+  if(!free.length) return toast('כל המשימות החודשיות כבר שובצו');
+  sheet(`<h2>איזו משימה חודשית ל־${dm(date)}?</h2><div class="list" style="box-shadow:none;border:1px solid var(--line)">${free.map(d => `<button class="prod" data-id="${d.id}"><span class="pname">${esc(d.name)}</span><span class="muted">‹</span></button>`).join('')}</div><button class="btn" id="cn">ביטול</button>`, sh => {
+    $('#cn',sh).onclick = () => closeSheet();
+    sh.querySelectorAll('[data-id]').forEach(b => b.onclick = () => monthlySheet(b.dataset.id, date));
+  });
 }
 function pickWeeklySheet(day){
   const free = activeDefs('weekly').filter(d => { const s = slotOf(S.weekly, d.id); return !(s.assignee && s.day != null); });
@@ -861,10 +902,64 @@ function paintWeekly(){
     }
   }
   html += `<h3 class="sec">${sched.length ? 'עוד לא שובצו' : 'בחרו משימות לשבוע'}</h3>`;
-  html += free.length ? `<div class="list">${free.map(([d]) => `<div class="row ${busy.has('w:'+d.id)?'busy':''}"><div class="tic" aria-hidden="true">${taskIc(d)}</div><div class="rbody"><div class="rname">${esc(d.name)}</div><div class="rmeta">⭐ ${ptsOf(d)}</div></div>
-      <div class="ract">${busy.has('w:'+d.id)?'<div class="spin"></div>':`<button class="pill me" data-act="w-sheet" data-id="${d.id}">שיבוץ</button>`}</div></div>`).join('')}</div>`
+  html += free.length ? `<div class="list">${free.map(([d]) => freeRow('w', d)).join('')}</div>`
     : `<div class="list"><div class="empty">כל המשימות השבועיות שובצו 👏</div></div>`;
   $('#body').innerHTML = html;
+}
+
+/* ---------- משימות חודשיות ---------- */
+function paintMonthly(){
+  const [y, m] = S.monthId.split('-').map(Number);
+  const defs = activeDefs('monthly');
+  const sched = [], free = [];
+  for(const d of defs){ const s = slotOf(S.monthly, d.id); (s.assignee && s.date ? sched : free).push([d,s]); }
+  const doneN = sched.filter(([,s])=>s.done).length;
+  let html = `<div class="card week-head"><div><div style="font-weight:800">${MONTHS[m-1]} ${y}</div>
+    <div class="small muted">מתאפס ב־1 לחודש</div></div>
+    <div class="ptag free">${doneN} מתוך ${sched.length} ששובצו בוצעו</div></div>`;
+  if(!defs.length){
+    $('#body').innerHTML = html + `<div class="list"><div class="empty"><div class="big">🗓️</div>עוד אין משימות חודשיות.<br>מוסיפים דרך "עריכת רשימת המשימות החודשיות" למטה.</div></div>`;
+    return;
+  }
+  const dates = [...new Set(sched.map(([,s]) => s.date))].sort();
+  for(const dt of dates){
+    const x = il(new Date(dt+'T12:00:00Z').getTime());
+    const items = sched.filter(([,s]) => s.date===dt).sort((a,b)=>a[0].order-b[0].order);
+    html += `<h3 class="sec">יום ${DAY_NAMES[x.wd]} · ${dm(dt)}${dt===S.dayId?' · היום':''}</h3><div class="list">${items.map(([d,s]) => taskRow('m', d, s)).join('')}</div>`;
+  }
+  html += `<h3 class="sec">${sched.length ? 'עוד לא שובצו' : 'בחרו משימות לחודש'}</h3>`;
+  html += free.length ? `<div class="list">${free.map(([d]) => freeRow('m', d)).join('')}</div>`
+    : `<div class="list"><div class="empty">כל המשימות החודשיות שובצו 👏</div></div>`;
+  $('#body').innerHTML = html;
+}
+function monthlySheet(id, presetDate){
+  const d = S.defs.find(x=>x.id===id), s = slotOf(S.monthly, id), v = s.v||0;
+  const scheduled = s.assignee && s.date;
+  const [y, m] = S.monthId.split('-').map(Number);
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const first = il(new Date(`${S.monthId}-01T12:00:00Z`).getTime()).wd;
+  let who = s.assignee || S.person;
+  let date = scheduled ? s.date : presetDate || S.dayId;
+  const cells = Array.from({length:first}, () => '<span></span>').concat(Array.from({length:days}, (_,i) => {
+    const id2 = `${S.monthId}-${pad(i+1)}`; return `<button data-dt="${id2}" class="${id2===S.dayId?'today':''} ${id2<S.dayId?'past':''}">${i+1}</button>`; })).join('');
+  sheet(`<h2>${esc(d.name)}</h2>
+    <label class="l">מי מבצע?</label>
+    <div class="pick">${['shimon','aviya'].map(p=>`<button data-p="${p}" class="${p}">${p===S.person?`אני (${pname(p)})`:pname(p)}</button>`).join('')}</div>
+    <label class="l">באיזה תאריך ב${MONTHS[m-1]}?</label>
+    <div class="mdays">${DAY_SHORT.map(n=>`<span class="h">${n}</span>`).join('')}${cells}</div>
+    <button class="btn primary" id="ok">${scheduled?'שמירת שינויים':'שיבוץ'}</button>
+    ${scheduled ? `<button class="btn" id="done">${s.done?'ביטול סימון ביצוע':'✓ סימון כבוצעה'}</button><button class="btn" id="un">ביטול שיבוץ</button>` : ''}`, sh => {
+    const draw = () => {
+      sh.querySelectorAll('[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p===who));
+      sh.querySelectorAll('[data-dt]').forEach(b => b.classList.toggle('on', b.dataset.dt===date));
+    };
+    sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { who=b.dataset.p; draw(); });
+    sh.querySelectorAll('[data-dt]').forEach(b => b.onclick = () => { date=b.dataset.dt; draw(); });
+    draw();
+    $('#ok',sh).onclick = () => { closeSheet(); slotOp('m', id, v, () => ({assignee:who, date}), scheduled ? 'השיבוץ עודכן' : `שובץ ל־${dm(date)}`); };
+    const dn = $('#done',sh); if(dn) dn.onclick = () => { closeSheet(); toggleLong('m', id); };
+    const un = $('#un',sh); if(un) un.onclick = () => { closeSheet(); slotOp('m', id, v, () => ({assignee:null, date:null, done:false, doneBy:null, doneAt:null}), 'השיבוץ בוטל'); };
+  });
 }
 
 /* ---------- סטטיסטיקה ---------- */
@@ -879,6 +974,7 @@ async function backfillCompletions(){
     const periods = [];
     for(let d = start; d <= end; d = addDays(d, 1)) periods.push(['d', d]);
     for(let w = weekIdOf(new Date(start+'T12:00:00Z').getTime()); w <= S.weekId; w = addDays(w, 7)) periods.push(['w', w]);
+    for(let mo = start.slice(0,7); mo <= S.monthId; mo = (([yy,mm]) => mm===12 ? `${yy+1}-01` : `${yy}-${pad(mm+1)}`)(mo.split('-').map(Number))) periods.push(['m', MONTH_PERIOD(mo)]);
     const have = new Set(S.comps.map(c => c.id)), ops = [];
     const lists = await Promise.all(periods.map(([k, per]) => B.list(`${k==='d'?'daily':'weekly'}/${per}/slots`).catch(() => [])));
     lists.forEach((slots, i) => { const [kind, period] = periods[i];
@@ -902,7 +998,7 @@ function paintStats(){
   const sum = (arr, f) => arr.reduce((a,c) => a + f(c), 0);
   const list = S.comps.filter(c => c.month === S.statMonth && PEOPLE[c.by]);
   const tot = Object.fromEntries(ppl.map(q => { const mine = list.filter(c => c.by===q);
-    return [q, {pts:sum(mine, pts), n:mine.length, d:sum(mine.filter(c=>c.kind==='d'), pts), w:sum(mine.filter(c=>c.kind==='w'), pts)}]; }));
+    return [q, {pts:sum(mine, pts), n:mine.length, d:sum(mine.filter(c=>c.kind==='d'), pts), w:sum(mine.filter(c=>c.kind==='w'), pts), m:sum(mine.filter(c=>c.kind==='m'), pts)}]; }));
   const all = tot.shimon.pts + tot.aviya.pts;
   const lead = tot.shimon.pts===tot.aviya.pts ? null : tot.shimon.pts > tot.aviya.pts ? 'shimon' : 'aviya';
   const share = all ? Math.round(tot.shimon.pts/all*100) : 50;
@@ -951,15 +1047,15 @@ function paintStats(){
     <div class="tile"><div class="ti">🔥</div><div class="tv">${bestDay ? bestDay[1] : 0}</div><div class="tl">${bestDay ? 'שיא: '+dayLabel(bestDay[0]) : 'יום שיא'}</div></div>
     <div class="tile"><div class="ti">${top ? taskIc(top) : '⭐'}</div><div class="tv sm">${top ? esc(top.name) : '-'}</div><div class="tl">הכי הרבה פעמים</div></div></div>`;
 
-  const split = `<div class="card"><div class="ctitle">יומיות מול שבועיות</div>${ppl.map(q => {
-    const t = tot[q], mx = Math.max(1, t.d + t.w);
-    return `<div class="dw"><div class="dwh"><span class="who">${av(q)}${pname(q)}</span><span class="muted small">יומיות ${t.d} · שבועיות ${t.w}</span></div>
-      <div class="dwbar ${q}"><i class="d" style="width:${t.d/mx*100}%"></i><i class="w" style="width:${t.w/mx*100}%"></i></div></div>`; }).join('')}
-    <div class="legend"><span><i class="d"></i>יומיות</span><span><i class="w"></i>שבועיות</span></div></div>`;
+  const split = `<div class="card"><div class="ctitle">לפי סוג משימה</div>${ppl.map(q => {
+    const t = tot[q], mx = Math.max(1, t.d + t.w + t.m);
+    return `<div class="dw"><div class="dwh"><span class="who">${av(q)}${pname(q)}</span><span class="muted small">יומיות ${t.d} · שבועיות ${t.w} · חודשיות ${t.m}</span></div>
+      <div class="dwbar ${q}"><i class="d" style="width:${t.d/mx*100}%"></i><i class="w" style="width:${t.w/mx*100}%"></i><i class="m" style="width:${t.m/mx*100}%"></i></div></div>`; }).join('')}
+    <div class="legend"><span><i class="d"></i>יומיות</span><span><i class="w"></i>שבועיות</span><span><i class="m"></i>חודשיות</span></div></div>`;
 
   const taskList = `<div class="card"><div class="ctitle">לפי משימה</div>${tasks.map(t => { const n = t.shimon+t.aviya;
     return `<div class="tk"><div class="tic">${taskIc(t)}</div><div class="tkb">
-      <div class="tkh"><span class="tkn">${esc(t.name)}</span><span class="tkc">${t.kind==='w'?'<span class="wk">שבועית</span> ':''}${n} <span style="font-weight:500;font-size:12px;color:var(--muted)">פעמים</span></span></div>
+      <div class="tkh"><span class="tkn">${esc(t.name)}</span><span class="tkc">${t.kind==='w'?'<span class="wk">שבועית</span> ':t.kind==='m'?'<span class="wk">חודשית</span> ':''}${n} <span style="font-weight:500;font-size:12px;color:var(--muted)">פעמים</span></span></div>
       <div class="tkbar" style="width:${Math.max(12, n/maxT*100)}%"><i class="shimon" style="flex:${t.shimon}"></i><i class="aviya" style="flex:${t.aviya}"></i></div>
       <div class="tkf"><span style="color:var(--shimon)">${pname('shimon')} ${t.shimon}</span><span style="color:var(--aviya)">${pname('aviya')} ${t.aviya}</span></div></div></div>`; }).join('')}</div>`;
 
@@ -1113,40 +1209,31 @@ function weeklySheet(id, presetDay){
 /* ---------- ניהול רשימות המשימות הקבועות ---------- */
 function manageDefs(){
   const kind = S.taskTab;
-  const title = kind==='daily' ? 'משימות יומיות קבועות' : 'משימות שבועיות קבועות';
+  const title = ({daily:'משימות יומיות קבועות', weekly:'משימות שבועיות קבועות', monthly:'משימות חודשיות קבועות'})[kind];
   const draw = sh => {
     const defs = S.defs.filter(d=>d.kind===kind && !d.deleted).sort((a,b)=>a.order-b.order);
     $('#mlist',sh).innerHTML = defs.map((d,i) => `<div class="mrow ${d.active?'':'off'}">
       <button class="nm" data-m="rename" data-id="${d.id}">${esc(d.name)}</button>
-      ${kind==='weekly' ? `<button class="edit-ic" style="width:auto;padding:0 8px;font-weight:700" data-m="pts" data-id="${d.id}" aria-label="ניקוד">⭐${ptsOf(d)}</button>` : ''}
+      ${kind!=='daily' ? `<button class="edit-ic" style="width:auto;padding:0 8px;font-weight:700" data-m="rename" data-id="${d.id}" aria-label="ניקוד ותיאור">⭐${ptsOf(d)}${d.desc?' 📝':''}</button>` : ''}
       <button class="edit-ic" data-m="up" data-id="${d.id}" ${i===0?'disabled':''} aria-label="למעלה">↑</button>
       <button class="edit-ic" data-m="down" data-id="${d.id}" ${i===defs.length-1?'disabled':''} aria-label="למטה">↓</button>
       <button class="switch ${d.active?'on':''}" data-m="active" data-id="${d.id}" aria-label="${d.active?'השבתה':'הפעלה'}"></button>
       <button class="edit-ic" data-m="del" data-id="${d.id}" aria-label="מחיקה">🗑</button></div>`).join('');
   };
   sheet(`<h2>${title}</h2><p class="small muted" style="margin-top:-8px">לחיצה על שם לעריכה · המתג מפעיל או משבית · מחיקה לא מוחקת היסטוריה</p>
-    ${kind==='weekly' ? '<p class="small muted" style="margin-top:-4px">⭐ = כמה משימות שווה המשימה בסטטיסטיקה. לחיצה על הכוכב לשינוי.</p>' : ''}
+    ${kind!=='daily' ? '<p class="small muted" style="margin-top:-4px">⭐ = כמה משימות שווה המשימה בסטטיסטיקה · 📝 = יש תיאור נסתר. לחיצה על השם או על הכוכב לעריכה.</p>' : ''}
     <div id="mlist"></div><button class="btn primary" id="add">＋ הוספת משימה</button><button class="btn" id="close">סגירה</button>`, sh => {
     draw(sh);
     const redraw = () => { if(document.body.contains(sh)) draw(sh); };
     sh._redraw = redraw;
     $('#close',sh).onclick = () => closeSheet();
-    $('#add',sh).onclick = async () => {
-      const name = prompt('שם המשימה החדשה'); if(!name || !name.trim()) return;
-      const all = S.defs.filter(d=>d.kind===kind);
-      if(all.some(d=>!d.deleted && nkey(d.name)===nkey(name))) return toast('כבר יש משימה בשם הזה', true);
-      let points;
-      if(kind==='weekly'){ points = askPoints(2); if(points == null) return; }
-      try{ await B.set(`taskDefs/${B.newId()}`, {name:name.trim(), kind, order:Math.max(0,...all.map(d=>d.order))+1, active:true, createdAt:now(), ...(points!=null?{points}:{})}); toast('המשימה נוספה'); redraw(); }
-      catch(e){ toast(errMsg(e), true); }
-    };
+    $('#add',sh).onclick = () => defSheet(kind, null);
     $('#mlist',sh).onclick = async e => {
       const b = e.target.closest('[data-m]'); if(!b) return;
       const d = S.defs.find(x=>x.id===b.dataset.id); if(!d) return;
       const list = S.defs.filter(x=>x.kind===kind && !x.deleted).sort((a,b)=>a.order-b.order);
       try{
-        if(b.dataset.m==='rename'){ const n = prompt('שם המשימה', d.name); if(n && n.trim() && n.trim()!==d.name) await B.set(`taskDefs/${d.id}`, {name:n.trim()}, true); }
-        if(b.dataset.m==='pts'){ const n = askPoints(ptsOf(d)); if(n != null && n !== ptsOf(d)) await B.set(`taskDefs/${d.id}`, {points:n}, true); }
+        if(b.dataset.m==='rename') return defSheet(kind, d);
         if(b.dataset.m==='active'){ await B.set(`taskDefs/${d.id}`, {active:!d.active}, true); }
         if(b.dataset.m==='del'){ if(confirm(`למחוק את "${d.name}" מהרשימה? ההיסטוריה שלה תישמר.`)) await B.set(`taskDefs/${d.id}`, {deleted:true, active:false, deletedAt:now()}, true); }
         if(b.dataset.m==='up' || b.dataset.m==='down'){
@@ -1155,6 +1242,39 @@ function manageDefs(){
         }
         redraw();
       }catch(err){ toast(errMsg(err), true); }
+    };
+  });
+}
+/* הוספה/עריכה של משימה קבועה: שם, ובשבועיות/חודשיות גם ניקוד ותיאור נסתר */
+function defSheet(kind, d){
+  const isNew = !d, long = kind !== 'daily';
+  let pts = d ? ptsOf(d) : (kind==='monthly' ? 3 : 2);
+  sheet(`<h2>${isNew ? 'משימה חדשה' : 'עריכת משימה'}</h2>
+    <label class="l">שם המשימה</label><input class="field" id="nm" value="${esc(d?.name||'')}" autocomplete="off">
+    ${long ? `<label class="l">כמה משימות היא שווה? ⭐</label>
+      <div class="qty big-qty"><button id="pp" aria-label="יותר">+</button><b id="pv">${pts}</b><button id="pm" aria-label="פחות">−</button></div>
+      <label class="l">תיאור (נסתר, נפתח בלחיצה על ⓘ)</label>
+      <textarea class="field" id="ds" rows="4" placeholder="למשל: מה בדיוק כולל, איפה החומרים…">${esc(d?.desc||'')}</textarea>` : ''}
+    <button class="btn primary" id="ok">${isNew ? 'הוספה' : 'שמירה'}</button><button class="btn" id="cn">ביטול</button>`, sh => {
+    const back = () => manageDefs();
+    $('#cn',sh).onclick = back;
+    if(long){
+      const show = () => { $('#pv',sh).textContent = pts; $('#pm',sh).disabled = pts<=1; $('#pp',sh).disabled = pts>=10; };
+      $('#pp',sh).onclick = () => { pts = Math.min(10, pts+1); show(); };
+      $('#pm',sh).onclick = () => { pts = Math.max(1, pts-1); show(); };
+      show();
+    }
+    if(isNew) setTimeout(() => $('#nm',sh).focus(), 280);
+    $('#ok',sh).onclick = async () => {
+      const name = $('#nm',sh).value.trim(); if(!name) return toast('צריך שם למשימה', true);
+      const all = S.defs.filter(x => x.kind===kind);
+      if(all.some(x => !x.deleted && x.id !== d?.id && nkey(x.name)===nkey(name))) return toast('כבר יש משימה בשם הזה', true);
+      const data = {name, ...(long ? {points:pts, desc:$('#ds',sh).value.trim()} : {})};
+      try{
+        if(isNew) await B.set(`taskDefs/${B.newId()}`, {...data, kind, order:Math.max(0,...all.map(x=>x.order))+1, active:true, createdAt:now()});
+        else await B.set(`taskDefs/${d.id}`, data, true);
+        toast(isNew ? 'המשימה נוספה' : 'נשמר'); back();
+      }catch(e){ toast(errMsg(e), true); }
     };
   });
 }
@@ -1292,6 +1412,10 @@ app.addEventListener('click', async e => {
     case 'd-sheet': dailySheet(id); break;
     case 'd-unassign': assignDaily(id, slotOf(S.daily,id).v||0, null); break;
     case 'w-done': toggleWeekly(id); break;
+    case 'm-done': toggleLong('m', id); break;
+    case 'm-sheet': monthlySheet(id); break;
+    case 'pickMonthly': pickMonthlySheet(v); break;
+    case 'desc': S.openDesc.has(id) ? S.openDesc.delete(id) : S.openDesc.add(id); paint(); break;
     case 'w-sheet': weeklySheet(id); break;
     case 'manageDefs': manageDefs(); break;
     case 'toggleCat': S.openCat = S.openCat===id ? null : id; S.editCat = null; store.set('openCat', S.openCat); paintCatalog();
