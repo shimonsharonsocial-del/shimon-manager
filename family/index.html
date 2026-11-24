@@ -334,7 +334,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 /* ---------- אנשים ---------- */
@@ -485,7 +485,7 @@ const DEFAULT_W = {w01:3,w02:2,w03:2,w04:2,w05:2,w06:2,w07:2,w08:1,w09:2,w10:3,w
 const ptsOf = d => !d ? 1 : d.kind==='daily' ? 1 : (Number.isFinite(d.points) ? d.points : (DEFAULT_W[d.id] ?? 2));
 const TASK_IC = {d01:'🍽️',d02:'🧺',d03:'👕',d04:'🗄️',d05:'🛋️',d06:'🗑️',d07:'🍳',d08:'✨',d09:'🪴',
   w01:'🧽',w02:'🧸',w03:'💻',w04:'🛏️',w05:'🚿',w06:'🚽',w07:'🧊',w08:'🫧',w09:'📦',w10:'🍲',w11:'🌿',w12:'🚗',w13:'🛌',w14:'🌀',w15:'🪶'};
-const CAT_IC = {c01:'🥬',c02:'🥛',c03:'🥖',c04:'🫙',c05:'🫘',c06:'❄️',c07:'🍫',c08:'🥤',c09:'🧴',c10:'🧼',c11:'🍼',c12:'🏠',c13:'🛍️'};
+const CAT_IC = {c01:'🥬',c02:'🥛',c03:'🥖',c04:'🫙',c05:'🫘',c06:'❄️',c07:'🍫',c08:'🥤',c09:'🧴',c10:'🧼',c11:'🍼',c12:'🏠',c13:'🛍️',c14:'🥫'};
 const taskIc = d => TASK_IC[d.id] || (/כביסה/.test(d.name)?'🧺':/מטבח|כלים/.test(d.name)?'🍽️':/עציצ|גינה|חצר/.test(d.name)?'🪴':/רכב/.test(d.name)?'🚗':/רצפ|אבק/.test(d.name)?'🧹':'✔️');
 const catIc = c => CAT_IC[c.id] || '🛒';
 const av = p => `<span class="av ${p}">${pname(p).charAt(0)}</span>`;
@@ -546,6 +546,20 @@ async function migrateCatalog3(){
     ops.push({path:`categories/${legumes.id}`, del:true});
   }
   ops.push({path:'meta/catalog3', data:{at:now(), by:S.person}});
+  await B.batch(ops);
+}
+
+/* עדכון קטלוג 4: קטגוריה חדשה "יבשים נוספים" מיד אחרי "מוצרים יבשים ומזווה". רץ פעם אחת (meta/catalog4). */
+async function migrateCatalog4(){
+  if(await B.get('meta/catalog4')) return;
+  const cats = (await B.list('categories')).sort((a,b) => (a.order||0)-(b.order||0));
+  const ops = [];
+  if(!cats.some(c => nkey(c.name) === nkey('יבשים נוספים'))){
+    const i = cats.findIndex(c => c.id === 'c04' || nkey(c.name).startsWith('מוצרים יבשים'));
+    const list = cats.slice(); list.splice(i >= 0 ? i+1 : list.length, 0, {id:'c14', name:'יבשים נוספים', isNew:true});
+    list.forEach((c,k) => ops.push(c.isNew ? {path:'categories/c14', data:{name:'יבשים נוספים', order:k+1}} : {path:`categories/${c.id}`, data:{order:k+1}, merge:true}));
+  }
+  ops.push({path:'meta/catalog4', data:{at:now(), by:S.person}});
   await B.batch(ops);
 }
 
@@ -1352,6 +1366,7 @@ async function start(person){
   try{ await seedIfNeeded(); }catch(e){ console.warn(e); if(e?.code==='permission-denied') return showUnauthorized(); }
   try{ await migrateCatalog2(); }catch(e){ console.warn('catalog2', e); }
   try{ await migrateCatalog3(); }catch(e){ console.warn('catalog3', e); }
+  try{ await migrateCatalog4(); }catch(e){ console.warn('catalog4', e); }
   subscribe();
 }
 
