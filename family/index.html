@@ -332,6 +332,20 @@ i.shimon{background:var(--shimon)}i.aviya{background:var(--aviya)}i.both{backgro
 .evr{display:flex;justify-content:space-around}
 .evr>div{display:flex;align-items:center;gap:8px}
 .evr b{font-size:22px;font-weight:800}
+.fam{text-align:center;margin:12px 0 12px;position:relative}
+.fam-av{display:flex;justify-content:center;margin-bottom:6px}
+.fam-av .vav{width:44px;height:44px;font-size:19px;margin:0 -5px}
+.vbar i{min-width:0}
+.vfoot{gap:10px}
+.kinds{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kind{background:var(--soft);border-radius:14px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.kind b{font-size:22px;font-weight:800}.kind span{font-size:12px;color:var(--muted)}
+.contrib{display:flex;flex-direction:column;gap:8px}
+.cb{display:flex;align-items:center;gap:10px}.cb>div{display:flex;flex-direction:column}
+.wstack{width:min(26px,60%);border-radius:8px 8px 3px 3px;min-height:4px;position:relative;display:flex;flex-direction:column;overflow:visible;transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.wstack i{display:block;width:100%}.wstack i:first-of-type{border-radius:8px 8px 0 0}.wstack i:last-of-type{border-radius:0 0 3px 3px}
+.wstack i.shimon{background:var(--shimon)}.wstack i.aviya{background:var(--aviya)}
+.wstack span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--muted)}
 .st-empty{text-align:center;padding:30px 20px}
 .st-empty .em{font-size:44px;margin-bottom:8px}
 
@@ -400,7 +414,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -1258,8 +1272,8 @@ function paintStats(){
   const tot = Object.fromEntries(ppl.map(q => { const mine = list.filter(c => c.by===q);
     return [q, {pts:sum(mine, pts), n:mine.length, d:sum(mine.filter(c=>c.kind==='d'), pts), w:sum(mine.filter(c=>c.kind==='w'), pts), m:sum(mine.filter(c=>c.kind==='m'), pts)}]; }));
   const all = tot.shimon.pts + tot.aviya.pts;
-  const lead = tot.shimon.pts===tot.aviya.pts ? null : tot.shimon.pts > tot.aviya.pts ? 'shimon' : 'aviya';
-  const share = all ? Math.round(tot.shimon.pts/all*100) : 50;
+  const prevKey = (() => { const t = new Date(Date.UTC(yy, mm-2, 1)); return `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}`; })();
+  const prevAll = sum(S.comps.filter(c => c.month === prevKey && PEOPLE[c.by]), pts);
 
   // המשימות
   const byTask = {};
@@ -1276,8 +1290,9 @@ function paintStats(){
   const byWeek = {};
   for(const c of list){ const w = weekIdOf(c.at); byWeek[w] = byWeek[w] || {shimon:0, aviya:0}; byWeek[w][c.by] += pts(c); }
   const weeks = Object.keys(byWeek).sort();
-  const maxW = Math.max(1, ...weeks.flatMap(w => [byWeek[w].shimon, byWeek[w].aviya]));
-  const ever = Object.fromEntries(ppl.map(q => [q, sum(S.comps.filter(c=>c.by===q), pts)]));
+  const maxW = Math.max(1, ...weeks.map(w => byWeek[w].shimon + byWeek[w].aviya));
+  const ever = sum(S.comps.filter(c => PEOPLE[c.by]), pts);
+  const activeDays = Object.keys(byDay).length;
   const dayLabel = id => { const x = il(new Date(id+'T12:00:00Z').getTime()); return `${DAY_NAMES[x.wd]} ${dm(id)}`; };
 
   const nav = `<div class="mnav">
@@ -1291,38 +1306,39 @@ function paintStats(){
     return;
   }
 
+  const diff = all - prevAll;
+  const trend = !prevAll ? '' : diff > 0 ? `📈 ${diff} נקודות יותר מ${MONTHS[(mm+10)%12]}` : diff === 0 ? `כמו ב${MONTHS[(mm+10)%12]}` : `${MONTHS[(mm+10)%12]}: ${prevAll} נקודות`;
+  const cheer = all >= 150 ? 'חודש מדהים של הבית שלנו 💪' : all >= 60 ? 'עבודת צוות יפה 👏' : 'כל משימה נחשבת 🌱';
   const hero = `<div class="st-hero">
-    <div class="st-top"><span>סיכום ${MONTHS[mm-1]}</span><span>${all} נקודות · ${list.length} משימות</span></div>
-    <div class="vs">${ppl.map((q,i) => `${i===1?'<div class="vsmid">VS</div>':''}<div class="vsp ${lead===q?'lead':''}">
-      <div class="vav ${q}">${pname(q).charAt(0)}${lead===q?'<span class="crown">👑</span>':''}</div>
-      <div class="vname">${pname(q)}</div><div class="vpts">${tot[q].pts}</div><div class="vsub">${tot[q].n} משימות</div></div>`).join('')}</div>
-    <div class="vbar"><i class="shimon" style="width:${share}%"></i><i class="aviya" style="width:${100-share}%"></i></div>
-    <div class="vfoot"><span>${share}%</span><span>${lead ? `${pname(lead)} ${gv(lead,'מוביל','מובילה')} ב־${Math.abs(tot.shimon.pts-tot.aviya.pts)}` : 'תיקו 🤝'}</span><span>${100-share}%</span></div></div>`;
+    <div class="st-top"><span>${MONTHS[mm-1]} שלנו</span><span>${list.length} משימות</span></div>
+    <div class="fam"><div class="fam-av">${ppl.map(q => `<span class="vav ${q}">${pname(q).charAt(0)}</span>`).join('')}</div>
+      <div class="vpts">${all}</div><div class="vsub">נקודות שעשינו יחד</div></div>
+    <div class="vbar"><i class="shimon" style="flex:${tot.shimon.pts}"></i><i class="aviya" style="flex:${tot.aviya.pts}"></i></div>
+    <div class="vfoot"><span>${cheer}</span><span>${trend}</span></div></div>`;
 
   const top = tasks[0];
   const tiles = `<div class="tiles">
-    <div class="tile"><div class="ti">✅</div><div class="tv">${list.length}</div><div class="tl">משימות בוצעו</div></div>
-    <div class="tile"><div class="ti">🔥</div><div class="tv">${bestDay ? bestDay[1] : 0}</div><div class="tl">${bestDay ? 'שיא: '+dayLabel(bestDay[0]) : 'יום שיא'}</div></div>
+    <div class="tile"><div class="ti">📅</div><div class="tv">${activeDays}</div><div class="tl">ימים עם משימות</div></div>
+    <div class="tile"><div class="ti">🔥</div><div class="tv">${bestDay ? bestDay[1] : 0}</div><div class="tl">${bestDay ? 'היום הכי טוב: '+dayLabel(bestDay[0]) : 'היום הכי טוב'}</div></div>
     <div class="tile"><div class="ti">${top ? taskIc(top) : '⭐'}</div><div class="tv sm">${top ? esc(top.name) : '-'}</div><div class="tl">הכי הרבה פעמים</div></div></div>`;
 
-  const split = `<div class="card"><div class="ctitle">לפי סוג משימה</div>${ppl.map(q => {
-    const t = tot[q], mx = Math.max(1, t.d + t.w + t.m);
-    return `<div class="dw"><div class="dwh"><span class="who">${av(q)}${pname(q)}</span><span class="muted small">יומיות ${t.d} · שבועיות ${t.w} · חודשיות ${t.m}</span></div>
-      <div class="dwbar ${q}"><i class="d" style="width:${t.d/mx*100}%"></i><i class="w" style="width:${t.w/mx*100}%"></i><i class="m" style="width:${t.m/mx*100}%"></i></div></div>`; }).join('')}
-    <div class="legend"><span><i class="d"></i>יומיות</span><span><i class="w"></i>שבועיות</span><span><i class="m"></i>חודשיות</span></div></div>`;
+  const kd = {d:tot.shimon.d+tot.aviya.d, w:tot.shimon.w+tot.aviya.w, m:tot.shimon.m+tot.aviya.m};
+  const split = `<div class="card"><div class="ctitle">מה עשינו החודש</div>
+    <div class="kinds">${[['d','☀️','יומיות'],['w','🗓️','שבועיות'],['m','📆','חודשיות']].map(([k,ic,l]) => `<div class="kind"><div class="ti">${ic}</div><b>${kd[k]}</b><span>${l}</span></div>`).join('')}</div>
+    <div class="contrib">${ppl.map(q => `<div class="cb">${av(q)}<div><b>${pname(q)}</b><span class="muted small">${tot[q].n} משימות · ${tot[q].pts} נקודות</span></div></div>`).join('')}</div></div>`;
 
-  const taskList = `<div class="card"><div class="ctitle">לפי משימה</div>${tasks.map(t => { const n = t.shimon+t.aviya;
+  const taskList = `<div class="card"><div class="ctitle">יומן המשימות של החודש</div>${tasks.map(t => { const n = t.shimon+t.aviya;
     return `<div class="tk"><div class="tic">${taskIc(t)}</div><div class="tkb">
       <div class="tkh"><span class="tkn">${esc(t.name)}</span><span class="tkc">${t.kind==='w'?'<span class="wk">שבועית</span> ':t.kind==='m'?'<span class="wk">חודשית</span> ':''}${n} <span style="font-weight:500;font-size:12px;color:var(--muted)">פעמים</span></span></div>
       <div class="tkbar" style="width:${Math.max(12, n/maxT*100)}%"><i class="shimon" style="flex:${t.shimon}"></i><i class="aviya" style="flex:${t.aviya}"></i></div>
-      <div class="tkf"><span style="color:var(--shimon)">${pname('shimon')} ${t.shimon}</span><span style="color:var(--aviya)">${pname('aviya')} ${t.aviya}</span></div></div></div>`; }).join('')}</div>`;
+      <div class="tkf">${ppl.filter(q => t[q]).map(q => `<span style="color:var(--${q})">${pname(q)} ${t[q]}</span>`).join('')}</div></div></div>`; }).join('')}</div>`;
 
-  const chart = weeks.length ? `<div class="card"><div class="ctitle">נקודות לפי שבוע</div><div class="wchart">${weeks.map(w => `<div class="wcol">
-      <div class="wbars"><div class="wb shimon" style="height:${byWeek[w].shimon/maxW*100}%"><span>${byWeek[w].shimon||''}</span></div><div class="wb aviya" style="height:${byWeek[w].aviya/maxW*100}%"><span>${byWeek[w].aviya||''}</span></div></div>
-      <div class="wl">${dm(addDays(w,1))}</div></div>`).join('')}</div>
+  const chart = weeks.length ? `<div class="card"><div class="ctitle">נקודות שלנו לפי שבוע</div><div class="wchart">${weeks.map(w => { const t = byWeek[w].shimon + byWeek[w].aviya; return `<div class="wcol">
+      <div class="wbars"><div class="wstack" style="height:${t/maxW*100}%"><span>${t||''}</span><i class="aviya" style="flex:${byWeek[w].aviya}"></i><i class="shimon" style="flex:${byWeek[w].shimon}"></i></div></div>
+      <div class="wl">${dm(addDays(w,1))}</div></div>`; }).join('')}</div>
     <div class="legend"><span><i style="background:var(--shimon)"></i>${pname('shimon')}</span><span><i style="background:var(--aviya)"></i>${pname('aviya')}</span></div></div>` : '';
 
-  const everCard = `<div class="card ever"><div class="ctitle">מאז שהתחלנו</div><div class="evr">${ppl.map(q => `<div>${av(q)}<b>${ever[q]}</b><span class="muted small">נקודות</span></div>`).join('')}</div></div>`;
+  const everCard = `<div class="card ever"><div class="ctitle">מאז שהתחלנו</div><div class="evr"><div>🏡<b>${ever}</b><span class="muted small">נקודות של המשפחה</span></div></div></div>`;
 
   body.innerHTML = nav + hero + tiles + split + taskList + chart + everCard +
     `<p class="small muted" style="text-align:center;margin:4px 0 20px">משימה יומית = נקודה. משימה שבועית = לפי ה־⭐ שלה.</p>`;
