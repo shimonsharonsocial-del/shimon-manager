@@ -64,6 +64,9 @@ h3.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;let
 .ptag.aviya{background:var(--aviya-soft);color:var(--aviya)}
 .ptag.free{background:var(--soft);color:var(--muted)}
 
+.plus1{font-size:13px;padding:6px 10px;min-height:32px;color:var(--accent);background:var(--accent-soft)}
+.row.done .plus1{opacity:1}
+.times{color:var(--accent);font-weight:700;margin-inline-start:4px}
 .chip.wave{margin-inline-start:auto;font-size:18px;padding:4px 12px;background:#fff7e6;border-color:#f3d9a4}
 .chip.wave:active{transform:rotate(-15deg) scale(1.1)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
@@ -363,7 +366,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -700,8 +703,39 @@ async function toggleDaily(id){
   const done = !s.done;
   const ok = await slotOp('d', id, s.v||0, cur => done
       ? {done:true, doneBy: cur.assignee || S.person, markedBy:S.person, doneAt:now(), assignee: cur.assignee || S.person}   // הנקודה הולכת למי שהמשימה משובצת אליו
-      : {done:false, doneBy:null, doneAt:null});
+      : {done:false, doneBy:null, doneAt:null, extra:[]});
+  if(ok && !done) for(const x of (s.extra||[])) B.del('completions/' + extraCompId(S.dayId, id, x.id)).catch(e => console.warn(e));
   if(ok && done){ justDone.add('d:'+id); setTimeout(()=>justDone.delete('d:'+id), 700); paint(); }
+}
+/* "+1": משימה יומית שבוצעה עוד פעם באותו יום. כל פעם נוספת נספרת כנקודה למי שעשה אותה */
+const extraCompId = (day, taskId, xid) => `d_${day}_${taskId}_x${xid}`;
+function extraCompData(day, taskId, x){
+  const def = S.defs.find(d => d.id === taskId), p = il(x.at);
+  return {by:x.by, points:1, at:x.at, taskId, kind:'d', name:def?.name || '', period:day, month:`${p.y}-${pad(p.m)}`, extra:true};
+}
+async function addExtra(id, who){
+  const s = slotOf(S.daily, id), x = {id: Date.now().toString(36), by:who, at:now()}, day = S.dayId;
+  const ok = await slotOp('d', id, s.v||0, cur => ({extra:[...(cur.extra||[]), x]}), `נספר עוד פעם ל${who===S.person?'י':pname(who)} 👍`);
+  if(ok) B.set('completions/' + extraCompId(day, id, x.id), extraCompData(day, id, x)).catch(e => console.warn(e));
+}
+async function removeLastExtra(id){
+  const s = slotOf(S.daily, id), last = (s.extra||[]).at(-1), day = S.dayId; if(!last) return;
+  const ok = await slotOp('d', id, s.v||0, cur => ({extra:(cur.extra||[]).filter(x => x.id !== last.id)}), 'הפעם האחרונה בוטלה');
+  if(ok) B.del('completions/' + extraCompId(day, id, last.id)).catch(e => console.warn(e));
+}
+function extraSheet(id){
+  const d = S.defs.find(x => x.id === id), s = slotOf(S.daily, id), ex = s.extra || [];
+  const all = [{by:s.doneBy, at:s.doneAt}, ...ex];
+  sheet(`<h2>${esc(d.name)}: עוד פעם</h2>
+    <p class="muted" style="margin-top:-6px">היום: ${all.map(x => `${pname(x.by)}${x.at?' '+hhmm(x.at):''}`).join(' · ')}</p>
+    <label class="l">מי עשה את זה עוד פעם?</label>
+    <div class="pick">${['shimon','aviya'].map(p => `<button data-p="${p}" class="${p} on">${p===S.person?`אני (${pname(p)})`:pname(p)}</button>`).join('')}</div>
+    ${ex.length ? `<button class="btn" id="undo">↩︎ ביטול הפעם האחרונה (${pname(ex.at(-1).by)})</button>` : ''}
+    <button class="btn" id="cn">סגירה</button>`, sh => {
+    sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { closeSheet(); addExtra(id, b.dataset.p); });
+    const u = $('#undo',sh); if(u) u.onclick = () => { closeSheet(); removeLastExtra(id); };
+    $('#cn',sh).onclick = () => closeSheet();
+  });
 }
 async function toggleLong(kind, id){
   const s = slotOf(kind==='w' ? S.weekly : S.monthly, id);
@@ -894,8 +928,12 @@ function taskRow(kind, d, s){
   const isBusy = busy.has(k);
   let meta = '', act = '';
   if(s.done){
-    meta = `✓ ${pname(s.doneBy)}${s.doneAt ? ' · '+hhmm(s.doneAt) : ''}`;
-    act = s.assignee ? av(s.assignee).replace('class="av','class="av big') : '';
+    const ex = kind==='d' ? (s.extra||[]) : [];
+    meta = ex.length
+      ? `✓ ${[s.doneBy, ...ex.map(x=>x.by)].map(pname).join(' · ')} <b class="times">${ex.length+1} פעמים</b>`
+      : `✓ ${pname(s.doneBy)}${s.doneAt ? ' · '+hhmm(s.doneAt) : ''}`;
+    act = (kind==='d' ? `<button class="pill ghost plus1" data-act="d-extra" data-id="${d.id}" aria-label="בוצע עוד פעם">＋1</button>` : '')
+      + (s.assignee ? av(s.assignee).replace('class="av','class="av big') : '');
   } else if(s.assignee){
     if(s.updatedBy && s.updatedBy !== s.assignee) meta = `שובץ ע״י ${pname(s.updatedBy)}`;
     act = kind==='d'
@@ -1036,6 +1074,7 @@ async function backfillCompletions(){
     const lists = await Promise.all(periods.map(([k, per]) => B.list(`${k==='d'?'daily':'weekly'}/${per}/slots`).catch(() => [])));
     lists.forEach((slots, i) => { const [kind, period] = periods[i];
       for(const slot of slots){ if(!slot.done || !slot.doneBy) continue;
+        if(kind==='d') for(const x of (slot.extra||[])){ const xid = extraCompId(period, slot.id, x.id); if(!have.has(xid)) ops.push({path:'completions/'+xid, data:extraCompData(period, slot.id, x)}); }
         const id = compId(kind, period, slot.id);
         if(!have.has(id)) ops.push({path:'completions/'+id, data:compData(kind, period, slot.id, S.defs.find(x=>x.id===slot.id), slot)}); } });
     for(let i=0; i<ops.length; i+=400) await B.batch(ops.slice(i, i+400));
@@ -1493,6 +1532,7 @@ app.addEventListener('click', async e => {
       try{ await B.set(`categories/${B.newId()}`, {name, order:Math.max(0,...S.cats.map(c=>c.order))+1}); toast('הקטגוריה נוספה'); }catch(err){ toast(errMsg(err), true); } break; }
     case 'menu': menuSheet(); break;
     case 'wave': wave(); break;
+    case 'd-extra': extraSheet(id); break;
     case 'stats': S.main = S.main==='stats' ? store.get('main','tasks') : 'stats'; paint(); scrollTo(0,0); break;
     case 'month': { const [y,m] = S.statMonth.split('-').map(Number); const t = new Date(Date.UTC(y, m-1+(+v), 1)); S.statMonth = `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}`; paintStats(); break; }
   }
