@@ -400,7 +400,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.9';
+const APP_VERSION = '3.0';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -1117,7 +1117,7 @@ function evRow(e, showDate){
   const n = e.repeat==='yearly' && e.showYears ? dateParts(showDate||S.calSel)[0] - dateParts(e.date)[0] : 0;
   const yrs = n > 0 ? ` <span class="yrs">${n} 🎂</span>` : '';
   return `<button class="ev ${w.cls}" data-act="evEdit" data-id="${e.id}">
-    <span class="evt">${e.time ? `<b>${e.time}</b>${e.end?`<small>${e.end}</small>`:''}` : '<small>כל<br>היום</small>'}</span>
+    <span class="evt">${e.time ? `<b>${e.time}</b>` : '<small>📅</small>'}</span>
     <span class="evb"><span class="evn">${esc(e.title)}${yrs}</span><span class="evm">${showDate ? `${DAY_NAMES[wdOf(showDate)]} ${dm(showDate)} · ` : ''}${w.label}${e.repeat && e.repeat!=='none' ? ' · 🔁 '+REPEAT[e.repeat] : ''}${e.note ? ' · 📝' : ''}</span></span></button>`;
 }
 function paintCal(){
@@ -1155,38 +1155,31 @@ function paintCal(){
 function eventSheet(ev, presetDate){
   const isNew = !ev;
   const e = ev || {title:'', date:presetDate || S.dayId, time:'', end:'', who:'both', repeat:'none', note:''};
-  let who = e.who || 'both', allDay = !e.time;
+  let who = e.who || 'both';
   sheet(`<h2>${isNew ? 'אירוע חדש' : 'עריכת אירוע'}</h2>
     <label class="l">מה?</label><input class="field" id="t" value="${esc(e.title)}" placeholder="למשל: ארוחה אצל ההורים" autocomplete="off">
-    <label class="l">מתי?</label><input class="field" type="date" id="d" value="${e.date}">
-    <label class="tgl"><input type="checkbox" id="ad" ${allDay?'checked':''}> כל היום</label>
-    <div id="tm" class="tmr ${allDay?'hidden':''}"><div><span class="small muted">משעה</span><input class="field" type="time" id="s" value="${e.time||''}"></div><div><span class="small muted">עד (לא חובה)</span><input class="field" type="time" id="en" value="${e.end||''}"></div></div>
+    <div class="tmr"><div><label class="l">תאריך</label><input class="field" type="date" id="d" value="${e.date}"></div>
+      <div><label class="l">שעה</label><input class="field" type="time" id="s" value="${e.time||''}"></div></div>
     <label class="l">של מי?</label>
     <div class="pick3">${Object.entries(WHO).map(([k,w]) => `<button data-w="${k}" class="${w.cls}">${w.label}</button>`).join('')}</div>
-    <label class="l">חזרה</label>
-    <select class="field" id="r">${Object.entries(REPEAT).map(([k,l]) => `<option value="${k}" ${(e.repeat||'none')===k?'selected':''}>${l}</option>`).join('')}</select>
-    <label class="tgl ${e.repeat==='yearly'?'':'hidden'}" id="syw"><input type="checkbox" id="sy" ${e.showYears?'checked':''}> להציג כמה שנים עברו (ליום הולדת / יום נישואין)</label>
     <label class="l">הערה (לא חובה)</label><textarea class="field" id="n" rows="2">${esc(e.note||'')}</textarea>
     <button class="btn primary" id="ok">${isNew ? 'הוספה ליומן' : 'שמירה'}</button>
     ${isNew ? '' : '<button class="btn danger" id="del">מחיקת האירוע</button>'}
     <button class="btn" id="cn">ביטול</button>`, sh => {
     const draw = () => sh.querySelectorAll('[data-w]').forEach(b => b.classList.toggle('on', b.dataset.w===who));
     sh.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { who = b.dataset.w; draw(); }); draw();
-    $('#ad',sh).onchange = ev2 => { allDay = ev2.target.checked; $('#tm',sh).classList.toggle('hidden', allDay); };
-    $('#r',sh).onchange = ev2 => $('#syw',sh).classList.toggle('hidden', ev2.target.value!=='yearly');
     $('#cn',sh).onclick = () => closeSheet();
     if(isNew) setTimeout(() => $('#t',sh).focus(), 280);
     $('#ok',sh).onclick = async () => {
       const title = $('#t',sh).value.trim(), date = $('#d',sh).value;
       if(!title) return toast('צריך לכתוב מה האירוע', true);
       if(!date) return toast('צריך תאריך', true);
-      const time = allDay ? '' : $('#s',sh).value, end = allDay ? '' : $('#en',sh).value;
-      if(!allDay && !time) return toast('צריך שעה, או לסמן "כל היום"', true);
-      const repeat = $('#r',sh).value;
-      const data = {title, date, time, end, who, repeat, showYears: repeat==='yearly' && $('#sy',sh).checked, note:$('#n',sh).value.trim(), updatedBy:S.person, updatedAt:now()};
+      const time = $('#s',sh).value;
+      const repeat = ev?.repeat || 'none';   // אין יותר בחירת חזרה; אירוע ישן שחוזר נשאר כמו שהיה
+      const data = {title, date, time, who, note:$('#n',sh).value.trim(), updatedBy:S.person, updatedAt:now()};
       closeSheet();
       try{
-        if(isNew) await B.set(`events/${B.newId()}`, {...data, by:S.person, createdAt:now()});
+        if(isNew) await B.set(`events/${B.newId()}`, {...data, repeat:'none', by:S.person, createdAt:now()});
         else await B.set(`events/${ev.id}`, data, true);
         if(repeat === 'none'){ S.calSel = date; S.calMonth = date.slice(0,7); }   // באירוע חוזר נשארים ביום שבחרתם
         toast(isNew ? 'נוסף ליומן 📅' : 'נשמר'); paint();
