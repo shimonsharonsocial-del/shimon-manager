@@ -235,6 +235,40 @@ h3.sec{text-transform:none;font-size:13.5px;color:var(--muted)}
 .sbar{display:block;height:7px;border-radius:4px}
 .sbar.shimon{background:var(--shimon)}.sbar.aviya{background:var(--aviya)}
 
+/* calendar */
+.cal{padding:14px 10px}
+.calh{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cw{text-align:center;font-size:12px;color:var(--muted);font-weight:700;padding-bottom:4px}
+.cd{border:0;background:none;height:46px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+.cd .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px}
+.cd.today .n{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-weight:800}
+.cd.sel{background:var(--accent-soft)}
+.cd .dots{display:flex;gap:3px;height:6px}
+.cd .dots i{width:6px;height:6px;border-radius:50%}
+i.shimon{background:var(--shimon)}i.aviya{background:var(--aviya)}i.both{background:var(--accent)}
+.evl .empty{padding:18px}
+.ev{display:flex;align-items:stretch;gap:12px;width:100%;border:0;background:none;text-align:right;padding:12px 14px;border-bottom:1px solid var(--line)}
+.ev:last-child{border-bottom:0}
+.evt{flex:0 0 50px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;padding:6px 0;font-size:14px;line-height:1.2;text-align:center}
+.evt small{font-size:11px;opacity:.8}
+.ev.shimon .evt{background:var(--shimon-soft);color:var(--shimon)}
+.ev.aviya .evt{background:var(--aviya-soft);color:var(--aviya)}
+.ev.both .evt{background:var(--accent-soft);color:var(--accent)}
+.evb{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.evn{font-weight:600;font-size:15.5px}
+.yrs{font-size:12px;font-weight:700;background:var(--aviya-soft);color:var(--aviya);border-radius:8px;padding:1px 6px;margin-inline-start:4px}
+.evm{font-size:12.5px;color:var(--muted);margin-top:2px}
+.tgl{display:flex;gap:10px;align-items:center;margin-top:10px;font-weight:600;font-size:14.5px}
+.tgl input{width:20px;height:20px}
+.tmr{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.pick3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pick3 button{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:12px 6px;font-weight:700;font-size:15px}
+.pick3 button.on.shimon{border-color:var(--shimon);background:var(--shimon-soft);color:var(--shimon)}
+.pick3 button.on.aviya{border-color:var(--aviya);background:var(--aviya-soft);color:var(--aviya)}
+.pick3 button.on.both{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.top .seg button{padding:10px 4px}
+
 /* stats v2 */
 .mnav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 14px}
 .mbtn{width:42px;height:42px;border-radius:50%;border:0;background:var(--card);box-shadow:var(--shadow);font-size:24px;line-height:1;color:var(--ink);display:grid;place-items:center;padding-bottom:3px}
@@ -366,7 +400,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -609,7 +643,7 @@ async function migrateCatalog4(){
    ===================================================================== */
 const S = {
   user:null, person:null, users:[], ready:false,
-  defs:[], daily:{}, weekly:{}, monthly:{}, monthId:null, openDesc:new Set(), comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
+  events:[], eventsDenied:false, calMonth:null, calSel:null, defs:[], daily:{}, weekly:{}, monthly:{}, monthId:null, openDesc:new Set(), comps:[], compsLoaded:false, statMonth:null, cats:[], prods:[], missing:{},
   dayId:null, weekId:null,
   main: 'tasks', taskTab: 'daily',   // בכל פתיחה: משימות יומיות
   shopTab: store.get('shopTab','catalog'),
@@ -640,6 +674,8 @@ function subscribe(){
   unsubs.push(B.watchCol('products', d => { S.prods=d; mark('prods'); paint(); }, onErr));
   unsubs.push(B.watchCol('completions', d => { S.comps=d; S.compsLoaded=true; S.compsDenied=false; if(S.main==='stats') paint(); },
     e => { console.warn(e); S.compsDenied = e?.code==='permission-denied'; S.compsLoaded = true; if(S.main==='stats') paint(); }));
+  unsubs.push(B.watchCol('events', d => { S.events=d; S.eventsDenied=false; if(S.main==='cal') paint(); },
+    e => { console.warn(e); S.eventsDenied = e?.code==='permission-denied'; if(S.main==='cal') paint(); }));
   unsubs.push(B.watchCol('missing', d => { S.missing=Object.fromEntries(d.map(x=>[x.id,x])); mark('missing'); paint(); }, onErr));
   checkPeriod(true);
 }
@@ -757,6 +793,7 @@ function paint(){
   paintTop();
   if(S.main==='tasks'){ paintStrip(); paintSummary(); S.taskTab==='daily' ? paintDaily() : S.taskTab==='weekly' ? paintWeekly() : paintMonthly(); }
   else if(S.main==='stats') paintStats();
+  else if(S.main==='cal') paintCal();
   else { S.shopTab==='catalog' ? paintCatalog() : paintList(); }
 }
 
@@ -772,11 +809,12 @@ function buildShell(){
     <div class="seg">
       <button data-act="main" data-v="tasks" class="${S.main==='tasks'?'on':''}">משימות</button>
       <button data-act="main" data-v="shop" class="${S.main==='shop'?'on':''}">קניות<span id="missBadge"></span></button>
+      <button data-act="main" data-v="cal" class="${S.main==='cal'?'on':''}">יומן</button>
     </div>
     <div id="offline" class="offline-bar hidden">אין חיבור לאינטרנט. מה שתשנו יישמר כשהחיבור יחזור.</div>
   </div>
   <main>
-    ${S.main==='stats' ? `<div id="body"></div>` : S.main==='tasks' ? `
+    ${S.main==='stats' || S.main==='cal' ? `<div id="body"></div>` : S.main==='tasks' ? `
       <div class="weekstrip" id="weekstrip"></div>
       <div class="hero" id="summary"></div>
       <div class="seg small" style="margin-bottom:14px">
@@ -1054,6 +1092,112 @@ function monthlySheet(id, presetDate){
     $('#ok',sh).onclick = () => { closeSheet(); slotOp('m', id, v, () => ({assignee:who, date}), scheduled ? 'השיבוץ עודכן' : `שובץ ל־${dm(date)}`); };
     const dn = $('#done',sh); if(dn) dn.onclick = () => { closeSheet(); toggleLong('m', id); };
     const un = $('#un',sh); if(un) un.onclick = () => { closeSheet(); slotOp('m', id, v, () => ({assignee:null, date:null, done:false, doneBy:null, doneAt:null}), 'השיבוץ בוטל'); };
+  });
+}
+
+/* ---------- יומן משותף ---------- */
+const WHO = {shimon:{label:'שמעון', cls:'shimon'}, aviya:{label:'אביה', cls:'aviya'}, both:{label:'שנינו', cls:'both'}};
+const REPEAT = {none:'בלי חזרה', weekly:'כל שבוע', monthly:'כל חודש', yearly:'כל שנה'};
+const dateParts = id => id.split('-').map(Number);
+const wdOf = id => il(new Date(id+'T12:00:00Z').getTime()).wd;
+function occursOn(ev, id){
+  if(!ev.date || id < ev.date) return false;
+  if(ev.until && id > ev.until) return false;
+  const [y,m,d] = dateParts(ev.date), [Y,M,D] = dateParts(id);
+  switch(ev.repeat){
+    case 'weekly': return wdOf(ev.date) === wdOf(id);
+    case 'monthly': return d === D;
+    case 'yearly': return d === D && m === M;
+    default: return ev.date === id;
+  }
+}
+const eventsOn = id => S.events.filter(e => occursOn(e, id)).sort((a,b) => (a.time||'') .localeCompare(b.time||''));
+function evRow(e, showDate){
+  const w = WHO[e.who] || WHO.both;
+  const n = e.repeat==='yearly' && e.showYears ? dateParts(showDate||S.calSel)[0] - dateParts(e.date)[0] : 0;
+  const yrs = n > 0 ? ` <span class="yrs">${n} 🎂</span>` : '';
+  return `<button class="ev ${w.cls}" data-act="evEdit" data-id="${e.id}">
+    <span class="evt">${e.time ? `<b>${e.time}</b>${e.end?`<small>${e.end}</small>`:''}` : '<small>כל<br>היום</small>'}</span>
+    <span class="evb"><span class="evn">${esc(e.title)}${yrs}</span><span class="evm">${showDate ? `${DAY_NAMES[wdOf(showDate)]} ${dm(showDate)} · ` : ''}${w.label}${e.repeat && e.repeat!=='none' ? ' · 🔁 '+REPEAT[e.repeat] : ''}${e.note ? ' · 📝' : ''}</span></span></button>`;
+}
+function paintCal(){
+  const body = $('#body');
+  if(S.eventsDenied){ body.innerHTML = `<div class="card"><div class="empty"><div class="big">🔒</div><b>היומן ייפתח בקרוב</b><div class="small" style="margin-top:6px">צריך לעדכן הרשאה בשרת.</div></div></div>`; return; }
+  if(!S.calSel) S.calSel = S.dayId;
+  if(!S.calMonth) S.calMonth = S.dayId.slice(0,7);
+  const [y, m] = dateParts(S.calMonth + '-01');
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const first = wdOf(`${S.calMonth}-01`);
+  let cells = Array.from({length:first}, () => '<span class="cd empty"></span>').join('');
+  for(let i=1; i<=days; i++){
+    const id = `${S.calMonth}-${pad(i)}`, evs = eventsOn(id);
+    const dots = [...new Set(evs.map(e => (WHO[e.who]||WHO.both).cls))].map(c => `<i class="${c}"></i>`).join('');
+    cells += `<button class="cd ${id===S.dayId?'today':''} ${id===S.calSel?'sel':''}" data-act="calDay" data-v="${id}"><span class="n">${i}</span><span class="dots">${dots}</span></button>`;
+  }
+  const sel = S.calSel, selEvs = eventsOn(sel), sx = il(new Date(sel+'T12:00:00Z').getTime());
+  // בקרוב: 14 הימים הבאים
+  const upcoming = [];
+  for(let k=0; k<14 && upcoming.length<12; k++){ const id = addDays(S.dayId, k); if(id === sel) continue; for(const e of eventsOn(id)) upcoming.push([id, e]); }
+  body.innerHTML = `
+  <div class="card cal">
+    <div class="calh"><button class="mbtn" data-act="calMonth" data-v="-1" aria-label="חודש קודם">›</button>
+      <div class="mlabel"><b>${MONTHS[m-1]}</b> ${y}</div>
+      <button class="mbtn" data-act="calMonth" data-v="1" aria-label="חודש הבא">‹</button></div>
+    ${S.calMonth !== S.dayId.slice(0,7) ? `<button class="link-btn" style="display:block;margin:-6px auto 4px" data-act="calToday">חזרה להיום</button>` : ''}
+    <div class="calg">${DAY_SHORT.map(n => `<span class="cw">${n}</span>`).join('')}${cells}</div>
+    <div class="legend" style="margin-top:10px"><span><i style="background:var(--shimon)"></i>שמעון</span><span><i style="background:var(--aviya)"></i>אביה</span><span><i style="background:var(--accent)"></i>שנינו</span></div>
+  </div>
+  <div class="row-sb" style="margin:6px 4px 8px"><h3 class="sec" style="margin:0">${sel===S.dayId?'היום · ':''}יום ${DAY_NAMES[sx.wd]}, ${sx.d} ב${MONTHS[sx.m-1]}</h3>
+    <button class="pill me" data-act="evNew" data-v="${sel}">＋ אירוע</button></div>
+  <div class="list evl">${selEvs.length ? selEvs.map(e => evRow(e)).join('') : `<div class="empty small">אין אירועים ביום הזה</div>`}</div>
+  ${upcoming.length ? `<h3 class="sec">בקרוב</h3><div class="list evl">${upcoming.map(([id,e]) => evRow(e, id)).join('')}</div>` : ''}`;
+}
+function eventSheet(ev, presetDate){
+  const isNew = !ev;
+  const e = ev || {title:'', date:presetDate || S.dayId, time:'', end:'', who:'both', repeat:'none', note:''};
+  let who = e.who || 'both', allDay = !e.time;
+  sheet(`<h2>${isNew ? 'אירוע חדש' : 'עריכת אירוע'}</h2>
+    <label class="l">מה?</label><input class="field" id="t" value="${esc(e.title)}" placeholder="למשל: ארוחה אצל ההורים" autocomplete="off">
+    <label class="l">מתי?</label><input class="field" type="date" id="d" value="${e.date}">
+    <label class="tgl"><input type="checkbox" id="ad" ${allDay?'checked':''}> כל היום</label>
+    <div id="tm" class="tmr ${allDay?'hidden':''}"><div><span class="small muted">משעה</span><input class="field" type="time" id="s" value="${e.time||''}"></div><div><span class="small muted">עד (לא חובה)</span><input class="field" type="time" id="en" value="${e.end||''}"></div></div>
+    <label class="l">של מי?</label>
+    <div class="pick3">${Object.entries(WHO).map(([k,w]) => `<button data-w="${k}" class="${w.cls}">${w.label}</button>`).join('')}</div>
+    <label class="l">חזרה</label>
+    <select class="field" id="r">${Object.entries(REPEAT).map(([k,l]) => `<option value="${k}" ${(e.repeat||'none')===k?'selected':''}>${l}</option>`).join('')}</select>
+    <label class="tgl ${e.repeat==='yearly'?'':'hidden'}" id="syw"><input type="checkbox" id="sy" ${e.showYears?'checked':''}> להציג כמה שנים עברו (ליום הולדת / יום נישואין)</label>
+    <label class="l">הערה (לא חובה)</label><textarea class="field" id="n" rows="2">${esc(e.note||'')}</textarea>
+    <button class="btn primary" id="ok">${isNew ? 'הוספה ליומן' : 'שמירה'}</button>
+    ${isNew ? '' : '<button class="btn danger" id="del">מחיקת האירוע</button>'}
+    <button class="btn" id="cn">ביטול</button>`, sh => {
+    const draw = () => sh.querySelectorAll('[data-w]').forEach(b => b.classList.toggle('on', b.dataset.w===who));
+    sh.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { who = b.dataset.w; draw(); }); draw();
+    $('#ad',sh).onchange = ev2 => { allDay = ev2.target.checked; $('#tm',sh).classList.toggle('hidden', allDay); };
+    $('#r',sh).onchange = ev2 => $('#syw',sh).classList.toggle('hidden', ev2.target.value!=='yearly');
+    $('#cn',sh).onclick = () => closeSheet();
+    if(isNew) setTimeout(() => $('#t',sh).focus(), 280);
+    $('#ok',sh).onclick = async () => {
+      const title = $('#t',sh).value.trim(), date = $('#d',sh).value;
+      if(!title) return toast('צריך לכתוב מה האירוע', true);
+      if(!date) return toast('צריך תאריך', true);
+      const time = allDay ? '' : $('#s',sh).value, end = allDay ? '' : $('#en',sh).value;
+      if(!allDay && !time) return toast('צריך שעה, או לסמן "כל היום"', true);
+      const repeat = $('#r',sh).value;
+      const data = {title, date, time, end, who, repeat, showYears: repeat==='yearly' && $('#sy',sh).checked, note:$('#n',sh).value.trim(), updatedBy:S.person, updatedAt:now()};
+      closeSheet();
+      try{
+        if(isNew) await B.set(`events/${B.newId()}`, {...data, by:S.person, createdAt:now()});
+        else await B.set(`events/${ev.id}`, data, true);
+        if(repeat === 'none'){ S.calSel = date; S.calMonth = date.slice(0,7); }   // באירוע חוזר נשארים ביום שבחרתם
+        toast(isNew ? 'נוסף ליומן 📅' : 'נשמר'); paint();
+      }catch(err){ toast(errMsg(err), true); }
+    };
+    const del = $('#del',sh);
+    if(del) del.onclick = async () => {
+      closeSheet();
+      if(!await confirmSheet('מחיקת אירוע', `למחוק את "${esc(ev.title)}"${ev.repeat && ev.repeat!=='none' ? ' (כולל כל החזרות)' : ''}?`)) return;
+      try{ await B.del(`events/${ev.id}`); toast('האירוע נמחק'); }catch(err){ toast(errMsg(err), true); }
+    };
   });
 }
 
@@ -1532,6 +1676,11 @@ app.addEventListener('click', async e => {
       try{ await B.set(`categories/${B.newId()}`, {name, order:Math.max(0,...S.cats.map(c=>c.order))+1}); toast('הקטגוריה נוספה'); }catch(err){ toast(errMsg(err), true); } break; }
     case 'menu': menuSheet(); break;
     case 'wave': wave(); break;
+    case 'calDay': S.calSel = v; paintCal(); break;
+    case 'calMonth': { const [yy,mm] = dateParts(S.calMonth+'-01'); const t = new Date(Date.UTC(yy, mm-1+(+v), 1)); S.calMonth = `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}`; paintCal(); break; }
+    case 'calToday': S.calMonth = S.dayId.slice(0,7); S.calSel = S.dayId; paintCal(); break;
+    case 'evNew': eventSheet(null, v); break;
+    case 'evEdit': eventSheet(S.events.find(e => e.id===id)); break;
     case 'd-extra': extraSheet(id); break;
     case 'stats': S.main = S.main==='stats' ? store.get('main','tasks') : 'stats'; paint(); scrollTo(0,0); break;
     case 'month': { const [y,m] = S.statMonth.split('-').map(Number); const t = new Date(Date.UTC(y, m-1+(+v), 1)); S.statMonth = `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}`; paintStats(); break; }
