@@ -400,7 +400,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -1096,7 +1096,7 @@ function monthlySheet(id, presetDate){
 }
 
 /* ---------- יומן משותף ---------- */
-const WHO = {shimon:{label:'שמעון', cls:'shimon'}, aviya:{label:'אביה', cls:'aviya'}, both:{label:'שנינו', cls:'both'}};
+const WHO = {shimon:{label:'שמעון', cls:'shimon'}, aviya:{label:'אביה', cls:'aviya'}, both:{label:'משפחה', cls:'both'}};
 const REPEAT = {none:'בלי חזרה', weekly:'כל שבוע', monthly:'כל חודש', yearly:'כל שנה'};
 const dateParts = id => id.split('-').map(Number);
 const wdOf = id => il(new Date(id+'T12:00:00Z').getTime()).wd;
@@ -1145,7 +1145,7 @@ function paintCal(){
       <button class="mbtn" data-act="calMonth" data-v="1" aria-label="חודש הבא">‹</button></div>
     ${S.calMonth !== S.dayId.slice(0,7) ? `<button class="link-btn" style="display:block;margin:-6px auto 4px" data-act="calToday">חזרה להיום</button>` : ''}
     <div class="calg">${DAY_SHORT.map(n => `<span class="cw">${n}</span>`).join('')}${cells}</div>
-    <div class="legend" style="margin-top:10px"><span><i style="background:var(--shimon)"></i>שמעון</span><span><i style="background:var(--aviya)"></i>אביה</span><span><i style="background:var(--accent)"></i>שנינו</span></div>
+    <div class="legend" style="margin-top:10px"><span><i style="background:var(--shimon)"></i>שמעון</span><span><i style="background:var(--aviya)"></i>אביה</span><span><i style="background:var(--accent)"></i>משפחה</span></div>
   </div>
   <div class="row-sb" style="margin:6px 4px 8px"><h3 class="sec" style="margin:0">${sel===S.dayId?'היום · ':''}יום ${DAY_NAMES[sx.wd]}, ${sx.d} ב${MONTHS[sx.m-1]}</h3>
     <button class="pill me" data-act="evNew" data-v="${sel}">＋ אירוע</button></div>
