@@ -400,7 +400,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -884,6 +884,28 @@ async function enableNotifications(silent=false){
     if(!silent){ toast('🔔 ההתראות הופעלו'); paint(); }
   }catch(e){ console.warn('push', e); if(!silent) toast('הפעלת ההתראות נכשלה. נסו שוב.', true); }
 }
+/* שליחת התראה לטלפון של השני דרך השולח ב־Cloudflare */
+async function pushPartner(kind, title, tag){
+  if(LOCAL_MODE || !pushReady()) return {sent:0, reason:'local'};
+  const partner = other(S.person);
+  const tokens = (await B.list('users')).filter(u => u.person === partner).flatMap(u => u.pushTokens || []);
+  if(!tokens.length) return {sent:0, reason:'no-tokens'};
+  const r = await fetch(PUSH.url, {method:'POST', headers:{'Authorization':'Bearer ' + await B.idToken(), 'Content-Type':'application/json'},
+    body:JSON.stringify({kind, tag, tokens, title, body:'\u200f'})});
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+async function remindTest(){
+  if(LOCAL_MODE) return toast('בבדיקה מקומית אין שליחה');
+  try{
+    const r = await fetch(PUSH.url, {method:'POST', headers:{'Authorization':'Bearer ' + await B.idToken(), 'Content-Type':'application/json'}, body:JSON.stringify({kind:'remind-test'})});
+    const j = await r.json().catch(() => ({}));
+    if(j.reason === 'too-soon') return toast('נשלח לפני רגע, אפשר שוב בעוד דקה');
+    if(!r.ok || j.error) throw new Error(j.error || r.status);
+    toast(j.events ? `נשלחה תזכורת על ${j.events} ${j.events===1?'אירוע':'אירועים'} של מחר` : 'אין מחר אירועים ביומן, אז אין תזכורת לשלוח');
+  }catch(e){ console.warn('remind', e); toast('השליחה נכשלה. ייתכן שהשולח ב־Cloudflare עוד לא עודכן.', true); }
+}
 let lastWave = 0;
 async function wave(){
   const partner = other(S.person);
@@ -1179,7 +1201,10 @@ function eventSheet(ev, presetDate){
       const data = {title, date, time, who, note:$('#n',sh).value.trim(), updatedBy:S.person, updatedAt:now()};
       closeSheet();
       try{
-        if(isNew) await B.set(`events/${B.newId()}`, {...data, repeat:'none', by:S.person, createdAt:now()});
+        if(isNew){
+          await B.set(`events/${B.newId()}`, {...data, repeat:'none', by:S.person, createdAt:now()});
+          pushPartner('event', `התווסף אירוע חדש. ${title}`, 'ev-new').catch(e => console.warn('event push', e));
+        }
         else await B.set(`events/${ev.id}`, data, true);
         if(repeat === 'none'){ S.calSel = date; S.calMonth = date.slice(0,7); }   // באירוע חוזר נשארים ביום שבחרתם
         toast(isNew ? 'נוסף ליומן 📅' : 'נשמר'); paint();
@@ -1686,11 +1711,13 @@ function menuSheet(){
     <div class="card" style="box-shadow:none;background:var(--soft)"><b>הוספה למסך הבית</b>
     <div class="small muted" style="margin-top:6px">אייפון: בספארי לוחצים על כפתור השיתוף ⬆︎ ואז "הוספה למסך הבית".<br>אנדרואיד: בכרום לוחצים על ⋮ ואז "התקנת אפליקציה".</div></div>
     ${pushReady() ? `<button class="btn ${store.get('notifOn',false) && pushSupported() && Notification.permission==='granted' ? '' : 'primary'}" id="notif">${store.get('notifOn',false) && pushSupported() && Notification.permission==='granted' ? '🔔 ההתראות פעילות' : '🔔 הפעלת התראות'}</button>` : ''}
+    ${pushReady() ? '<button class="btn" id="rt">⏰ שליחת תזכורת לדוגמה (על האירועים של מחר)</button>' : ''}
     <button class="btn danger" id="out">התנתקות</button><button class="btn" id="cn">סגירה</button>
     <p class="small muted" style="text-align:center;margin-top:12px">גרסה ${APP_VERSION}</p>`, sh => {
     $('#cn',sh).onclick = () => closeSheet();
     $('#out',sh).onclick = () => { closeSheet(); B.signOut(); };
     const nt = $('#notif',sh); if(nt) nt.onclick = () => { closeSheet(); enableNotifications(); };
+    const rt = $('#rt',sh); if(rt) rt.onclick = () => { closeSheet(); remindTest(); };
   });
 }
 
