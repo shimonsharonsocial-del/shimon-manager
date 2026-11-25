@@ -363,7 +363,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "971005983452",
   appId: "1:971005983452:web:357b44270fe013ce72d219",
 };
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 /* התראות (נפנוף 👋): מפתח VAPID מ־Firebase וכתובת השולח ב־Cloudflare. כל עוד ריקים, הכפתור מוסתר. */
 const PUSH = { vapidKey: 'BJ0FiPH6K_Bs5k9eV-KiIdgCQboGRDXX-vm9n1rnqWzCvNNl6CYCrdjpxDhhXmMaLqiAV1FQfDPUyConKBROgK8', url: 'https://bayit-push.shimonsharon985.workers.dev/' };
 const FB_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -699,14 +699,14 @@ async function toggleDaily(id){
   const s = slotOf(S.daily, id);
   const done = !s.done;
   const ok = await slotOp('d', id, s.v||0, cur => done
-      ? {done:true, doneBy:S.person, doneAt:now(), assignee: cur.assignee || S.person}
+      ? {done:true, doneBy: cur.assignee || S.person, markedBy:S.person, doneAt:now(), assignee: cur.assignee || S.person}   // הנקודה הולכת למי שהמשימה משובצת אליו
       : {done:false, doneBy:null, doneAt:null});
   if(ok && done){ justDone.add('d:'+id); setTimeout(()=>justDone.delete('d:'+id), 700); paint(); }
 }
 async function toggleLong(kind, id){
   const s = slotOf(kind==='w' ? S.weekly : S.monthly, id);
   const done = !s.done;
-  const ok = await slotOp(kind, id, s.v||0, () => done ? {done:true, doneBy:S.person, doneAt:now()} : {done:false, doneBy:null, doneAt:null});
+  const ok = await slotOp(kind, id, s.v||0, cur => done ? {done:true, doneBy: cur.assignee || S.person, markedBy:S.person, doneAt:now()} : {done:false, doneBy:null, doneAt:null});
   if(ok && done){ justDone.add(kind+':'+id); setTimeout(()=>justDone.delete(kind+':'+id), 700); paint(); }
 }
 const toggleWeekly = id => toggleLong('w', id);
