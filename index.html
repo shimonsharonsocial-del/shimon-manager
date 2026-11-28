@@ -408,6 +408,11 @@
   .dlv-history-row span:last-child{font-size:13px;color:var(--text-muted);font-weight:600;}
   .dlv-item-note{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4;overflow-wrap:anywhere;}
   .dlv-note{font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;}
+  .idea-btn{flex-shrink:0;width:48px;min-height:46px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:20px;padding:0;}
+  .idea-btn.done{background:var(--success-tint);border-color:var(--success);}
+  .idea-preview{font-size:12.5px;color:var(--text-muted);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .idea-title-input{width:100%;font-size:19px;font-weight:800;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);margin-bottom:10px;}
+  .idea-script{width:100%;min-height:55vh;font-size:16px;line-height:1.65;padding:14px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);resize:vertical;font-family:inherit;}
   .dlv-row{position:relative;overflow:hidden;border-radius:var(--radius-sm);margin-bottom:8px;box-shadow:var(--shadow);}
   .dlv-row-inner{
     position:relative;display:flex;align-items:stretch;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);
@@ -560,11 +565,11 @@ function defaultState(){
     checkingBalanceOffset:0, savingsBalanceOffset:0, cashBalanceOffset:0,
     creditSettings:{ closingDay:15, chargeDay:15 }, recurringFinance:[],
     deliveryUpdates:[], deliveryExpenses:[], deliveryLists:[], deliveryItems:[], deliveryRouteStreets:defaultDeliveryRoute(),
-    deliveryLastTown:DELIVERY_TOWNS[0]
+    deliveryLastTown:DELIVERY_TOWNS[0], socialIdeas:[]
   };
 }
 function migrateDeliverySchema(st){
-  ['deliveryUpdates','deliveryExpenses','deliveryLists','deliveryItems'].forEach(k=>{ if(!Array.isArray(st[k])) st[k] = []; });
+  ['deliveryUpdates','deliveryExpenses','deliveryLists','deliveryItems','socialIdeas'].forEach(k=>{ if(!Array.isArray(st[k])) st[k] = []; });
   if(!Array.isArray(st.deliveryRouteStreets) || !st.deliveryRouteStreets.length) st.deliveryRouteStreets = defaultDeliveryRoute();
   if(!DELIVERY_TOWNS.includes(st.deliveryLastTown)) st.deliveryLastTown = DELIVERY_TOWNS[0];
 }
@@ -648,7 +653,7 @@ function saveState(){
 
 let state = loadState();
 let ui = {
-  view: 'calendar',
+  view: 'day',
   calendarMonth: todayStr().slice(0,7),
   selectedCalendarDate: null,
   selectedDate: todayStr(),
@@ -2839,7 +2844,7 @@ function importBackup(event){
       saveState();
       applyTheme();
       ui = {
-        view: 'calendar',
+        view: 'day',
         calendarMonth: todayStr().slice(0,7),
         selectedCalendarDate: null,
         selectedDate: todayStr(),
@@ -3392,7 +3397,7 @@ function renderFitnessStats(){
 /* ---------- Main render ---------- */
 function renderNavTabs(){
   return `<nav class="tabs">
-    <button class="tab ${ui.view==='calendar'?'active':''}" onclick="switchView('calendar')">🗓️ יומן</button>
+    <button class="tab ${ui.view==='social'?'active':''}" onclick="switchView('social')">🎬 רשתות</button>
     <button class="tab ${ui.view==='day'?'active':''}" onclick="switchView('day')">📅 משימות</button>
     <button class="tab ${ui.view==='stats'?'active':''}" onclick="switchView('stats')">📊 סטטיסטיקה</button>
     <button class="tab ${ui.view==='finances'?'active':''}" onclick="switchView('finances')">💰 כספים</button>
@@ -4458,6 +4463,7 @@ function dlvSwipeEnd(){
   inner.classList.remove('swiping');
   if(Math.abs(s.dx)>=DLV_SWIPE_DELETE){
     if(s.row.dataset.kind==='workout') deleteWorkoutSwiped(s.row.dataset.id);
+    else if(s.row.dataset.kind==='idea') deleteIdeaSwiped(s.row.dataset.id);
     else dlvDeleteSwiped(s.row.dataset.id);
   }
   else inner.style.transform = '';
@@ -4484,6 +4490,100 @@ document.addEventListener('pointermove', dlvSwipeMove);
 document.addEventListener('pointerup', dlvSwipeEnd);
 document.addEventListener('pointercancel', dlvSwipeEnd);
 
+/* ---------- Social: video ideas as notes ---------- */
+let ideaSaveTimer = null;
+function socialIdeas(done){
+  return state.socialIdeas.filter(i=>!!i.done===done)
+    .sort((a,b)=> done ? (b.doneAt||0)-(a.doneAt||0) : b.createdAt-a.createdAt);
+}
+function setSocialSubTab(t){ ui.socialSubTab = t; ui.socialNoteId = null; render(); }
+function renderSocialView(){
+  if(ui.socialNoteId && state.socialIdeas.some(i=>i.id===ui.socialNoteId)) return renderIdeaNote();
+  ui.socialNoteId = null;
+  const tab = ui.socialSubTab==='history' ? 'history' : 'ideas';
+  const list = socialIdeas(tab==='history');
+  const toggle = `
+    <div class="range-tabs" style="margin-bottom:18px;">
+      <button class="tab ${tab==='ideas'?'active':''}" onclick="setSocialSubTab('ideas')">💡 רעיונות (${socialIdeas(false).length})</button>
+      <button class="tab ${tab==='history'?'active':''}" onclick="setSocialSubTab('history')">✅ צולמו (${socialIdeas(true).length})</button>
+    </div>`;
+  const rows = list.length ? list.map(ideaRowHtml).join('')
+    : `<div class="empty">${tab==='history' ? 'עוד לא צילמת סרטונים. כשתלחץ על 🎬 בשורה, הרעיון יעבור לכאן.' : 'אין עדיין רעיונות. הוסף רעיון ראשון.'}</div>`;
+  return toggle + (tab==='ideas' ? `<button class="btn primary" style="width:100%;margin-bottom:18px;" onclick="newIdea()">+ רעיון חדש</button>` : '') + rows;
+}
+function ideaRowHtml(i){
+  const preview = (i.script||'').trim().split('\n')[0];
+  const meta = i.done && i.doneAt ? `צולם ב־${formatDateShort(toDateStr(new Date(i.doneAt)))}` : preview;
+  return `<div class="dlv-row" data-id="${i.id}" data-kind="idea">
+    <div class="dlv-del" aria-hidden="true"><span>🗑️ מחיקה</span><span>🗑️ מחיקה</span></div>
+    <div class="dlv-row-inner">
+      <div class="dlv-body" onclick="ideaTapBody('${i.id}')">
+        <div class="finance-title">${escapeHtml(i.title||'ללא כותרת')}</div>
+        ${meta ? `<div class="idea-preview">${escapeHtml(meta)}</div>` : ''}
+      </div>
+      <button class="idea-btn ${i.done?'done':''}" onclick="toggleIdeaDone('${i.id}')" aria-label="${i.done?'החזרה לרעיונות':'צילמתי'}">${i.done?'↩️':'🎬'}</button>
+    </div>
+  </div>`;
+}
+function ideaTapBody(id){
+  if(dlvSuppressTap){ dlvSuppressTap = false; return; }
+  ui.socialNoteId = id; render(); window.scrollTo(0,0);
+}
+function newIdea(){
+  const idea = { id:uid(), title:'', script:'', done:false, createdAt:Date.now(), doneAt:null };
+  state.socialIdeas.push(idea);
+  saveState();
+  ui.socialNoteId = idea.id;
+  render(); window.scrollTo(0,0);
+  const t = document.getElementById('ideaTitleInput'); if(t) t.focus();
+}
+function renderIdeaNote(){
+  const i = state.socialIdeas.find(x=>x.id===ui.socialNoteId);
+  return `
+    <div class="day-nav" style="margin-bottom:12px;">
+      <button class="text-btn" onclick="closeIdeaNote()">→ חזרה לרשימה</button>
+      <button class="text-btn" onclick="toggleIdeaDone('${i.id}')">${i.done?'↩️ החזר לרעיונות':'🎬 צילמתי'}</button>
+    </div>
+    <input id="ideaTitleInput" class="idea-title-input" placeholder="כותרת הרעיון" value="${escapeHtml(i.title||'')}" oninput="updateIdeaField('title',this.value)">
+    <textarea id="ideaScriptInput" class="idea-script" placeholder="מה אני אומר בסרטון..." oninput="updateIdeaField('script',this.value)">${escapeHtml(i.script||'')}</textarea>
+    <div class="dlv-note" style="margin-top:8px;">נשמר אוטומטית.</div>`;
+}
+function updateIdeaField(field, val){
+  const i = state.socialIdeas.find(x=>x.id===ui.socialNoteId);
+  if(!i) return;
+  i[field] = val;
+  clearTimeout(ideaSaveTimer);
+  ideaSaveTimer = setTimeout(saveState, 400);
+}
+function closeIdeaNote(){
+  clearTimeout(ideaSaveTimer);
+  const i = state.socialIdeas.find(x=>x.id===ui.socialNoteId);
+  // An idea left completely empty is dropped instead of cluttering the list.
+  if(i && !i.title.trim() && !i.script.trim()) state.socialIdeas = state.socialIdeas.filter(x=>x.id!==i.id);
+  saveState();
+  ui.socialNoteId = null;
+  render();
+}
+function toggleIdeaDone(id){
+  const i = state.socialIdeas.find(x=>x.id===id);
+  if(!i) return;
+  clearTimeout(ideaSaveTimer);
+  i.done = !i.done;
+  i.doneAt = i.done ? Date.now() : null;
+  saveState();
+  ui.socialNoteId = null;
+  render();
+  dlvToast(i.done ? '🎬 עבר להיסטוריה' : '↩️ חזר לרעיונות');
+}
+function deleteIdeaSwiped(id){
+  const i = state.socialIdeas.find(x=>x.id===id);
+  if(!i) return;
+  state.socialIdeas = state.socialIdeas.filter(x=>x.id!==id);
+  saveState();
+  render();
+  dlvToast(`נמחק: ${i.title||'ללא כותרת'}`);
+}
+
 function render(){
   const main = document.getElementById('mainView');
   let body;
@@ -4495,7 +4595,8 @@ function render(){
   else if(ui.view==='nutrition') body = renderNutritionView();
   else if(ui.view==='fitness') body = renderFitnessView();
   else if(ui.view==='deliveries') body = renderDeliveriesView();
-  else body = renderCalendarView();
+  else if(ui.view==='social') body = renderSocialView();
+  else body = renderTasksTab();
   main.innerHTML = renderNavTabs() + body;
 }
 
